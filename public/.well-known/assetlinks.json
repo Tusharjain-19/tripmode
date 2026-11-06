@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.tripmode.convoy",
+      "sha256_cert_fingerprints": [
+        "16:75:97:94:79:54:E9:13:15:59:1B:D2:BD:1F:B3:D0:98:7C:4C:0B:9B:25:CB:BF:60:3B:DE:5E:F9:CD:94:50"
+      ]
+    }
+  }
+]

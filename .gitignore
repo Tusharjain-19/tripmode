@@ -43,3 +43,10 @@ lerna-debug.log*
 *.local
 temp-*
 *.tmp
+
+# Android build & secrets
+mobile/.gradle/
+mobile/build/
+mobile/app/build/
+*.keystore
+*.jks

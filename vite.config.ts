@@ -13,13 +13,36 @@ function reactRefreshRuntimePlugin(): Plugin {
     load(id) {
       if (id === "/@react-refresh") {
         return `
+          const RefreshRuntime = {
+            injectIntoGlobalHook(w) {},
+            register(type, id) {},
+            createSignatureFunctionForTransform() { return (type) => type; },
+            registerExportsForReactRefresh() {},
+            validateRefreshBoundaryAndEnqueueUpdate() {},
+            performReactRefresh() {},
+            isLikelyComponentType(type) { return true; },
+            collectCustomHooksForSignature() {},
+            setSignature() {},
+            getFamilyByID() { return undefined; },
+            getFamilyByType() { return undefined; },
+            hasUnrecoverableErrors() { return false; },
+            _getMountedRootCount() { return 0; },
+          };
           export function injectIntoGlobalHook(w) {}
-          export function register() {}
+          export function register(type, id) {}
           export function createSignatureFunctionForTransform() { return (type) => type; }
           export function registerExportsForReactRefresh() {}
           export function validateRefreshBoundaryAndEnqueueUpdate() {}
+          export function performReactRefresh() {}
+          export function isLikelyComponentType(type) { return true; }
+          export function collectCustomHooksForSignature() {}
+          export function setSignature() {}
+          export function getFamilyByID() { return undefined; }
+          export function getFamilyByType() { return undefined; }
+          export function hasUnrecoverableErrors() { return false; }
+          export function _getMountedRootCount() { return 0; }
           export const __hmr_import = (m) => import(m);
-          export default { injectIntoGlobalHook(w) {} };
+          export default RefreshRuntime;
         `;
       }
       return null;

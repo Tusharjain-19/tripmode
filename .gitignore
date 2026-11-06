@@ -48,5 +48,6 @@ temp-*
 mobile/.gradle/
 mobile/build/
 mobile/app/build/
+mobile/release/
 *.keystore
 *.jks

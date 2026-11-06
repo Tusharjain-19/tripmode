@@ -53,7 +53,6 @@
     "@tanstack/react-start": "1.168.60",
     "@tanstack/router-plugin": "1.168.42",
     "ai": "^7.0.163",
-    "caniuse-lite": "^1.0.30001823",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

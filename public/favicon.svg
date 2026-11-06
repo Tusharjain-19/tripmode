@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect width="48" height="48" rx="14" fill="#1B5A47" />
+  <!-- Instrument grid ring -->
+  <circle cx="24" cy="24" r="15" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.3" stroke-dasharray="3 3" />
+  <!-- Convoy navigation chevron / instrument arrow -->
+  <path d="M24 11L33 34L24 29L15 34L24 11Z" fill="#F7F5F0" />
+  <!-- Convoy point dot -->
+  <circle cx="24" cy="24" r="2.5" fill="#1B5A47" />
+</svg>
+

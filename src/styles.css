@@ -1,0 +1,211 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Trip Mode design tokens (design.md sections 3-5, 10). Only place colors and durations live. */
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@theme inline {
+  --font-sans: "Public Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 24px;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-tertiary: var(--tertiary);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-leading: var(--leading);
+  --color-caution: var(--caution);
+  --color-alert: var(--alert);
+  --color-info: var(--info);
+  --color-map-land: var(--map-land);
+  --color-map-water: var(--map-water);
+  --color-map-road: var(--map-road);
+  --color-v1: #e69f00;
+  --color-v2: #56b4e9;
+  --color-v3: #009e73;
+  --color-v4: #f0e442;
+  --color-v5: #0072b2;
+  --color-v6: #cc79a7;
+  --color-v7: #9c6b30;
+  --color-v8: #5b6770;
+  --color-on-vehicle-dark: #0c100e;
+  --color-on-vehicle-light: #ffffff;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  --radius: 14px;
+  --background: #f7f5f0;
+  --foreground: #16201b;
+  --card: #ffffff;
+  --card-foreground: #16201b;
+  --popover: #ffffff;
+  --popover-foreground: #16201b;
+  --primary: #1b5a47;
+  --primary-pressed: #144536;
+  --primary-foreground: #f7f5f0;
+  --secondary: #edeae2;
+  --secondary-foreground: #16201b;
+  --muted: #edeae2;
+  --muted-foreground: #4f5b54;
+  --tertiary: #7b867f;
+  --accent: #edeae2;
+  --accent-foreground: #16201b;
+  --destructive: #b3361b;
+  --destructive-foreground: #ffffff;
+  --border: #e1ddd2;
+  --input: #edeae2;
+  --ring: #1b5a47;
+  --leading: #1e7a4f;
+  --caution: #b7700a;
+  --alert: #b3361b;
+  --info: #2f5d8c;
+  --map-land: #ebe8df;
+  --map-water: #d3dcd8;
+  --map-road: #ffffff;
+  --shadow-float: 0 4px 14px rgb(0 0 0 / 12%);
+}
+
+.dark {
+  --background: #111613;
+  --foreground: #eceFea;
+  --card: #1a211d;
+  --card-foreground: #eceFea;
+  --popover: #1a211d;
+  --popover-foreground: #eceFea;
+  --primary: #5fbf9d;
+  --primary-pressed: #4ea586;
+  --primary-foreground: #0c100e;
+  --secondary: #0c100e;
+  --secondary-foreground: #eceFea;
+  --muted: #0c100e;
+  --muted-foreground: #a9b3ac;
+  --tertiary: #76817a;
+  --accent: #2a332e;
+  --accent-foreground: #eceFea;
+  --destructive: #ee7b62;
+  --destructive-foreground: #0c100e;
+  --border: #2a332e;
+  --input: #0c100e;
+  --ring: #5fbf9d;
+  --leading: #6fcb93;
+  --caution: #e0a13b;
+  --alert: #ee7b62;
+  --info: #7fa6d1;
+  --map-land: #161c19;
+  --map-water: #0f1a17;
+  --map-road: #232b27;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@utility shadow-float {
+  box-shadow: var(--shadow-float);
+}
+@utility overline {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+@utility ms {
+  font-family: "Material Symbols Rounded";
+  font-variation-settings: "wght" 500, "opsz" 24;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+}
+
+.rail-chip {
+  transition: left 400ms var(--ease-standard), top 400ms var(--ease-standard);
+  will-change: left, top;
+}
+.gap-bracket {
+  transition: color 250ms ease-out, border-color 250ms ease-out;
+}
+.banner-in {
+  animation: banner-in 220ms ease-out both;
+  will-change: opacity, transform;
+}
+@keyframes banner-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ptt-ring {
+  animation: ptt-ring 1200ms ease-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes ptt-ring {
+  from { transform: scale(1); opacity: 0.5; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+.sos-fill {
+  transition: stroke-dashoffset 1200ms linear;
+}
+.screen-in {
+  animation: screen-in 240ms var(--ease-standard) both;
+  will-change: opacity, transform;
+}
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-chip, .gap-bracket { transition-duration: 1ms; }
+  .ptt-ring, .banner-in, .screen-in { animation: none; }
+}
+
+/* Google sign-in button: Google's branding colors (light theme / dark theme) */

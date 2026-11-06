@@ -49,6 +49,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 
+                <data android:scheme="https" android:host="tripmode-orcin.vercel.app" />
                 <data android:scheme="https" android:host="tripmode.app" />
                 <data android:scheme="https" android:host="www.tripmode.app" />
                 <data android:scheme="http" android:host="10.0.2.2" />

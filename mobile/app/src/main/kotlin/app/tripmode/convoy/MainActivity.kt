@@ -27,7 +27,7 @@ class MainActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var progressBar: ProgressBar
 
-    private val defaultBaseUrl = "https://tripmode.app"
+    private val defaultBaseUrl = "https://tripmode-orcin.vercel.app"
     private val PERMISSION_REQUEST_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -159,7 +159,7 @@ class MainActivity : Activity() {
                 val host = url.host ?: ""
 
                 // Keep all Trip Mode navigation inside this native WebView
-                if (host.contains("tripmode") || host == "localhost" || host == "10.0.2.2") {
+                if (host.contains("tripmode") || host.contains("vercel.app") || host == "localhost" || host == "10.0.2.2") {
                     return false
                 }
 

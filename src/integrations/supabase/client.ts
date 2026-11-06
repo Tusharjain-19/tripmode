@@ -69,8 +69,11 @@ function createSupabaseClient() {
     "";
   const SUPABASE_PUBLISHABLE_KEY =
     metaEnv?.["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    metaEnv?.["VITE_SUPABASE_ANON_KEY"] ||
     procEnv?.["SUPABASE_PUBLISHABLE_KEY"] ||
+    procEnv?.["SUPABASE_ANON_KEY"] ||
     procEnv?.["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    procEnv?.["VITE_SUPABASE_ANON_KEY"] ||
     "";
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {

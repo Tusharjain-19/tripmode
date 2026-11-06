@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { adjacentGaps, classify, gapsToLeader, leaderId, pointAt, routeProgress, stackRows } from "./convoy";
+import {
+  adjacentGaps,
+  classify,
+  gapsToLeader,
+  leaderId,
+  pointAt,
+  routeProgress,
+  stackRows,
+} from "./convoy";
 
 const line = [
   { x: 0, y: 0 },
@@ -49,8 +57,10 @@ describe("status classification", () => {
     expect(classify({ ...base, gapM: 3001 })).toBe("behind");
     expect(classify({ ...base, gapM: 3000 })).toBe("following");
   });
-  it("stopped after 3 minutes", () => expect(classify({ ...base, stoppedForS: 180 })).toBe("stopped"));
-  it("off route after 30 seconds", () => expect(classify({ ...base, offRouteForS: 30 })).toBe("offroute"));
+  it("stopped after 3 minutes", () =>
+    expect(classify({ ...base, stoppedForS: 180 })).toBe("stopped"));
+  it("off route after 30 seconds", () =>
+    expect(classify({ ...base, offRouteForS: 30 })).toBe("offroute"));
   it("stale after 15 s, offline after 60 s", () => {
     expect(classify({ ...base, sinceUpdateS: 15 })).toBe("stale");
     expect(classify({ ...base, sinceUpdateS: 60 })).toBe("offline");

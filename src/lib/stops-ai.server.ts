@@ -10,7 +10,9 @@ export const stopSchema = z.object({
   stops: z.array(
     z.object({
       name: z.string().describe("Short place name, for example 'HP petrol pump near Kishangarh'"),
-      query: z.string().describe("Search text to find this place on a map in India, including town name"),
+      query: z
+        .string()
+        .describe("Search text to find this place on a map in India, including town name"),
       reason: z.string().describe("Why the group wants to stop, in under 12 words, factual"),
     }),
   ),
@@ -18,12 +20,18 @@ export const stopSchema = z.object({
 export type ExtractedStop = z.infer<typeof stopSchema>["stops"][number];
 
 export class GatewayError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
 
-export async function extractStopsFromChat(transcript: string, ctx: { origin: string; destination: string }): Promise<ExtractedStop[]> {
+export async function extractStopsFromChat(
+  transcript: string,
+  ctx: { origin: string; destination: string },
+): Promise<ExtractedStop[]> {
   const apiKey = process.env["AI_API_KEY"] || process.env["OPENAI_API_KEY"];
   if (!apiKey) throw new GatewayError(500, "AI is not configured for this app.");
   let runId: string | undefined;
@@ -37,10 +45,27 @@ export async function extractStopsFromChat(transcript: string, ctx: { origin: st
       const res = await fetch(input, { ...init, headers: reqHeaders });
       runId ??= res.headers.get("X-Run-ID") ?? undefined;
       if (!res.ok) {
-        const body = await res.clone().text().catch(() => "");
+        const body = await res
+          .clone()
+          .text()
+          .catch(() => "");
         let msg = body;
-        try { msg = (JSON.parse(body) as { message?: string; error?: { message?: string } }).message ?? JSON.parse(body).error?.message ?? body; } catch { /* keep text */ }
-        throw new GatewayError(res.status, res.status === 402 ? msg || "AI credits are used up." : res.status === 429 ? "AI is busy. Try again in a minute." : msg || "AI request failed.");
+        try {
+          msg =
+            (JSON.parse(body) as { message?: string; error?: { message?: string } }).message ??
+            JSON.parse(body).error?.message ??
+            body;
+        } catch {
+          /* keep text */
+        }
+        throw new GatewayError(
+          res.status,
+          res.status === 402
+            ? msg || "AI credits are used up."
+            : res.status === 429
+              ? "AI is busy. Try again in a minute."
+              : msg || "AI request failed.",
+        );
       }
       return res;
     },

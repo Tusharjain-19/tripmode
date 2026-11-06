@@ -11,10 +11,10 @@ const memoryStore = new Map<string, string>();
  * Standard browser session storage using localStorage with safe in-memory fallback.
  */
 export function brokeredPreviewStorage(): PreviewAuthStorage | undefined {
-  if (typeof window === 'undefined') return undefined;
+  if (typeof window === "undefined") return undefined;
   try {
-    if (window.localStorage && typeof window.localStorage.getItem === 'function') {
-      const testKey = '__storage_test__';
+    if (window.localStorage && typeof window.localStorage.getItem === "function") {
+      const testKey = "__storage_test__";
       window.localStorage.setItem(testKey, testKey);
       window.localStorage.removeItem(testKey);
       return window.localStorage;

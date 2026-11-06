@@ -26,7 +26,12 @@ export type NavRoute = {
   geometry: LngLat[];
 };
 
-type OsrmStep = { maneuver: { type: string; modifier?: string; location: number[]; exit?: number }; name: string; ref?: string; distance: number };
+type OsrmStep = {
+  maneuver: { type: string; modifier?: string; location: number[]; exit?: number };
+  name: string;
+  ref?: string;
+  distance: number;
+};
 
 export async function fetchGuidance(
   from: LngLat,
@@ -35,7 +40,8 @@ export async function fetchGuidance(
   signalParam?: AbortSignal,
 ): Promise<NavRoute> {
   const waypoints: LngLat[] = Array.isArray(waypointsOrSignal) ? waypointsOrSignal : [];
-  const signal: AbortSignal | null = waypointsOrSignal instanceof AbortSignal ? waypointsOrSignal : signalParam ?? null;
+  const signal: AbortSignal | null =
+    waypointsOrSignal instanceof AbortSignal ? waypointsOrSignal : (signalParam ?? null);
 
   const allPoints = [from, ...waypoints, to];
   const pointsStr = allPoints.map((p) => `${p[0]},${p[1]}`).join(";");
@@ -101,7 +107,8 @@ export function haversineM(a: LngLat, b: LngLat): number {
   const toR = (d: number) => (d * Math.PI) / 180;
   const dLat = toR(b[1] - a[1]);
   const dLng = toR(b[0] - a[0]);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
@@ -118,7 +125,9 @@ export function instruction(s: NavStep): string {
       return "Arrive at the destination";
     case "roundabout":
     case "rotary":
-      return s.exit ? `At the roundabout, take exit ${s.exit}${onto}` : `Enter the roundabout${onto}`;
+      return s.exit
+        ? `At the roundabout, take exit ${s.exit}${onto}`
+        : `Enter the roundabout${onto}`;
     case "merge":
       return `Merge${onto}`;
     case "on ramp":

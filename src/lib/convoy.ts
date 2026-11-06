@@ -1,7 +1,8 @@
 // Pure convoy logic (frontend.md section 7). No side effects, fully unit-tested.
 
 export type Point = { x: number; y: number };
-export type MemberStatus = "following" | "behind" | "stopped" | "offroute" | "stale" | "offline" | "arrived";
+export type MemberStatus =
+  "following" | "behind" | "stopped" | "offroute" | "stale" | "offline" | "arrived";
 
 export const THRESHOLDS = {
   stoppedSpeedKmh: 2,
@@ -14,7 +15,8 @@ export const THRESHOLDS = {
 
 export function segmentLengths(line: Point[]): number[] {
   const out: number[] = [];
-  for (let i = 1; i < line.length; i++) out.push(Math.hypot(line[i]!.x - line[i - 1]!.x, line[i]!.y - line[i - 1]!.y));
+  for (let i = 1; i < line.length; i++)
+    out.push(Math.hypot(line[i]!.x - line[i - 1]!.x, line[i]!.y - line[i - 1]!.y));
   return out;
 }
 
@@ -52,7 +54,8 @@ export function routeProgress(line: Point[], p: Point): { progress: number; offs
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len2 = dx * dx + dy * dy;
-    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+    const t =
+      len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
     const off = Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
     if (off < best.offset) best = { progress: acc + Math.sqrt(len2) * t, offset: off };
     acc += Math.sqrt(len2);
@@ -75,11 +78,17 @@ export function gapsToLeader(entries: ProgressEntry[]): Record<string, number> {
 }
 
 /** Gaps between adjacent vehicles, ordered from leader backwards. */
-export function adjacentGaps(entries: ProgressEntry[]): { ahead: string; behind: string; gapM: number }[] {
+export function adjacentGaps(
+  entries: ProgressEntry[],
+): { ahead: string; behind: string; gapM: number }[] {
   const sorted = [...entries].sort((a, b) => b.progressM - a.progressM);
   const out: { ahead: string; behind: string; gapM: number }[] = [];
   for (let i = 1; i < sorted.length; i++) {
-    out.push({ ahead: sorted[i - 1]!.id, behind: sorted[i]!.id, gapM: sorted[i - 1]!.progressM - sorted[i]!.progressM });
+    out.push({
+      ahead: sorted[i - 1]!.id,
+      behind: sorted[i]!.id,
+      gapM: sorted[i - 1]!.progressM - sorted[i]!.progressM,
+    });
   }
   return out;
 }

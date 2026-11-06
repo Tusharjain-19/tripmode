@@ -10,7 +10,13 @@ const profileSchema = z.object({
 });
 
 /** Vehicle setup then explicit per-trip location consent. Calls onDone after consent is recorded. */
-export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | Promise<void>; takenColors?: VehicleColor[] }) {
+export function JoinSteps({
+  onDone,
+  takenColors = [],
+}: {
+  onDone: () => void | Promise<void>;
+  takenColors?: VehicleColor[];
+}) {
   const me = useTrip((s) => s.me);
   const tripName = useTrip((s) => s.trip?.name ?? "this trip");
   const [step, setStep] = useState<"vehicle" | "consent">("vehicle");
@@ -37,14 +43,43 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
 
   if (step === "vehicle")
     return (
-      <form onSubmit={(e) => { e.preventDefault(); handleContinue(); }} className="screen-in space-y-5">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleContinue();
+        }}
+        className="screen-in space-y-5"
+      >
         <h2 className="text-[22px] font-semibold">Your vehicle</h2>
-        <Field label="Your name" value={displayName} maxLength={40} onChange={(e) => setDisplayName(e.target.value)} placeholder="First name" />
+        <Field
+          label="Your name"
+          value={displayName}
+          maxLength={40}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="First name"
+        />
         <div>
           <div className="mb-2 text-[14px] font-medium">Vehicle type</div>
-          <Segmented label="Vehicle type" value={vehicleType} onChange={(v) => { setVehicleType(v); if (vehicleLabel === "My car" || vehicleLabel === "My bike") setVehicleLabel(v === "bike" ? "My bike" : "My car"); }} options={[{ value: "car", label: "Car" }, { value: "bike", label: "Bike" }]} />
+          <Segmented
+            label="Vehicle type"
+            value={vehicleType}
+            onChange={(v) => {
+              setVehicleType(v);
+              if (vehicleLabel === "My car" || vehicleLabel === "My bike")
+                setVehicleLabel(v === "bike" ? "My bike" : "My car");
+            }}
+            options={[
+              { value: "car", label: "Car" },
+              { value: "bike", label: "Bike" },
+            ]}
+          />
         </div>
-        <Field label="Vehicle name" value={vehicleLabel} maxLength={24} onChange={(e) => setVehicleLabel(e.target.value)} />
+        <Field
+          label="Vehicle name"
+          value={vehicleLabel}
+          maxLength={24}
+          onChange={(e) => setVehicleLabel(e.target.value)}
+        />
         <div>
           <div className="mb-2 text-[14px] font-medium">Vehicle color</div>
           <div role="radiogroup" aria-label="Vehicle color" className="grid grid-cols-8 gap-2">
@@ -59,7 +94,11 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
                   aria-label={`Color ${i + 1}${taken ? ", taken" : ""}`}
                   disabled={taken}
                   onClick={() => setColor(c)}
-                  className={cn("flex aspect-square items-center justify-center rounded-[8px] disabled:opacity-25 cursor-pointer", vehicleBg(c), color === c && "outline-2 outline-offset-2 outline-foreground")}
+                  className={cn(
+                    "flex aspect-square items-center justify-center rounded-[8px] disabled:opacity-25 cursor-pointer",
+                    vehicleBg(c),
+                    color === c && "outline-2 outline-offset-2 outline-foreground",
+                  )}
                 >
                   {color === c && <Icon name="check" className="text-[20px]" />}
                 </button>
@@ -69,14 +108,20 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
         </div>
         <div>
           <div className="mb-2 text-[14px] font-medium">You are the</div>
-          <Segmented label="Role" value={role} onChange={setRole} options={[{ value: "driver", label: "Driver" }, { value: "passenger", label: "Passenger" }]} />
-          <p className="mt-2 text-[12px] text-tertiary">Drivers get larger buttons and typing is turned off while moving.</p>
+          <Segmented
+            label="Role"
+            value={role}
+            onChange={setRole}
+            options={[
+              { value: "driver", label: "Driver" },
+              { value: "passenger", label: "Passenger" },
+            ]}
+          />
+          <p className="mt-2 text-[12px] text-tertiary">
+            Drivers get larger buttons and typing is turned off while moving.
+          </p>
         </div>
-        <Button
-          type="submit"
-          className="w-full cursor-pointer"
-          size="lg"
-        >
+        <Button type="submit" className="w-full cursor-pointer" size="lg">
           Continue to Location Consent
         </Button>
       </form>
@@ -91,9 +136,15 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
       <ul className="space-y-3 rounded-[14px] border border-border bg-card p-4 text-[16px]">
         {[
           ["group", `Only members of ${tripName} can see your live position.`],
-          ["schedule", "Sharing runs only while this trip is active, and stops when it ends or you leave."],
+          [
+            "schedule",
+            "Sharing runs only while this trip is active, and stops when it ends or you leave.",
+          ],
           ["visibility", "A sharing indicator stays on screen the whole time."],
-          ["delete", "Live positions are not kept. Your trip history is deleted after 30 days unless you save it."],
+          [
+            "delete",
+            "Live positions are not kept. Your trip history is deleted after 30 days unless you save it.",
+          ],
           ["logout", "You can stop sharing and leave at any time."],
         ].map(([icon, text]) => (
           <li key={icon} className="flex gap-3">
@@ -102,7 +153,11 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
           </li>
         ))}
       </ul>
-      {err && <p role="alert" className="text-[14px] text-alert">{err}</p>}
+      {err && (
+        <p role="alert" className="text-[14px] text-alert">
+          {err}
+        </p>
+      )}
       <Button
         className="w-full cursor-pointer"
         disabled={busy}
@@ -129,7 +184,12 @@ export function JoinSteps({ onDone, takenColors = [] }: { onDone: () => void | P
           "Share location for this trip"
         )}
       </Button>
-      <Button type="button" variant="quiet" className="w-full cursor-pointer" onClick={() => setStep("vehicle")}>
+      <Button
+        type="button"
+        variant="quiet"
+        className="w-full cursor-pointer"
+        onClick={() => setStep("vehicle")}
+      >
         Not now
       </Button>
     </div>

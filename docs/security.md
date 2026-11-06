@@ -19,22 +19,22 @@ This is engineering guidance, not legal advice. Have the privacy policy and cons
 
 ## 2. Threat model
 
-| Threat | Example | Mitigation |
-|---|---|---|
+| Threat                       | Example                                                             | Mitigation                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Stalking / unwanted tracking | Someone joins a trip to track a person, or a host keeps a trip open | Explicit per-trip consent, visible sharing indicator, auto-end, leave anytime, removal and block tools, trip expiry |
-| Invite link leakage | Link forwarded to strangers | Random high-entropy codes, expiry, max uses, host approval mode, revoke, member cap |
-| Invite brute force | Guessing codes | 128-bit codes, hashed at rest, rate limits, lockout |
-| Account takeover | Stolen session | Short-lived access tokens, refresh rotation, device binding, re-auth for sensitive actions |
-| Broken access control | Reading another trip's positions by changing an ID | Server-side authorization on every request and socket event, RLS |
-| Location spoofing | Fake GPS to disrupt convoy view | Plausibility checks (max speed, teleport detection), server timestamp, mark suspicious data |
-| WebSocket abuse | Flooding, subscribing to other trips | Auth at connect, per-connection rate limits, message size caps, topic authorization |
-| Voice eavesdropping | Joining the audio room | Per-user, per-room, short-lived LiveKit tokens issued only to members, encrypted transport |
-| Data breach | Database dump | Encryption at rest, minimal retention, no raw invite codes, secrets management |
-| API key theft | Maps key extracted from app | Server-side use where possible; restricted client keys (see section 9) |
-| Harassing chat | Abusive messages | Block, report, host remove, length limits, rate limits |
-| Driver distraction | UI demands attention | Driving mode, disabled typing while moving, voice-first (see design.md) |
-| Supply chain | Malicious dependency | Lockfiles, audit in CI, minimal dependencies, pinned versions |
-| Insider access | Staff browsing locations | No admin UI for live location, audit logging, access reviews |
+| Invite link leakage          | Link forwarded to strangers                                         | Random high-entropy codes, expiry, max uses, host approval mode, revoke, member cap                                 |
+| Invite brute force           | Guessing codes                                                      | 128-bit codes, hashed at rest, rate limits, lockout                                                                 |
+| Account takeover             | Stolen session                                                      | Short-lived access tokens, refresh rotation, device binding, re-auth for sensitive actions                          |
+| Broken access control        | Reading another trip's positions by changing an ID                  | Server-side authorization on every request and socket event, RLS                                                    |
+| Location spoofing            | Fake GPS to disrupt convoy view                                     | Plausibility checks (max speed, teleport detection), server timestamp, mark suspicious data                         |
+| WebSocket abuse              | Flooding, subscribing to other trips                                | Auth at connect, per-connection rate limits, message size caps, topic authorization                                 |
+| Voice eavesdropping          | Joining the audio room                                              | Per-user, per-room, short-lived LiveKit tokens issued only to members, encrypted transport                          |
+| Data breach                  | Database dump                                                       | Encryption at rest, minimal retention, no raw invite codes, secrets management                                      |
+| API key theft                | Maps key extracted from app                                         | Server-side use where possible; restricted client keys (see section 9)                                              |
+| Harassing chat               | Abusive messages                                                    | Block, report, host remove, length limits, rate limits                                                              |
+| Driver distraction           | UI demands attention                                                | Driving mode, disabled typing while moving, voice-first (see design.md)                                             |
+| Supply chain                 | Malicious dependency                                                | Lockfiles, audit in CI, minimal dependencies, pinned versions                                                       |
+| Insider access               | Staff browsing locations                                            | No admin UI for live location, audit logging, access reviews                                                        |
 
 ---
 
@@ -59,6 +59,7 @@ Every request and every WebSocket event passes through the same checks:
 4. Resource belongs to that trip (never trust `tripId` or `memberId` from the client body; derive from the token).
 
 Rules:
+
 - Deny by default.
 - Use opaque UUIDs; do not rely on obscurity for security.
 - Write authorization tests for every endpoint: unauthenticated, wrong user, wrong role, removed member, expired trip.
@@ -82,11 +83,13 @@ Rules:
 ## 6. Location privacy
 
 **Consent**
+
 - Dedicated consent screen on join: what is shared (live position, speed, vehicle name), who sees it (members of this trip only), when it stops (trip end or when you leave), and your controls.
 - Consent timestamp stored per member per trip. No consent, no sharing.
 - Separate, optional toggle for saving a breadcrumb history (off by default).
 
 **Controls**
+
 - Persistent in-app indicator and OS-level indicator (Android foreground notification, iOS background location indicator) while sharing.
 - **Pause sharing** (members see "location paused", not a fake position) and **Leave trip** are one tap.
 - Host cannot force a member's location to be shared and cannot see data of ended trips beyond summaries the member agreed to.
@@ -94,12 +97,14 @@ Rules:
 - Precision: exact position only during active trips. No sharing in lobby unless the member opts to preview their start.
 
 **Data handling**
+
 - No location in logs, analytics events, crash reports, or push notification payloads.
 - Redis positions deleted at trip end; breadcrumbs only by opt-in and short retention.
 - No selling or advertising use of location. State this plainly in the privacy policy.
 - Third-party SDKs (analytics, crash) must not receive coordinates; scrub in `beforeSend`.
 
 **Compliance considerations (verify with counsel)**
+
 - India: Digital Personal Data Protection Act, 2023 (notice, consent, purpose limitation, deletion rights, grievance contact).
 - If users in the EU: GDPR (lawful basis, DPIA for location data, data subject rights).
 - Store and Play policies: accurate location permission rationale, background location justification, data safety form.
@@ -121,18 +126,19 @@ Rules:
 
 ## 8. Abuse prevention and rate limits
 
-| Action | Limit |
-|---|---|
-| Location updates | 1 per second per member; reject faster |
-| Chat messages | 10 per 10 seconds per member; 500 chars |
-| Quick alerts | 1 per 5 seconds per member |
-| Trip creation | 10 per hour per user |
-| Invite creation | 20 per day per trip |
-| Join attempts | 10 failures per 15 min per IP |
-| WebSocket message size | 4 KB max |
-| Connections | 3 per user |
+| Action                 | Limit                                   |
+| ---------------------- | --------------------------------------- |
+| Location updates       | 1 per second per member; reject faster  |
+| Chat messages          | 10 per 10 seconds per member; 500 chars |
+| Quick alerts           | 1 per 5 seconds per member              |
+| Trip creation          | 10 per hour per user                    |
+| Invite creation        | 20 per day per trip                     |
+| Join attempts          | 10 failures per 15 min per IP           |
+| WebSocket message size | 4 KB max                                |
+| Connections            | 3 per user                              |
 
 Plus:
+
 - Location plausibility: reject updates implying speed over 250 km/h or teleport jumps; flag the member as "unverified position".
 - Server timestamps are authoritative; client time only used for ordering hints.
 - Profanity filtering optional; reporting and blocking mandatory (see database `blocks`, `reports`).

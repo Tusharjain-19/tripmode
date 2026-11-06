@@ -5,7 +5,12 @@ import { ensureGuest, useSession } from "@/lib/auth";
 import { Button, Icon, Screen } from "./ui";
 
 /** Gives the device a guest ID automatically (no sign-in screen), then renders children. */
-export function RequireAuth({ children }: { children: (session: Session) => ReactNode; reason?: string }) {
+export function RequireAuth({
+  children,
+}: {
+  children: (session: Session) => ReactNode;
+  reason?: string;
+}) {
   const session = useSession();
   const [err, setErr] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -50,7 +55,9 @@ export function RequireAuth({ children }: { children: (session: Session) => Reac
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
       <Icon name="progress_activity" className="animate-spin text-tertiary text-[32px]" />
-      <span className="text-[13px] text-muted-foreground font-medium">Connecting device to convoy...</span>
+      <span className="text-[13px] text-muted-foreground font-medium">
+        Connecting device to convoy...
+      </span>
     </div>
   );
 }

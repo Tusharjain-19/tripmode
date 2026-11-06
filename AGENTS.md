@@ -1,6 +1,7 @@
 # Trip Mode Development Guidelines
 
 ## Project rules
+
 - Product specs live in `docs/` and `docs_tripmode/` (design, frontend, database, security, prompt); they are the source of truth for Trip Mode.
 - Implemented as a responsive TanStack Start web app with full mobile, tablet, and desktop fidelity.
 - Convoy math stays pure in `src/lib/convoy.ts` with unit tests; UI only presents it.

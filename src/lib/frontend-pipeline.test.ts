@@ -206,4 +206,3 @@ describe("Geocoding & Route calculation resilience", () => {
     expect(routes[0]?.coords.length).toBeGreaterThan(1);
   }, 10000);
 });
-

@@ -13,7 +13,10 @@ const setRefLat = (lat: number) => {
 };
 
 export type LngLat = [number, number];
-export const toMeters = ([lng, lat]: LngLat): Point => ({ x: lng * mPerDegLng, y: lat * M_PER_DEG_LAT });
+export const toMeters = ([lng, lat]: LngLat): Point => ({
+  x: lng * mPerDegLng,
+  y: lat * M_PER_DEG_LAT,
+});
 export const toLngLat = (p: Point): LngLat => [p.x / mPerDegLng, p.y / M_PER_DEG_LAT];
 
 /** Shortest-arc heading interpolation to avoid 360° flip spins. */
@@ -101,8 +104,21 @@ export const POPULAR_ROUTES = [
   },
 ] as const;
 
-export type RawRoute = { name: string; via: string; distanceM: number; durationS: number; coords: number[][] };
-export type RouteOption = { name: string; via: string; km: number; hours: string; coords: LngLat[]; line: Point[] };
+export type RawRoute = {
+  name: string;
+  via: string;
+  distanceM: number;
+  durationS: number;
+  coords: number[][];
+};
+export type RouteOption = {
+  name: string;
+  via: string;
+  km: number;
+  hours: string;
+  coords: LngLat[];
+  line: Point[];
+};
 
 const fmtDuration = (s: number) => {
   const h = Math.floor(s / 3600);
@@ -118,7 +134,14 @@ const build = (raw: RawRoute[]): RouteOption[] => {
   }
   return raw.map((r) => {
     const coords = r.coords.map((c) => [c[0], c[1]] as LngLat);
-    return { name: r.name, via: r.via, km: Math.round(r.distanceM / 1000), hours: fmtDuration(r.durationS), coords, line: coords.map(toMeters) };
+    return {
+      name: r.name,
+      via: r.via,
+      km: Math.round(r.distanceM / 1000),
+      hours: fmtDuration(r.durationS),
+      coords,
+      line: coords.map(toMeters),
+    };
   });
 };
 
@@ -161,7 +184,21 @@ export function routeLengthM(r: RouteOption): number {
 
 // ---- Place search (OpenStreetMap Nominatim, India only) and road routing (OSRM) ----
 
-type NominatimHit = { display_name: string; lat: string; lon: string; name?: string; address?: { city?: string; town?: string; village?: string; suburb?: string; state_district?: string; county?: string; state?: string } };
+type NominatimHit = {
+  display_name: string;
+  lat: string;
+  lon: string;
+  name?: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    suburb?: string;
+    state_district?: string;
+    county?: string;
+    state?: string;
+  };
+};
 const short = (h: NominatimHit) => {
   const a = h.address ?? {};
   const name = h.name || a.city || a.town || a.village || a.suburb || h.display_name.split(",")[0]!;
@@ -172,7 +209,8 @@ const short = (h: NominatimHit) => {
 export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Place[]> {
   const clean = q.trim().toLowerCase();
   const localMatches = PLACES.filter(
-    (p) => p.name.toLowerCase().includes(clean) || (p.detail && p.detail.toLowerCase().includes(clean)),
+    (p) =>
+      p.name.toLowerCase().includes(clean) || (p.detail && p.detail.toLowerCase().includes(clean)),
   );
 
   try {
@@ -180,7 +218,10 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Pla
     const res = await fetch(url, { signal: signal ?? null, headers: { "Accept-Language": "en" } });
     if (res.ok) {
       const hits = (await res.json()) as NominatimHit[];
-      const remote = hits.map((h) => ({ ...short(h), lngLat: [Number(h.lon), Number(h.lat)] as LngLat }));
+      const remote = hits.map((h) => ({
+        ...short(h),
+        lngLat: [Number(h.lon), Number(h.lat)] as LngLat,
+      }));
       const seen = new Set(localMatches.map((m) => m.name.toLowerCase()));
       const combined = [...localMatches];
       for (const r of remote) {
@@ -205,7 +246,10 @@ export async function reversePlace(lngLat: LngLat): Promise<Place> {
 
   const fallback = { name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, lngLat };
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=14&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "en" } });
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=14&lat=${lat}&lon=${lng}`,
+      { headers: { "Accept-Language": "en" } },
+    );
     if (!res.ok) return fallback;
     const h = (await res.json()) as NominatimHit & { error?: string };
     if (h.error) return fallback;
@@ -230,7 +274,12 @@ function thin(coords: number[][], minM = 40): number[][] {
   return out;
 }
 
-type OsrmRoute = { distance: number; duration: number; geometry: { coordinates: number[][] }; legs: { summary: string }[] };
+type OsrmRoute = {
+  distance: number;
+  duration: number;
+  geometry: { coordinates: number[][] };
+  legs: { summary: string }[];
+};
 
 export async function fetchRoutes(from: LngLat, to: LngLat): Promise<RawRoute[]> {
   try {

@@ -47,4 +47,3 @@ describe("security: scrubSensitiveData", () => {
     expect(scrubSensitiveData("hello")).toBe("hello");
   });
 });
-

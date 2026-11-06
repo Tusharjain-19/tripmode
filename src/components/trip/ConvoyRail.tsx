@@ -4,11 +4,33 @@ import type { VehicleColor } from "@/lib/trip-store";
 import { cn } from "@/lib/utils";
 import { VehicleChip } from "./ui";
 
-export type RailMember = { id: string; letter: string; color: VehicleColor; progressM: number; status: MemberStatus; isMe: boolean; name: string };
+export type RailMember = {
+  id: string;
+  letter: string;
+  color: VehicleColor;
+  progressM: number;
+  status: MemberStatus;
+  isMe: boolean;
+  name: string;
+};
 
 const CHIP = 28;
 
-export function ConvoyRail({ members, routeM, thresholdM, onFocus, origin, destination }: { members: RailMember[]; routeM: number; thresholdM: number; onFocus: (id: string) => void; origin: string; destination: string }) {
+export function ConvoyRail({
+  members,
+  routeM,
+  thresholdM,
+  onFocus,
+  origin,
+  destination,
+}: {
+  members: RailMember[];
+  routeM: number;
+  thresholdM: number;
+  onFocus: (id: string) => void;
+  origin: string;
+  destination: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(300);
   useLayoutEffect(() => {
@@ -21,7 +43,10 @@ export function ConvoyRail({ members, routeM, thresholdM, onFocus, origin, desti
   }, []);
 
   const xOf = (p: number) => Math.max(0, Math.min(1, p / routeM)) * w;
-  const rows = stackRows(members.map((m) => ({ id: m.id, x: xOf(m.progressM) })), CHIP);
+  const rows = stackRows(
+    members.map((m) => ({ id: m.id, x: xOf(m.progressM) })),
+    CHIP,
+  );
   const maxRow = Math.max(0, ...Object.values(rows));
   const leadP = Math.max(0, ...members.map((m) => m.progressM));
   const gaps = adjacentGaps(members);
@@ -42,13 +67,24 @@ export function ConvoyRail({ members, routeM, thresholdM, onFocus, origin, desti
       </div>
       <div ref={ref} className="relative mx-[14px]" style={{ height: chipZone + 8 + 22 }}>
         {members.map((m) => {
-          const ring = m.isMe ? "me" : m.status === "behind" ? "caution" : m.status === "offroute" || m.status === "stopped" ? "alert" : m.status === "stale" || m.status === "offline" ? "stale" : "none";
+          const ring = m.isMe
+            ? "me"
+            : m.status === "behind"
+              ? "caution"
+              : m.status === "offroute" || m.status === "stopped"
+                ? "alert"
+                : m.status === "stale" || m.status === "offline"
+                  ? "stale"
+                  : "none";
           return (
             <button
               key={m.id}
               onClick={() => onFocus(m.id)}
               className="rail-chip absolute -translate-x-1/2 group transition-transform active:scale-95"
-              style={{ left: xOf(m.progressM), top: chipZone - ((rows[m.id] ?? 0) + 1) * (CHIP + 4) }}
+              style={{
+                left: xOf(m.progressM),
+                top: chipZone - ((rows[m.id] ?? 0) + 1) * (CHIP + 4),
+              }}
               aria-label={`${m.name}, vehicle ${m.letter}, ${m.status}. Focus on map`}
               title={`${m.name} (${m.letter}) - ${m.status}`}
             >
@@ -56,8 +92,14 @@ export function ConvoyRail({ members, routeM, thresholdM, onFocus, origin, desti
             </button>
           );
         })}
-        <div className="absolute left-0 right-0 h-2 rounded-full bg-secondary shadow-inner" style={{ top: chipZone + 2 }}>
-          <div className="rail-chip h-2 rounded-full bg-primary" style={{ width: xOf(leadP), transitionProperty: "width" }} />
+        <div
+          className="absolute left-0 right-0 h-2 rounded-full bg-secondary shadow-inner"
+          style={{ top: chipZone + 2 }}
+        >
+          <div
+            className="rail-chip h-2 rounded-full bg-primary"
+            style={{ width: xOf(leadP), transitionProperty: "width" }}
+          />
         </div>
         {gaps.map((g) => {
           const a = xOf(byId[g.ahead]?.progressM ?? 0);
@@ -67,10 +109,28 @@ export function ConvoyRail({ members, routeM, thresholdM, onFocus, origin, desti
           return (
             <div
               key={`${g.ahead}-${g.behind}`}
-              className={cn("gap-bracket rail-chip absolute flex justify-center border-x border-b font-mono text-[11px] font-medium", over ? "border-caution text-caution font-semibold" : "border-border text-muted-foreground")}
-              style={{ left: b, width: a - b, top: chipZone + 12, height: 18, transitionProperty: "left, width, color, border-color" }}
+              className={cn(
+                "gap-bracket rail-chip absolute flex justify-center border-x border-b font-mono text-[11px] font-medium",
+                over
+                  ? "border-caution text-caution font-semibold"
+                  : "border-border text-muted-foreground",
+              )}
+              style={{
+                left: b,
+                width: a - b,
+                top: chipZone + 12,
+                height: 18,
+                transitionProperty: "left, width, color, border-color",
+              }}
             >
-              <span className={cn("translate-y-[2px] rounded px-1 text-[10px] leading-none", over ? "bg-caution/15 text-caution" : "bg-card text-muted-foreground")}>{formatKm(g.gapM)}</span>
+              <span
+                className={cn(
+                  "translate-y-[2px] rounded px-1 text-[10px] leading-none",
+                  over ? "bg-caution/15 text-caution" : "bg-card text-muted-foreground",
+                )}
+              >
+                {formatKm(g.gapM)}
+              </span>
             </div>
           );
         })}

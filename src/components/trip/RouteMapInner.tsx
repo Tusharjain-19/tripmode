@@ -17,7 +17,15 @@ const SATELLITE: StyleSpecification = {
   version: 8,
   glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   sources: {
-    sat: { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 19, attribution: "Imagery Esri, Maxar, Earthstar Geographics" },
+    sat: {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: "Imagery Esri, Maxar, Earthstar Geographics",
+    },
   },
   layers: [{ id: "sat", type: "raster", source: "sat" }],
 };
@@ -28,7 +36,8 @@ const STYLES: Record<MapStyleId, string | StyleSpecification> = {
   satellite: SATELLITE,
 };
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const cssVar = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 function travelledCoords(routeIdx: number, travelledM: number): LngLat[] {
   const r = ROUTES[routeIdx] ?? ROUTES[0]!;
@@ -44,7 +53,11 @@ function travelledCoords(routeIdx: number, travelledM: number): LngLat[] {
   return out;
 }
 
-const line = (coords: LngLat[]) => ({ type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: coords } });
+const line = (coords: LngLat[]) => ({
+  type: "Feature" as const,
+  properties: {},
+  geometry: { type: "LineString" as const, coordinates: coords },
+});
 
 const RING: Record<string, string> = {
   none: "",
@@ -78,7 +91,9 @@ export default function RouteMapInner({
   const ready = useRef(false);
   const pending = useRef<(() => void)[]>([]);
   const whenReady = (fn: () => void) => (ready.current ? fn() : pending.current.push(fn));
-  const markers = useRef<Map<string, { m: Marker; from: LngLat; to: LngLat; start: number }>>(new Map());
+  const markers = useRef<Map<string, { m: Marker; from: LngLat; to: LngLat; start: number }>>(
+    new Map(),
+  );
   const destMarker = useRef<Marker | null>(null);
   const turnMarker = useRef<Marker | null>(null);
   const clickRef = useRef(onVehicleClick);
@@ -97,7 +112,8 @@ export default function RouteMapInner({
   useEffect(() => {
     if (!el.current) return;
     const r = ROUTES[selected] ?? ROUTES[0]!;
-    const initialCoords = activeRouteCoords && activeRouteCoords.length > 1 ? activeRouteCoords : r.coords;
+    const initialCoords =
+      activeRouteCoords && activeRouteCoords.length > 1 ? activeRouteCoords : r.coords;
     const b = new maplibregl.LngLatBounds(initialCoords[0], initialCoords[0]);
     initialCoords.forEach((c) => b.extend(c));
 
@@ -126,14 +142,21 @@ export default function RouteMapInner({
       const land = cssVar("--map-land") || "#ebe8df";
       const navBlue = "#1a73e8"; // Google Maps navigation blue standard
 
-      if (!m.getSource("alts")) m.addSource("alts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      if (!m.getSource("alts"))
+        m.addSource("alts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       if (!m.getSource("route")) m.addSource("route", { type: "geojson", data: line([]) });
       if (!m.getSource("travelled")) m.addSource("travelled", { type: "geojson", data: line([]) });
 
       const lineLayout = { "line-cap": "round" as const, "line-join": "round" as const };
 
       if (!m.getLayer("alts")) {
-        m.addLayer({ id: "alts", type: "line", source: "alts", layout: lineLayout, paint: { "line-color": alt, "line-width": 5, "line-opacity": 0.7 } });
+        m.addLayer({
+          id: "alts",
+          type: "line",
+          source: "alts",
+          layout: lineLayout,
+          paint: { "line-color": alt, "line-width": 5, "line-opacity": 0.7 },
+        });
       }
       if (!m.getLayer("route-casing")) {
         m.addLayer({
@@ -173,11 +196,14 @@ export default function RouteMapInner({
 
     m.on("style.load", setupLayers);
 
+    const currentMarkers = markers.current;
+    const currentPlaces = placeMarkers.current;
+
     return () => {
       cancelAnimationFrame(raf.current);
-      markers.current.forEach((x) => x.m.remove());
-      markers.current.clear();
-      placeMarkers.current.forEach((p) => p.remove());
+      currentMarkers.forEach((x) => x.m.remove());
+      currentMarkers.clear();
+      currentPlaces.forEach((p) => p.remove());
       placeMarkers.current = [];
       destMarker.current?.remove();
       destMarker.current = null;
@@ -187,6 +213,7 @@ export default function RouteMapInner({
       m.remove();
       map.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive]);
 
   // Route lines
@@ -195,7 +222,8 @@ export default function RouteMapInner({
     if (!m) return;
     const apply = () => {
       const r = ROUTES[selected] ?? ROUTES[0]!;
-      const mainCoords = activeRouteCoords && activeRouteCoords.length > 1 ? activeRouteCoords : r.coords;
+      const mainCoords =
+        activeRouteCoords && activeRouteCoords.length > 1 ? activeRouteCoords : r.coords;
 
       (m.getSource("route") as GeoJSONSource | undefined)?.setData(line(mainCoords));
 
@@ -203,19 +231,25 @@ export default function RouteMapInner({
       if (m.getLayer("route")) {
         const navBlue = "#1a73e8";
         const primary = cssVar("--primary") || "#1b5a47";
-        m.setPaintProperty("route", "line-color", activeRouteCoords && activeRouteCoords.length > 1 ? navBlue : primary);
+        m.setPaintProperty(
+          "route",
+          "line-color",
+          activeRouteCoords && activeRouteCoords.length > 1 ? navBlue : primary,
+        );
       }
 
       (m.getSource("alts") as GeoJSONSource | undefined)?.setData({
         type: "FeatureCollection",
-        features: showAlternates && (!activeRouteCoords || activeRouteCoords.length < 2)
-          ? ROUTES.filter((_, i) => i !== selected).map((x) => line(x.coords))
-          : [],
+        features:
+          showAlternates && (!activeRouteCoords || activeRouteCoords.length < 2)
+            ? ROUTES.filter((_, i) => i !== selected).map((x) => line(x.coords))
+            : [],
       });
 
-      const travCoords = travelledM && (!activeRouteCoords || activeRouteCoords.length < 2)
-        ? travelledCoords(selected, travelledM)
-        : [];
+      const travCoords =
+        travelledM && (!activeRouteCoords || activeRouteCoords.length < 2)
+          ? travelledCoords(selected, travelledM)
+          : [];
       (m.getSource("travelled") as GeoJSONSource | undefined)?.setData(line(travCoords));
     };
     applyRoute.current = apply;
@@ -228,13 +262,20 @@ export default function RouteMapInner({
     if (!m) return;
     whenReady(() => {
       // Destination marker
-      const destTarget = destinationLngLat ?? (activeRouteCoords && activeRouteCoords.length ? activeRouteCoords[activeRouteCoords.length - 1] : undefined);
+      const destTarget =
+        destinationLngLat ??
+        (activeRouteCoords && activeRouteCoords.length
+          ? activeRouteCoords[activeRouteCoords.length - 1]
+          : undefined);
       if (destTarget) {
         if (!destMarker.current) {
           const el = document.createElement("div");
-          el.className = "flex h-9 w-9 items-center justify-center rounded-full bg-alert text-primary-foreground shadow-float ring-2 ring-card animate-bounce";
+          el.className =
+            "flex h-9 w-9 items-center justify-center rounded-full bg-alert text-primary-foreground shadow-float ring-2 ring-card animate-bounce";
           el.innerHTML = `<span class="ms text-[20px]">location_on</span>`;
-          destMarker.current = new maplibregl.Marker({ element: el }).setLngLat(destTarget).addTo(m);
+          destMarker.current = new maplibregl.Marker({ element: el })
+            .setLngLat(destTarget)
+            .addTo(m);
         } else {
           destMarker.current.setLngLat(destTarget);
         }
@@ -254,7 +295,9 @@ export default function RouteMapInner({
               <span class="ms text-[14px]">turn_slight_right</span>
             </span>
           `;
-          turnMarker.current = new maplibregl.Marker({ element: el }).setLngLat(nextManeuverLngLat).addTo(m);
+          turnMarker.current = new maplibregl.Marker({ element: el })
+            .setLngLat(nextManeuverLngLat)
+            .addTo(m);
         } else {
           turnMarker.current.setLngLat(nextManeuverLngLat);
         }
@@ -295,7 +338,11 @@ export default function RouteMapInner({
     if (places.length && !selectedPlaceId) {
       const b = new maplibregl.LngLatBounds(places[0]!.lngLat, places[0]!.lngLat);
       places.forEach((p) => b.extend(p.lngLat));
-      m.fitBounds(b, { padding: { top: 160, bottom: 320, left: 50, right: 90 }, maxZoom: 14, duration: 700 });
+      m.fitBounds(b, {
+        padding: { top: 160, bottom: 320, left: 50, right: 90 },
+        maxZoom: 14,
+        duration: 700,
+      });
     }
   }, [places, selectedPlaceId]);
 
@@ -325,7 +372,7 @@ export default function RouteMapInner({
       node.className = "relative flex flex-col items-center";
       node.innerHTML = `
         ${v.isMe ? `<span class="absolute -inset-2.5 rounded-full bg-primary/20 animate-ping pointer-events-none"></span>` : ""}
-        <span class="relative flex h-9 w-9 items-center justify-center rounded-[10px] text-[16px] font-semibold ${vehicleBg(v.color)} ${v.isMe ? "ring-2 ring-primary ring-offset-2 ring-offset-card shadow-float" : RING[v.ring] ?? ""}">
+        <span class="relative flex h-9 w-9 items-center justify-center rounded-[10px] text-[16px] font-semibold ${vehicleBg(v.color)} ${v.isMe ? "ring-2 ring-primary ring-offset-2 ring-offset-card shadow-float" : (RING[v.ring] ?? "")}">
           ${v.vehicleType === "bike" ? `<span class="ms text-[20px]">two_wheeler</span>` : v.letter}
           <span class="absolute left-1/2 top-1/2 h-0 w-0" style="transform: rotate(${v.screenAngle}deg)">
             <span class="absolute block h-0 w-0 border-y-[5px] border-l-[7px] border-y-transparent ${v.wedgeClass}" style="left:20px; top:-5px"></span>
@@ -349,7 +396,10 @@ export default function RouteMapInner({
       markers.current.forEach((e) => {
         const k = reduce ? 1 : Math.min(1, (t - e.start) / 1000);
         if (k < 1) active = true;
-        e.m.setLngLat([e.from[0] + (e.to[0] - e.from[0]) * k, e.from[1] + (e.to[1] - e.from[1]) * k]);
+        e.m.setLngLat([
+          e.from[0] + (e.to[0] - e.from[0]) * k,
+          e.from[1] + (e.to[1] - e.from[1]) * k,
+        ]);
       });
       if (active) raf.current = requestAnimationFrame(tick);
     };
@@ -358,7 +408,10 @@ export default function RouteMapInner({
 
   // Camera
   const camKey = camera.mode === "focus" ? `focus:${camera.id}` : camera.mode;
-  const followTarget = camera.mode === "follow" || camera.mode === "focus" ? vehicles.find((v) => (camera.mode === "focus" ? v.id === camera.id : v.isMe))?.lngLat : undefined;
+  const followTarget =
+    camera.mode === "follow" || camera.mode === "focus"
+      ? vehicles.find((v) => (camera.mode === "focus" ? v.id === camera.id : v.isMe))?.lngLat
+      : undefined;
   useEffect(() => {
     const m = map.current;
     if (!m) return;
@@ -375,7 +428,11 @@ export default function RouteMapInner({
         const b = new maplibregl.LngLatBounds(vehicles[0]!.lngLat, vehicles[0]!.lngLat);
         vehicles.forEach((v) => b.extend(v.lngLat));
         m.easeTo({ pitch: 0, duration: 300 });
-        m.fitBounds(b, { padding: { top: 160, bottom: 280, left: 50, right: 80 }, maxZoom: 14, duration: 700 });
+        m.fitBounds(b, {
+          padding: { top: 160, bottom: 280, left: 50, right: 80 },
+          maxZoom: 14,
+          duration: 700,
+        });
       }
     };
     whenReady(go);

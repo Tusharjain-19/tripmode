@@ -12,13 +12,18 @@ export const Route = createFileRoute("/join/$code")({
       { title: "You are invited to a trip - Trip Mode" },
       { name: "description", content: "Join a shared trip and see your group on one live map." },
       { property: "og:title", content: "You are invited to a trip - Trip Mode" },
-      { property: "og:description", content: "Join a shared trip and see your group on one live map." },
+      {
+        property: "og:description",
+        content: "Join a shared trip and see your group on one live map.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
   component: () => (
-    <RequireAuth reason="Sign in to join this trip. Nothing is shared until you agree on the next screens.">{() => <Join />}</RequireAuth>
+    <RequireAuth reason="Sign in to join this trip. Nothing is shared until you agree on the next screens.">
+      {() => <Join />}
+    </RequireAuth>
   ),
 });
 
@@ -31,7 +36,9 @@ function Join() {
   const [preview, setPreview] = useState<Preview | null | undefined>(undefined);
 
   useEffect(() => {
-    invitePreview(code).then(setPreview).catch(() => setPreview(null));
+    invitePreview(code)
+      .then(setPreview)
+      .catch(() => setPreview(null));
   }, [code]);
 
   if (preview === undefined)
@@ -49,9 +56,13 @@ function Join() {
       <Screen title="Invite" back="/" maxWidth="max-w-lg">
         <div className="flex flex-col items-center text-center p-6">
           <Icon name="link_off" className="text-[44px] text-tertiary" />
-          <h2 className="mt-4 text-[22px] font-semibold text-foreground">This invite is not available</h2>
+          <h2 className="mt-4 text-[22px] font-semibold text-foreground">
+            This invite is not available
+          </h2>
           <p className="mt-2 text-muted-foreground">Ask the trip host to send you a new link.</p>
-          <Link to="/" className={btn({ variant: "secondary", className: "mt-6" })}>Go to home</Link>
+          <Link to="/" className={btn({ variant: "secondary", className: "mt-6" })}>
+            Go to home
+          </Link>
         </div>
       </Screen>
     );
@@ -73,12 +84,18 @@ function Join() {
       <div className="screen-in space-y-4">
         <div>
           <p className="overline text-tertiary">You are invited to</p>
-          <h2 className="mt-1 text-[26px] sm:text-[30px] font-semibold leading-tight text-foreground">{preview.name}</h2>
+          <h2 className="mt-1 text-[26px] sm:text-[30px] font-semibold leading-tight text-foreground">
+            {preview.name}
+          </h2>
         </div>
         <dl className="mt-4 space-y-3 rounded-[18px] border border-border bg-card p-4 sm:p-5 shadow-sm">
           {[
             ["flag", "Destination", preview.destination],
-            ["directions_car", "Members", `${preview.members} ${preview.members === 1 ? "vehicle" : "vehicles"}`],
+            [
+              "directions_car",
+              "Members",
+              `${preview.members} ${preview.members === 1 ? "vehicle" : "vehicles"}`,
+            ],
           ].map(([i, k, v]) => (
             <div key={k} className="flex items-center gap-3">
               <Icon name={i ?? ""} className="text-tertiary text-[20px]" />
@@ -87,8 +104,17 @@ function Join() {
             </div>
           ))}
         </dl>
-        <p className="text-[13px] text-muted-foreground">Nothing is shared until you choose your vehicle and provide explicit location consent.</p>
-        <Button className="w-full text-[16px] cursor-pointer" size="lg" onClick={() => { tripStore.updateMe({ consentAt: null }); setStarted(true); }}>
+        <p className="text-[13px] text-muted-foreground">
+          Nothing is shared until you choose your vehicle and provide explicit location consent.
+        </p>
+        <Button
+          className="w-full text-[16px] cursor-pointer"
+          size="lg"
+          onClick={() => {
+            tripStore.updateMe({ consentAt: null });
+            setStarted(true);
+          }}
+        >
           Join trip
         </Button>
       </div>

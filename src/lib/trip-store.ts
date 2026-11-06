@@ -4,7 +4,14 @@ export const VEHICLE_COLORS = ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"] a
 export type VehicleColor = (typeof VEHICLE_COLORS)[number];
 /** Text color on each vehicle color that passes AA. */
 export const ON_VEHICLE: Record<VehicleColor, "dark" | "light"> = {
-  v1: "dark", v2: "dark", v3: "dark", v4: "dark", v5: "light", v6: "dark", v7: "light", v8: "light",
+  v1: "dark",
+  v2: "dark",
+  v3: "dark",
+  v4: "dark",
+  v5: "light",
+  v6: "dark",
+  v7: "light",
+  v8: "light",
 };
 export type Role = "driver" | "passenger";
 
@@ -53,7 +60,15 @@ function randomCode(): string {
 
 let state: State = {
   trip: null,
-  me: { displayName: "", vehicleLabel: "", color: "v1", role: "driver", vehicleType: "car", consentAt: null, ready: false },
+  me: {
+    displayName: "",
+    vehicleLabel: "",
+    color: "v1",
+    role: "driver",
+    vehicleType: "car",
+    consentAt: null,
+    ready: false,
+  },
   summary: null,
 };
 const listeners = new Set<() => void>();
@@ -80,7 +95,8 @@ export const tripStore = {
     if (state.trip) set({ trip: { ...state.trip, ...p } });
   },
   regenerateInvite() {
-    if (state.trip) set({ trip: { ...state.trip, inviteCode: randomCode(), inviteRevoked: false } });
+    if (state.trip)
+      set({ trip: { ...state.trip, inviteCode: randomCode(), inviteRevoked: false } });
   },
   updateMe(p: Partial<Me>) {
     set({ me: { ...state.me, ...p } });
@@ -98,5 +114,9 @@ export const tripStore = {
 };
 
 export function useTrip<T>(sel: (s: State) => T): T {
-  return useSyncExternalStore(tripStore.subscribe, () => sel(tripStore.get()), () => sel(tripStore.get()));
+  return useSyncExternalStore(
+    tripStore.subscribe,
+    () => sel(tripStore.get()),
+    () => sel(tripStore.get()),
+  );
 }

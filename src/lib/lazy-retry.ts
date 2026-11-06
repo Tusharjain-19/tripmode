@@ -4,7 +4,11 @@ import { lazy, type ComponentType } from "react";
  * React.lazy that survives a stale module URL (e.g. after the app was updated while open):
  * retries once, then reloads the page a single time instead of showing a blank screen.
  */
-export function lazyRetry<T extends ComponentType<any>>(load: () => Promise<{ default: T }>, key: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function lazyRetry<T extends ComponentType<any>>(
+  load: () => Promise<{ default: T }>,
+  key: string,
+) {
   return lazy(async () => {
     const flag = `lazy-reloaded:${key}`;
     try {

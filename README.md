@@ -23,18 +23,18 @@ When groups travel together in separate cars or motorcycles, staying coordinated
 
 ## ✨ Key Capabilities
 
-| Feature | Description |
-| :--- | :--- |
-| **Agreed Route Corridor** | All convoy drivers share one synchronized road corridor calculated via OSRM, preventing accidental detours. |
-| **Convoy Progress Rail** | An intuitive timeline bar displaying proportional progress, order of vehicles, and real-time gap distances. |
-| **Falling-Behind Alerts** | Automatic auditory and visual alerts triggered whenever any vehicle separates by a designated gap (2 km, 3 km, or 5 km). |
-| **Turn-by-Turn Guidance** | Maneuver instructions, distance count-downs, next-turn previews, and text-to-speech audio guidance. |
-| **Push-to-Talk (PTT) Voice** | Low-latency in-app walkie-talkie audio for immediate hands-free road communications. |
-| **One-Tap Quick Alerts** | Large, high-contrast driving buttons (*"Need fuel"*, *"Slow down"*, *"Food stop"*, *"Wait for me"*, *"Lost route"*). |
-| **Emergency SOS Beacon** | Broadcasts immediate high-priority alert with exact GPS coordinates and pulsing visual beacon to all convoy members. |
-| **Corridor POI Search** | Instant along-route discovery for petrol stations, restaurants, EV charging stations, cafes, and rest areas. |
-| **AI Pitstop Extraction** | Host-only intelligent assistant that parses conversational chat for stop proposals and extracts clean map coordinates. |
-| **Privacy-First Design** | Drivers use anonymous guest sessions—no login required. Live GPS coordinates are shared ephemerally and automatically purged. |
+| Feature                      | Description                                                                                                                   |
+| :--------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| **Agreed Route Corridor**    | All convoy drivers share one synchronized road corridor calculated via OSRM, preventing accidental detours.                   |
+| **Convoy Progress Rail**     | An intuitive timeline bar displaying proportional progress, order of vehicles, and real-time gap distances.                   |
+| **Falling-Behind Alerts**    | Automatic auditory and visual alerts triggered whenever any vehicle separates by a designated gap (2 km, 3 km, or 5 km).      |
+| **Turn-by-Turn Guidance**    | Maneuver instructions, distance count-downs, next-turn previews, and text-to-speech audio guidance.                           |
+| **Push-to-Talk (PTT) Voice** | Low-latency in-app walkie-talkie audio for immediate hands-free road communications.                                          |
+| **One-Tap Quick Alerts**     | Large, high-contrast driving buttons (_"Need fuel"_, _"Slow down"_, _"Food stop"_, _"Wait for me"_, _"Lost route"_).          |
+| **Emergency SOS Beacon**     | Broadcasts immediate high-priority alert with exact GPS coordinates and pulsing visual beacon to all convoy members.          |
+| **Corridor POI Search**      | Instant along-route discovery for petrol stations, restaurants, EV charging stations, cafes, and rest areas.                  |
+| **AI Pitstop Extraction**    | Host-only intelligent assistant that parses conversational chat for stop proposals and extracts clean map coordinates.        |
+| **Privacy-First Design**     | Drivers use anonymous guest sessions—no login required. Live GPS coordinates are shared ephemerally and automatically purged. |
 
 ---
 
@@ -136,6 +136,7 @@ npm run test:watch
 ```
 
 Test coverage includes:
+
 - Pure convoy gap and leader distance calculation (`src/lib/convoy.test.ts`)
 - Turn-by-turn instruction and maneuver step advancement (`src/lib/nav.test.ts`)
 - Token sanitization, password scrubbing, and invite code protection (`src/lib/security.test.ts`)

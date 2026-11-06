@@ -20,6 +20,7 @@ Design system, UX rules, and motion spec for Trip Mode (collaborative multi-vehi
 **Personality:** precise, calm, trustworthy, like a well-made instrument. Think cartography and aviation instruments, not "tech startup".
 
 **What to avoid (explicit):**
+
 - Purple-to-blue gradients, neon accents, glassmorphism everywhere, glowing borders.
 - Default AI-product typefaces (Inter, Poppins, Space Grotesk as the only face), sparkle iconography.
 - Emojis anywhere in UI, notifications, or copy. Use icons or text.
@@ -35,40 +36,40 @@ Warm neutrals with a deep pine primary and a restrained signal palette. All text
 
 ### Light theme
 
-| Token | Hex | Use |
-|---|---|---|
-| `surface.base` | `#F7F5F0` | App background, sheets |
-| `surface.raised` | `#FFFFFF` | Cards, chips on map |
-| `surface.sunken` | `#EDEAE2` | Inputs, segmented controls |
-| `ink.primary` | `#16201B` | Primary text |
-| `ink.secondary` | `#4F5B54` | Secondary text |
-| `ink.tertiary` | `#7B867F` | Hints, disabled |
-| `line.subtle` | `#E1DDD2` | Dividers |
-| `brand.primary` | `#1B5A47` | Primary actions, route line |
-| `brand.primaryPressed` | `#144536` | Pressed state |
-| `brand.onPrimary` | `#F7F5F0` | Text on primary |
-| `status.leading` | `#1E7A4F` | Leader, healthy |
-| `status.caution` | `#B7700A` | Falling behind, weak signal |
-| `status.alert` | `#B3361B` | Stopped unexpectedly, off route, SOS |
-| `status.info` | `#2F5D8C` | Neutral notices |
+| Token                  | Hex       | Use                                  |
+| ---------------------- | --------- | ------------------------------------ |
+| `surface.base`         | `#F7F5F0` | App background, sheets               |
+| `surface.raised`       | `#FFFFFF` | Cards, chips on map                  |
+| `surface.sunken`       | `#EDEAE2` | Inputs, segmented controls           |
+| `ink.primary`          | `#16201B` | Primary text                         |
+| `ink.secondary`        | `#4F5B54` | Secondary text                       |
+| `ink.tertiary`         | `#7B867F` | Hints, disabled                      |
+| `line.subtle`          | `#E1DDD2` | Dividers                             |
+| `brand.primary`        | `#1B5A47` | Primary actions, route line          |
+| `brand.primaryPressed` | `#144536` | Pressed state                        |
+| `brand.onPrimary`      | `#F7F5F0` | Text on primary                      |
+| `status.leading`       | `#1E7A4F` | Leader, healthy                      |
+| `status.caution`       | `#B7700A` | Falling behind, weak signal          |
+| `status.alert`         | `#B3361B` | Stopped unexpectedly, off route, SOS |
+| `status.info`          | `#2F5D8C` | Neutral notices                      |
 
 ### Dark theme (night driving, default after sunset)
 
-| Token | Hex |
-|---|---|
-| `surface.base` | `#111613` |
-| `surface.raised` | `#1A211D` |
-| `surface.sunken` | `#0C100E` |
-| `ink.primary` | `#ECEFEA` |
-| `ink.secondary` | `#A9B3AC` |
-| `ink.tertiary` | `#76817A` |
-| `line.subtle` | `#2A332E` |
-| `brand.primary` | `#5FBF9D` |
+| Token             | Hex       |
+| ----------------- | --------- |
+| `surface.base`    | `#111613` |
+| `surface.raised`  | `#1A211D` |
+| `surface.sunken`  | `#0C100E` |
+| `ink.primary`     | `#ECEFEA` |
+| `ink.secondary`   | `#A9B3AC` |
+| `ink.tertiary`    | `#76817A` |
+| `line.subtle`     | `#2A332E` |
+| `brand.primary`   | `#5FBF9D` |
 | `brand.onPrimary` | `#0C100E` |
-| `status.leading` | `#6FCB93` |
-| `status.caution` | `#E0A13B` |
-| `status.alert` | `#EE7B62` |
-| `status.info` | `#7FA6D1` |
+| `status.leading`  | `#6FCB93` |
+| `status.caution`  | `#E0A13B` |
+| `status.alert`    | `#EE7B62` |
+| `status.info`     | `#7FA6D1` |
 
 ### Vehicle identity palette (colorblind-safe, Okabe-Ito derived)
 
@@ -82,23 +83,23 @@ Text on vehicle colors is always `#0C100E` or `#FFFFFF`, whichever passes AA.
 
 ## 4. Typography
 
-| Role | Typeface | Notes |
-|---|---|---|
-| UI and body | **Public Sans** (variable) | Neutral, highly legible, supports tabular figures |
-| Numerics (distance, ETA, gap) | **IBM Plex Mono** | Only on the convoy rail and driving-mode readouts |
-| Devanagari fallback | **Noto Sans Devanagari** | Hindi support |
+| Role                          | Typeface                   | Notes                                             |
+| ----------------------------- | -------------------------- | ------------------------------------------------- |
+| UI and body                   | **Public Sans** (variable) | Neutral, highly legible, supports tabular figures |
+| Numerics (distance, ETA, gap) | **IBM Plex Mono**          | Only on the convoy rail and driving-mode readouts |
+| Devanagari fallback           | **Noto Sans Devanagari**   | Hindi support                                     |
 
 If the project is ever embedded inside Google Maps itself, swap to Google Sans / Roboto per Google's guidelines; tokens make this a one-file change.
 
-| Style | Size / line | Weight |
-|---|---|---|
-| Display | 28 / 34 | 600 |
-| Title | 22 / 28 | 600 |
-| Heading | 18 / 24 | 600 |
-| Body | 16 / 24 | 400 |
-| Label | 14 / 20 | 500 |
-| Caption | 12 / 16 | 500 |
-| Drive Numeral | 40 / 44 | 500 (Plex Mono) |
+| Style         | Size / line | Weight          |
+| ------------- | ----------- | --------------- |
+| Display       | 28 / 34     | 600             |
+| Title         | 22 / 28     | 600             |
+| Heading       | 18 / 24     | 600             |
+| Body          | 16 / 24     | 400             |
+| Label         | 14 / 20     | 500             |
+| Caption       | 12 / 16     | 500             |
+| Drive Numeral | 40 / 44     | 500 (Plex Mono) |
 
 Rules: sentence case everywhere. No all-caps except 11-12 pt overline labels with +6% tracking. Maximum two weights per screen.
 
@@ -148,52 +149,59 @@ This is the one memorable, ownable visual of the product. Keep it clean and prec
 ## 8. Screens and flows
 
 ### 8.1 Entry
+
 Inside the host navigation app, a "Trip" action appears next to Directions. In the standalone prototype, the home screen has a search bar, recent trips, and a primary "Start a trip" button.
 
 ### 8.2 Create trip (3 steps, one decision per step)
+
 1. **Destination and name.** Search field, trip name auto-filled ("Jaipur to Udaipur"), editable.
 2. **Route.** Map preview with up to 3 route options; select one as the "agreed route". Departure time optional.
 3. **Rules.** Falling-behind threshold (2 / 3 / 5 km), who can send alerts (everyone / host only), auto-end when all arrive.
-Then: invitation sheet with link, QR code, and share button.
+   Then: invitation sheet with link, QR code, and share button.
 
 ### 8.3 Join flow (invitee)
+
 Link opens app (or store listing). Screen shows trip name, destination, host name, member count. Steps: sign in, choose vehicle name and color, **explicit location-sharing consent** screen, join.
 
 ### 8.4 Lobby (before departure)
+
 Member list with vehicle chips, readiness toggle ("Ready"), host "Start trip" button. Map preview shows everyone's start positions.
 
 ### 8.5 Active trip
 
 Bottom sheet with three snap points:
 
-| Snap | Height | Content |
-|---|---|---|
-| Collapsed | 72 dp | Convoy rail + next group alert |
-| Half | 45% | Member list with gap, speed, status |
-| Full | 90% | Chat, trip settings, stops |
+| Snap      | Height | Content                             |
+| --------- | ------ | ----------------------------------- |
+| Collapsed | 72 dp  | Convoy rail + next group alert      |
+| Half      | 45%    | Member list with gap, speed, status |
+| Full      | 90%    | Chat, trip settings, stops          |
 
 Floating controls on the map: recenter, fit group, layers, mute.
 
 Persistent bottom action bar (always reachable by thumb):
+
 - **Push-to-talk** (64 dp circle, center)
 - **Quick alerts** (opens 2x3 grid)
 - **Chat** (badge for unread)
 
 ### 8.6 Quick alerts (icon + label, no emoji)
 
-| Alert | Icon (Material Symbols) |
-|---|---|
-| Slow down | `speed` |
-| Need fuel | `local_gas_station` |
-| Need a break | `airline_seat_recline_normal` |
-| Food stop | `restaurant` |
-| Lost the route | `wrong_location` |
-| Wait for me | `hourglass_top` |
+| Alert          | Icon (Material Symbols)       |
+| -------------- | ----------------------------- |
+| Slow down      | `speed`                       |
+| Need fuel      | `local_gas_station`           |
+| Need a break   | `airline_seat_recline_normal` |
+| Food stop      | `restaurant`                  |
+| Lost the route | `wrong_location`              |
+| Wait for me    | `hourglass_top`               |
 
 Alerts appear as a banner for 6 s at the top of the map with sender chip, and as a haptic + soft tone. One tap to acknowledge ("Got it"); acknowledgements are shown to the sender as a count.
 
 ### 8.7 Smart convoy alerts (system-generated)
+
 Tone: factual, no blame. Examples:
+
 - "Vehicle C is 5.2 km behind the group."
 - "Vehicle B left the agreed route near Bhilwara."
 - "Vehicle A has stopped for 4 minutes."
@@ -201,9 +209,11 @@ Tone: factual, no blame. Examples:
 - "Vehicle A reached the destination."
 
 ### 8.8 SOS
+
 Long-press (1.2 s) with a filling ring, then a 5 s cancel window. Sends location and vehicle identity to all members; optionally to a saved emergency contact. Never auto-calls emergency services without a confirmation step.
 
 ### 8.9 Trip summary
+
 Total distance, duration, per-vehicle arrival times, longest gap, stops made. Option to save or delete trip data (see security.md).
 
 ---
@@ -212,13 +222,13 @@ Total distance, duration, per-vehicle arrival times, longest gap, stops made. Op
 
 Role is chosen per member ("Driver" / "Passenger") and can be switched.
 
-| Behavior | Driver | Passenger |
-|---|---|---|
-| Typing in chat | Disabled while moving | Enabled |
-| Touch targets | 64 dp | 48 dp |
-| Chat messages | Read aloud on request | Shown inline |
-| Quick alerts | 6 large buttons | 6 buttons + custom text |
-| Info density | Rail + one alert | Full member list |
+| Behavior       | Driver                | Passenger               |
+| -------------- | --------------------- | ----------------------- |
+| Typing in chat | Disabled while moving | Enabled                 |
+| Touch targets  | 64 dp                 | 48 dp                   |
+| Chat messages  | Read aloud on request | Shown inline            |
+| Quick alerts   | 6 large buttons       | 6 buttons + custom text |
+| Info density   | Rail + one alert      | Full member list        |
 
 Auto-switch to driving layout above 10 km/h if the user is marked Driver. Never block the SOS or PTT controls.
 
@@ -228,21 +238,22 @@ Auto-switch to driving layout above 10 km/h if the user is marked Driver. Never 
 
 Philosophy: motion explains state change. Short, decelerating, never bouncy except where physical (sheets).
 
-| Interaction | Duration | Easing | Detail |
-|---|---|---|---|
-| Vehicle marker update | 1000 ms (linear, between GPS ticks) | Linear | Interpolate along route polyline, rotate heading with shortest-arc easing |
-| Convoy rail chip slide | 400 ms | `cubic-bezier(0.2, 0, 0, 1)` | Chips never overlap; resolve collisions by stacking vertically |
-| Gap bracket color change | 250 ms | Ease-out | Crossfade, no flash |
-| Bottom sheet snap | Spring: stiffness 300, damping 30 | Spring | Velocity-aware |
-| Screen transition | 280 ms | `cubic-bezier(0.2, 0, 0, 1)` | Shared-element for trip card to active trip |
-| Quick alert banner in | 220 ms | Ease-out, 12 dp translate + fade | Out: 160 ms |
-| PTT press | 120 ms scale to 0.96, then ripple rings expanding at audio level | | Ripples driven by mic amplitude, max 3 rings |
-| Join notification | Chip drops onto rail with 300 ms ease-out | | Subtle, no confetti |
-| Camera "Fit group" | 700 ms | Ease-in-out | |
-| Skeleton loading | 1.4 s shimmer, low contrast | | Only for lists, never the map |
-| SOS ring fill | 1200 ms linear | | Haptic tick at 50% and 100% |
+| Interaction              | Duration                                                         | Easing                           | Detail                                                                    |
+| ------------------------ | ---------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| Vehicle marker update    | 1000 ms (linear, between GPS ticks)                              | Linear                           | Interpolate along route polyline, rotate heading with shortest-arc easing |
+| Convoy rail chip slide   | 400 ms                                                           | `cubic-bezier(0.2, 0, 0, 1)`     | Chips never overlap; resolve collisions by stacking vertically            |
+| Gap bracket color change | 250 ms                                                           | Ease-out                         | Crossfade, no flash                                                       |
+| Bottom sheet snap        | Spring: stiffness 300, damping 30                                | Spring                           | Velocity-aware                                                            |
+| Screen transition        | 280 ms                                                           | `cubic-bezier(0.2, 0, 0, 1)`     | Shared-element for trip card to active trip                               |
+| Quick alert banner in    | 220 ms                                                           | Ease-out, 12 dp translate + fade | Out: 160 ms                                                               |
+| PTT press                | 120 ms scale to 0.96, then ripple rings expanding at audio level |                                  | Ripples driven by mic amplitude, max 3 rings                              |
+| Join notification        | Chip drops onto rail with 300 ms ease-out                        |                                  | Subtle, no confetti                                                       |
+| Camera "Fit group"       | 700 ms                                                           | Ease-in-out                      |                                                                           |
+| Skeleton loading         | 1.4 s shimmer, low contrast                                      |                                  | Only for lists, never the map                                             |
+| SOS ring fill            | 1200 ms linear                                                   |                                  | Haptic tick at 50% and 100%                                               |
 
 **Rules**
+
 - Respect system "Reduce motion": replace slides with 120 ms crossfades, disable marker rotation easing, keep functional indicators.
 - Target 60 fps; marker animation runs on the UI thread (Reanimated worklets).
 - No motion longer than 700 ms except marker interpolation and loaders.

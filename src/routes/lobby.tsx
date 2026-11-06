@@ -6,7 +6,16 @@ import { btn, Button, Icon, Screen, VehicleChip } from "@/components/trip/ui";
 import { ROUTES } from "@/lib/geo";
 import { tripStore, useTrip } from "@/lib/trip-store";
 import { RequireAuth } from "@/components/trip/RequireAuth";
-import { joinTripRemote, leaveTripRemote, removeMemberRemote, setMemberApproval, updateMemberRemote, updateTripRemote, useMembers, useRestoreTrip } from "@/lib/trip-sync";
+import {
+  joinTripRemote,
+  leaveTripRemote,
+  removeMemberRemote,
+  setMemberApproval,
+  updateMemberRemote,
+  updateTripRemote,
+  useMembers,
+  useRestoreTrip,
+} from "@/lib/trip-sync";
 import type { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +23,15 @@ export const Route = createFileRoute("/lobby")({
   head: () => ({
     meta: [
       { title: "Trip lobby - Trip Mode" },
-      { name: "description", content: "Invite your group, pick your vehicle and get ready to depart." },
+      {
+        name: "description",
+        content: "Invite your group, pick your vehicle and get ready to depart.",
+      },
       { property: "og:title", content: "Trip lobby - Trip Mode" },
-      { property: "og:description", content: "Invite your group, pick your vehicle and get ready to depart." },
+      {
+        property: "og:description",
+        content: "Invite your group, pick your vehicle and get ready to depart.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -44,8 +59,12 @@ function Lobby({ session }: { session: Session }) {
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <Icon name="explore_off" className="text-[48px] text-tertiary" />
           <h2 className="mt-4 text-[20px] font-semibold">No active convoy found</h2>
-          <p className="mt-1 text-muted-foreground text-[14px]">Start a trip first, then invite your group.</p>
-          <Link to="/create" className={btn({ className: "mt-6" })}>Start a trip</Link>
+          <p className="mt-1 text-muted-foreground text-[14px]">
+            Start a trip first, then invite your group.
+          </p>
+          <Link to="/create" className={btn({ className: "mt-6" })}>
+            Start a trip
+          </Link>
         </div>
       </Screen>
     );
@@ -54,7 +73,12 @@ function Lobby({ session }: { session: Session }) {
     if (!me.consentAt) {
       return (
         <Screen title={trip.name} back="/" maxWidth="max-w-lg">
-          <JoinSteps onDone={async () => { await joinTripRemote(trip.inviteCode, tripStore.get().me); }} takenColors={others.map((o) => o.color)} />
+          <JoinSteps
+            onDone={async () => {
+              await joinTripRemote(trip.inviteCode, tripStore.get().me);
+            }}
+            takenColors={others.map((o) => o.color)}
+          />
         </Screen>
       );
     }
@@ -64,7 +88,9 @@ function Lobby({ session }: { session: Session }) {
         <div className="flex flex-col items-center justify-center p-8 text-center min-h-[40vh]">
           <Icon name="sync" className="animate-spin text-[36px] text-primary" />
           <h2 className="mt-4 text-[20px] font-semibold">Joining convoy...</h2>
-          <p className="mt-1 text-muted-foreground text-[14px]">Connecting your vehicle to the room.</p>
+          <p className="mt-1 text-muted-foreground text-[14px]">
+            Connecting your vehicle to the room.
+          </p>
         </div>
       </Screen>
     );
@@ -79,7 +105,8 @@ function Lobby({ session }: { session: Session }) {
           </div>
           <h2 className="mt-4 text-[22px] font-semibold">Waiting for host approval</h2>
           <p className="mt-2 text-[14px] text-muted-foreground max-w-xs">
-            The host must approve your vehicle before location sharing begins. This screen updates in real time.
+            The host must approve your vehicle before location sharing begins. This screen updates
+            in real time.
           </p>
           <Button
             variant="quiet"
@@ -97,10 +124,15 @@ function Lobby({ session }: { session: Session }) {
       </Screen>
     );
 
-  const link = typeof window !== "undefined" ? `${window.location.origin}/join/${trip.inviteCode}` : `/join/${trip.inviteCode}`;
+  const link =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/join/${trip.inviteCode}`
+      : `/join/${trip.inviteCode}`;
   const share = async () => {
     if (navigator.share) {
-      await navigator.share({ title: trip.name, text: `Join ${trip.name} on Trip Mode Convoy`, url: link }).catch(() => undefined);
+      await navigator
+        .share({ title: trip.name, text: `Join ${trip.name} on Trip Mode Convoy`, url: link })
+        .catch(() => undefined);
     } else {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -132,18 +164,30 @@ function Lobby({ session }: { session: Session }) {
           {/* Google Maps Route Header Card */}
           <div className="overflow-hidden rounded-[20px] border border-border bg-card shadow-float">
             <div className="relative">
-              <RouteMap selected={trip.routeIndex} showAlternates={false} className="block h-48 sm:h-56 lg:h-64 w-full" />
+              <RouteMap
+                selected={trip.routeIndex}
+                showAlternates={false}
+                className="block h-48 sm:h-56 lg:h-64 w-full"
+              />
               <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-card/95 px-3 py-1 shadow-sm text-[12px] font-mono backdrop-blur-xs border border-border/80">
                 <span className="h-2 w-2 rounded-full bg-leading" />
-                <span>{activeRoute?.via} • {activeRoute?.km} km</span>
+                <span>
+                  {activeRoute?.via} • {activeRoute?.km} km
+                </span>
               </div>
             </div>
             <div className="p-4 flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <div className="text-[12px] text-muted-foreground uppercase tracking-wider font-semibold">Agreed Convoy Route</div>
-                <div className="text-[17px] font-semibold truncate text-foreground">{trip.origin} → {trip.destination}</div>
+                <div className="text-[12px] text-muted-foreground uppercase tracking-wider font-semibold">
+                  Agreed Convoy Route
+                </div>
+                <div className="text-[17px] font-semibold truncate text-foreground">
+                  {trip.origin} → {trip.destination}
+                </div>
               </div>
-              <span className="font-mono text-[15px] font-semibold text-primary">{activeRoute?.hours}</span>
+              <span className="font-mono text-[15px] font-semibold text-primary">
+                {activeRoute?.hours}
+              </span>
             </div>
           </div>
 
@@ -152,13 +196,17 @@ function Lobby({ session }: { session: Session }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Icon name="share" className="text-primary text-[20px]" />
-                <h2 className="text-[16px] sm:text-[17px] font-semibold text-foreground">Invite Convoy Members</h2>
+                <h2 className="text-[16px] sm:text-[17px] font-semibold text-foreground">
+                  Invite Convoy Members
+                </h2>
               </div>
               <span className="text-[12px] text-tertiary">Expires in 24 h</span>
             </div>
 
             {trip.inviteRevoked ? (
-              <p className="mt-3 text-[14px] text-alert">This invite link has been revoked. Existing members remain connected.</p>
+              <p className="mt-3 text-[14px] text-alert">
+                This invite link has been revoked. Existing members remain connected.
+              </p>
             ) : (
               <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5">
                 <Icon name="link" className="text-muted-foreground text-[18px] shrink-0" />
@@ -167,11 +215,19 @@ function Lobby({ session }: { session: Session }) {
             )}
 
             <div className="mt-3.5 flex flex-wrap gap-2.5">
-              <Button onClick={share} disabled={trip.inviteRevoked} className="flex-1 cursor-pointer">
+              <Button
+                onClick={share}
+                disabled={trip.inviteRevoked}
+                className="flex-1 cursor-pointer"
+              >
                 <Icon name={copied ? "check" : "share"} />
                 {copied ? "Link Copied!" : "Share Link"}
               </Button>
-              <Button variant="secondary" onClick={() => setQrOpen(true)} className="cursor-pointer">
+              <Button
+                variant="secondary"
+                onClick={() => setQrOpen(true)}
+                className="cursor-pointer"
+              >
                 <Icon name="qr_code_2" />
                 QR Code
               </Button>
@@ -181,7 +237,11 @@ function Lobby({ session }: { session: Session }) {
                   onClick={() => {
                     tripStore.regenerateInvite();
                     const t = tripStore.get().trip;
-                    if (t?.id) void updateTripRemote(t.id, { invite_code: t.inviteCode, invite_revoked: false });
+                    if (t?.id)
+                      void updateTripRemote(t.id, {
+                        invite_code: t.inviteCode,
+                        invite_revoked: false,
+                      });
                   }}
                   title="Generate new invite link"
                   className="cursor-pointer"
@@ -199,21 +259,37 @@ function Lobby({ session }: { session: Session }) {
           {isHost && pending.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="overline text-caution font-semibold">Waiting for your approval ({pending.length})</h2>
+                <h2 className="overline text-caution font-semibold">
+                  Waiting for your approval ({pending.length})
+                </h2>
               </div>
               <ul className="divide-y divide-border rounded-[18px] border border-caution/60 bg-caution/5 overflow-hidden">
                 {pending.map((o) => (
-                  <li key={o.userId} className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-2.5">
+                  <li
+                    key={o.userId}
+                    className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-2.5"
+                  >
                     <VehicleChip letter={o.letter} color={o.color} />
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-[15px]">{o.displayName}</div>
-                      <div className="text-[13px] text-muted-foreground">{o.vehicleLabel} • {o.vehicleType === "bike" ? "Two-wheeler" : "Car"}</div>
+                      <div className="text-[13px] text-muted-foreground">
+                        {o.vehicleLabel} • {o.vehicleType === "bike" ? "Two-wheeler" : "Car"}
+                      </div>
                     </div>
                     <div className="flex gap-1.5">
-                      <Button size="md" className="h-9 px-3 text-[13px] cursor-pointer" onClick={() => void setMemberApproval(trip.id!, o.userId, true)}>
+                      <Button
+                        size="md"
+                        className="h-9 px-3 text-[13px] cursor-pointer"
+                        onClick={() => void setMemberApproval(trip.id!, o.userId, true)}
+                      >
                         Approve
                       </Button>
-                      <Button variant="quiet" size="md" className="h-9 px-3 text-[13px] cursor-pointer" onClick={() => void removeMemberRemote(trip.id!, o.userId)}>
+                      <Button
+                        variant="quiet"
+                        size="md"
+                        className="h-9 px-3 text-[13px] cursor-pointer"
+                        onClick={() => void removeMemberRemote(trip.id!, o.userId)}
+                      >
                         Decline
                       </Button>
                     </div>
@@ -239,13 +315,22 @@ function Lobby({ session }: { session: Session }) {
             <ul className="divide-y divide-border rounded-[20px] border border-border bg-card shadow-sm overflow-hidden">
               {/* Current User */}
               <li className="flex min-h-16 items-center gap-3 px-4 py-2.5 bg-primary/5">
-                <VehicleChip letter={mine?.letter ?? "A"} color={mine?.color ?? me.color} ring="me" size={36} />
+                <VehicleChip
+                  letter={mine?.letter ?? "A"}
+                  color={mine?.color ?? me.color}
+                  ring="me"
+                  size={36}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[15px] text-foreground">
-                    {me.vehicleLabel} <span className="text-[12px] font-medium text-primary">(You{isHost ? " • Host" : ""})</span>
+                    {me.vehicleLabel}{" "}
+                    <span className="text-[12px] font-medium text-primary">
+                      (You{isHost ? " • Host" : ""})
+                    </span>
                   </div>
                   <div className="text-[13px] text-muted-foreground">
-                    {me.displayName} • {me.role === "driver" ? "Driver" : "Passenger"} • {me.vehicleType === "bike" ? "Bike" : "Car"}
+                    {me.displayName} • {me.role === "driver" ? "Driver" : "Passenger"} •{" "}
+                    {me.vehicleType === "bike" ? "Bike" : "Car"}
                   </div>
                 </div>
                 <button
@@ -269,16 +354,31 @@ function Lobby({ session }: { session: Session }) {
 
               {/* Other Members */}
               {others.map((o) => (
-                <li key={o.userId} className="flex min-h-16 items-center gap-3 px-4 py-2.5 hover:bg-secondary/20">
+                <li
+                  key={o.userId}
+                  className="flex min-h-16 items-center gap-3 px-4 py-2.5 hover:bg-secondary/20"
+                >
                   <VehicleChip letter={o.letter} color={o.color} size={36} />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-[15px] text-foreground">
-                      {o.vehicleLabel} <span className="text-[12px] text-muted-foreground">({o.vehicleType === "bike" ? "Bike" : "Car"})</span>
+                      {o.vehicleLabel}{" "}
+                      <span className="text-[12px] text-muted-foreground">
+                        ({o.vehicleType === "bike" ? "Bike" : "Car"})
+                      </span>
                     </div>
-                    <div className="text-[13px] text-muted-foreground">{o.displayName} • {o.role === "driver" ? "Driver" : "Passenger"}</div>
+                    <div className="text-[13px] text-muted-foreground">
+                      {o.displayName} • {o.role === "driver" ? "Driver" : "Passenger"}
+                    </div>
                   </div>
-                  <span className={cn("text-[13px] font-semibold flex items-center gap-1.5", o.ready ? "text-leading" : "text-tertiary")}>
-                    <span className={cn("h-2 w-2 rounded-full", o.ready ? "bg-leading" : "bg-tertiary")} />
+                  <span
+                    className={cn(
+                      "text-[13px] font-semibold flex items-center gap-1.5",
+                      o.ready ? "text-leading" : "text-tertiary",
+                    )}
+                  >
+                    <span
+                      className={cn("h-2 w-2 rounded-full", o.ready ? "bg-leading" : "bg-tertiary")}
+                    />
                     {o.ready ? "Ready" : "Waiting"}
                   </span>
                 </li>
@@ -318,11 +418,21 @@ function Lobby({ session }: { session: Session }) {
 
       {/* QR Code Modal for Passenger Scanning */}
       {qrOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-xs" onClick={() => setQrOpen(false)}>
-          <div className="w-full max-w-sm rounded-[24px] border border-border bg-card p-6 text-center shadow-float" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-xs"
+          onClick={() => setQrOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-[24px] border border-border bg-card p-6 text-center shadow-float"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-2">
               <h3 className="text-[18px] font-semibold text-foreground">Scan to Join Convoy</h3>
-              <button type="button" onClick={() => setQrOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-secondary cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-secondary cursor-pointer"
+              >
                 <Icon name="close" className="text-[20px]" />
               </button>
             </div>

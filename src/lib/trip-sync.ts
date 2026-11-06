@@ -15,9 +15,31 @@ export type Member = {
   ready: boolean;
   approved: boolean;
 };
-export type TripStop = { id: string; name: string; reason: string; query: string; lng: number | null; lat: number | null; status: "suggested" | "confirmed" | "dismissed"; at: number };
-export type Position = { userId: string; lng: number; lat: number; speedMs: number | null; heading: number | null; at: number };
-export type TripMessage = { id: string; userId: string; kind: "chat" | "quick" | "sos"; body: string; at: number };
+export type TripStop = {
+  id: string;
+  name: string;
+  reason: string;
+  query: string;
+  lng: number | null;
+  lat: number | null;
+  status: "suggested" | "confirmed" | "dismissed";
+  at: number;
+};
+export type Position = {
+  userId: string;
+  lng: number;
+  lat: number;
+  speedMs: number | null;
+  heading: number | null;
+  at: number;
+};
+export type TripMessage = {
+  id: string;
+  userId: string;
+  kind: "chat" | "quick" | "sos";
+  body: string;
+  at: number;
+};
 
 const ACTIVE_KEY = "tripmode.activeTrip";
 export const rememberTrip = (id: string | null) => {
@@ -25,9 +47,20 @@ export const rememberTrip = (id: string | null) => {
   if (id) localStorage.setItem(ACTIVE_KEY, id);
   else localStorage.removeItem(ACTIVE_KEY);
 };
-export const rememberedTrip = () => (typeof window === "undefined" ? null : localStorage.getItem(ACTIVE_KEY));
+export const rememberedTrip = () =>
+  typeof window === "undefined" ? null : localStorage.getItem(ACTIVE_KEY);
 
-const toMember = (r: { user_id: string; letter: string; display_name: string; vehicle_label: string; vehicle_type: string; color: string; role: string; ready: boolean; approved: boolean }): Member => ({
+const toMember = (r: {
+  user_id: string;
+  letter: string;
+  display_name: string;
+  vehicle_label: string;
+  vehicle_type: string;
+  color: string;
+  role: string;
+  ready: boolean;
+  approved: boolean;
+}): Member => ({
   userId: r.user_id,
   letter: r.letter,
   displayName: r.display_name,
@@ -114,7 +147,10 @@ export async function loadTrip(id: string) {
   return trip;
 }
 
-export async function updateTripRemote(id: string, p: { invite_code?: string; invite_revoked?: boolean; status?: string }) {
+export async function updateTripRemote(
+  id: string,
+  p: { invite_code?: string; invite_revoked?: boolean; status?: string },
+) {
   await supabase.from("trips").update(p).eq("id", id);
 }
 
@@ -123,12 +159,20 @@ export async function updateMemberRemote(tripId: string, userId: string, p: { re
 }
 
 export async function setMemberApproval(tripId: string, userId: string, approved: boolean) {
-  const { error } = await supabase.from("trip_members").update({ approved }).eq("trip_id", tripId).eq("user_id", userId);
+  const { error } = await supabase
+    .from("trip_members")
+    .update({ approved })
+    .eq("trip_id", tripId)
+    .eq("user_id", userId);
   if (error) throw new Error(error.message);
 }
 
 export async function removeMemberRemote(tripId: string, userId: string) {
-  const { error } = await supabase.from("trip_members").delete().eq("trip_id", tripId).eq("user_id", userId);
+  const { error } = await supabase
+    .from("trip_members")
+    .delete()
+    .eq("trip_id", tripId)
+    .eq("user_id", userId);
   if (error) throw new Error(error.message);
 }
 
@@ -143,10 +187,19 @@ export function useTripStatus(tripId: string | undefined) {
   const [status, setStatus] = useState<string | null>(null);
   useEffect(() => {
     if (!tripId) return;
-    supabase.from("trips").select("status").eq("id", tripId).maybeSingle().then(({ data }) => data && setStatus(data.status));
+    supabase
+      .from("trips")
+      .select("status")
+      .eq("id", tripId)
+      .maybeSingle()
+      .then(({ data }) => data && setStatus(data.status));
     const ch = supabase
       .channel(`trip-${tripId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "trips", filter: `id=eq.${tripId}` }, (p) => setStatus((p.new as { status: string }).status))
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "trips", filter: `id=eq.${tripId}` },
+        (p) => setStatus((p.new as { status: string }).status),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
@@ -162,14 +215,34 @@ export function useStops(tripId: string | undefined) {
     if (!tripId) return;
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.from("trip_stops").select("*").eq("trip_id", tripId).neq("status", "dismissed").order("created_at");
+      const { data } = await supabase
+        .from("trip_stops")
+        .select("*")
+        .eq("trip_id", tripId)
+        .neq("status", "dismissed")
+        .order("created_at");
       if (alive && data)
-        setStops(data.map((r) => ({ id: r.id, name: r.name, reason: r.reason, query: r.query, lng: r.lng, lat: r.lat, status: r.status as TripStop["status"], at: new Date(r.created_at).getTime() })));
+        setStops(
+          data.map((r) => ({
+            id: r.id,
+            name: r.name,
+            reason: r.reason,
+            query: r.query,
+            lng: r.lng,
+            lat: r.lat,
+            status: r.status as TripStop["status"],
+            at: new Date(r.created_at).getTime(),
+          })),
+        );
     };
     void load();
     const ch = supabase
       .channel(`stops-${tripId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "trip_stops", filter: `trip_id=eq.${tripId}` }, () => void load())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trip_stops", filter: `trip_id=eq.${tripId}` },
+        () => void load(),
+      )
       .subscribe();
     return () => {
       alive = false;
@@ -179,7 +252,11 @@ export function useStops(tripId: string | undefined) {
   return stops;
 }
 
-export async function createStopRemote(tripId: string, name: string, lngLat: [number, number] | null) {
+export async function createStopRemote(
+  tripId: string,
+  name: string,
+  lngLat: [number, number] | null,
+) {
   const { error } = await supabase.from("trip_stops").insert({
     trip_id: tripId,
     name,
@@ -192,12 +269,18 @@ export async function createStopRemote(tripId: string, name: string, lngLat: [nu
 }
 
 export async function confirmStopRemote(stopId: string, lngLat: [number, number] | null) {
-  const { error } = await supabase.from("trip_stops").update({ status: "confirmed", lng: lngLat?.[0] ?? null, lat: lngLat?.[1] ?? null }).eq("id", stopId);
+  const { error } = await supabase
+    .from("trip_stops")
+    .update({ status: "confirmed", lng: lngLat?.[0] ?? null, lat: lngLat?.[1] ?? null })
+    .eq("id", stopId);
   if (error) throw new Error(error.message);
 }
 
 export async function dismissStopRemote(stopId: string) {
-  const { error } = await supabase.from("trip_stops").update({ status: "dismissed" }).eq("id", stopId);
+  const { error } = await supabase
+    .from("trip_stops")
+    .update({ status: "dismissed" })
+    .eq("id", stopId);
   if (error) throw new Error(error.message);
 }
 
@@ -233,13 +316,21 @@ export function useMembers(tripId: string | undefined) {
     if (!tripId) return;
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.from("trip_members").select("*").eq("trip_id", tripId).order("letter");
+      const { data } = await supabase
+        .from("trip_members")
+        .select("*")
+        .eq("trip_id", tripId)
+        .order("letter");
       if (alive && data) setMembers(data.map(toMember));
     };
     void load();
     const ch = supabase
       .channel(`members-${tripId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "trip_members", filter: `trip_id=eq.${tripId}` }, () => void load())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trip_members", filter: `trip_id=eq.${tripId}` },
+        () => void load(),
+      )
       .subscribe();
     return () => {
       alive = false;
@@ -254,9 +345,26 @@ export function usePositions(tripId: string | undefined) {
   const [positions, setPositions] = useState<Record<string, Position>>({});
   useEffect(() => {
     if (!tripId) return;
-    type Row = { user_id: string; lng: number; lat: number; speed_ms: number | null; heading: number | null; updated_at: string };
+    type Row = {
+      user_id: string;
+      lng: number;
+      lat: number;
+      speed_ms: number | null;
+      heading: number | null;
+      updated_at: string;
+    };
     const put = (r: Row) =>
-      setPositions((p) => ({ ...p, [r.user_id]: { userId: r.user_id, lng: r.lng, lat: r.lat, speedMs: r.speed_ms, heading: r.heading, at: new Date(r.updated_at).getTime() } }));
+      setPositions((p) => ({
+        ...p,
+        [r.user_id]: {
+          userId: r.user_id,
+          lng: r.lng,
+          lat: r.lat,
+          speedMs: r.speed_ms,
+          heading: r.heading,
+          at: new Date(r.updated_at).getTime(),
+        },
+      }));
     supabase
       .from("trip_positions")
       .select("*")
@@ -264,12 +372,19 @@ export function usePositions(tripId: string | undefined) {
       .then(({ data }) => data?.forEach(put));
     const ch = supabase
       .channel(`positions-${tripId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "trip_positions", filter: `trip_id=eq.${tripId}` }, (payload) => {
-        if (payload.eventType === "DELETE") {
-          const old = payload.old as Partial<Row>;
-          if (old.user_id) setPositions((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== old.user_id)));
-        } else put(payload.new as Row);
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trip_positions", filter: `trip_id=eq.${tripId}` },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const old = payload.old as Partial<Row>;
+            if (old.user_id)
+              setPositions((p) =>
+                Object.fromEntries(Object.entries(p).filter(([k]) => k !== old.user_id)),
+              );
+          } else put(payload.new as Row);
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
@@ -292,7 +407,13 @@ function haversineApproxM(lat1: number, lng1: number, lat2: number, lng2: number
 export function usePublishPosition(
   tripId: string | undefined,
   userId: string | undefined,
-  fix: { lng: number; lat: number; speedMs: number | null; heading: number | null; accuracyM: number } | null,
+  fix: {
+    lng: number;
+    lat: number;
+    speedMs: number | null;
+    heading: number | null;
+    accuracyM: number;
+  } | null,
   everyMs = 3000,
 ) {
   const lastTime = useRef(0);
@@ -314,7 +435,10 @@ export function usePublishPosition(
     }
 
     // Reported speed check: reject > 250 km/h (security.md §8)
-    if (fix.speedMs !== null && (fix.speedMs > MAX_SPEED_MS || fix.speedMs < 0 || !Number.isFinite(fix.speedMs))) {
+    if (
+      fix.speedMs !== null &&
+      (fix.speedMs > MAX_SPEED_MS || fix.speedMs < 0 || !Number.isFinite(fix.speedMs))
+    ) {
       return;
     }
 
@@ -358,7 +482,13 @@ export function useMessages(tripId: string | undefined, onNew?: (m: TripMessage)
   useEffect(() => {
     if (!tripId) return;
     type Row = { id: string; user_id: string; kind: string; body: string; created_at: string };
-    const map = (r: Row): TripMessage => ({ id: r.id, userId: r.user_id, kind: r.kind as TripMessage["kind"], body: r.body, at: new Date(r.created_at).getTime() });
+    const map = (r: Row): TripMessage => ({
+      id: r.id,
+      userId: r.user_id,
+      kind: r.kind as TripMessage["kind"],
+      body: r.body,
+      at: new Date(r.created_at).getTime(),
+    });
     supabase
       .from("trip_messages")
       .select("*")
@@ -368,11 +498,20 @@ export function useMessages(tripId: string | undefined, onNew?: (m: TripMessage)
       .then(({ data }) => data && setMessages(data.map(map)));
     const ch = supabase
       .channel(`messages-${tripId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trip_messages", filter: `trip_id=eq.${tripId}` }, (payload) => {
-        const m = map(payload.new as Row);
-        setMessages((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms, m]));
-        cb.current?.(m);
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "trip_messages",
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          const m = map(payload.new as Row);
+          setMessages((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms, m]));
+          cb.current?.(m);
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
@@ -385,11 +524,21 @@ export function useMessages(tripId: string | undefined, onNew?: (m: TripMessage)
 const chatRateLimitBuffer: number[] = [];
 let lastQuickAlertTime = 0;
 
-export async function sendMessage(tripId: string, userId: string, kind: TripMessage["kind"], rawBody: string) {
+export async function sendMessage(
+  tripId: string,
+  userId: string,
+  kind: TripMessage["kind"],
+  rawBody: string,
+) {
   const now = Date.now();
 
   // Strip control chars and cap at 500 characters
-  const cleanBody = rawBody.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, 500);
+
+  const cleanBody = rawBody
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, 500);
   if (!cleanBody) return;
 
   if (kind === "quick") {

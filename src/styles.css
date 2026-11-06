@@ -99,21 +99,21 @@
 
 .dark {
   --background: #111613;
-  --foreground: #eceFea;
+  --foreground: #ecefea;
   --card: #1a211d;
-  --card-foreground: #eceFea;
+  --card-foreground: #ecefea;
   --popover: #1a211d;
-  --popover-foreground: #eceFea;
+  --popover-foreground: #ecefea;
   --primary: #5fbf9d;
   --primary-pressed: #4ea586;
   --primary-foreground: #0c100e;
   --secondary: #0c100e;
-  --secondary-foreground: #eceFea;
+  --secondary-foreground: #ecefea;
   --muted: #0c100e;
   --muted-foreground: #a9b3ac;
   --tertiary: #76817a;
   --accent: #2a332e;
-  --accent-foreground: #eceFea;
+  --accent-foreground: #ecefea;
   --destructive: #ee7b62;
   --destructive-foreground: #0c100e;
   --border: #2a332e;
@@ -156,7 +156,9 @@
 }
 @utility ms {
   font-family: "Material Symbols Rounded";
-  font-variation-settings: "wght" 500, "opsz" 24;
+  font-variation-settings:
+    "wght" 500,
+    "opsz" 24;
   font-weight: normal;
   font-style: normal;
   line-height: 1;
@@ -169,27 +171,43 @@
 }
 
 .rail-chip {
-  transition: left 400ms var(--ease-standard), top 400ms var(--ease-standard);
+  transition:
+    left 400ms var(--ease-standard),
+    top 400ms var(--ease-standard);
   will-change: left, top;
 }
 .gap-bracket {
-  transition: color 250ms ease-out, border-color 250ms ease-out;
+  transition:
+    color 250ms ease-out,
+    border-color 250ms ease-out;
 }
 .banner-in {
   animation: banner-in 220ms ease-out both;
   will-change: opacity, transform;
 }
 @keyframes banner-in {
-  from { opacity: 0; transform: translateY(-12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .ptt-ring {
   animation: ptt-ring 1200ms ease-out infinite;
   will-change: transform, opacity;
 }
 @keyframes ptt-ring {
-  from { transform: scale(1); opacity: 0.5; }
-  to { transform: scale(1.9); opacity: 0; }
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
 }
 .sos-fill {
   transition: stroke-dashoffset 1200ms linear;
@@ -199,13 +217,26 @@
   will-change: opacity, transform;
 }
 @keyframes screen-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rail-chip, .gap-bracket { transition-duration: 1ms; }
-  .ptt-ring, .banner-in, .screen-in { animation: none; }
+  .rail-chip,
+  .gap-bracket {
+    transition-duration: 1ms;
+  }
+  .ptt-ring,
+  .banner-in,
+  .screen-in {
+    animation: none;
+  }
 }
 
 /* Google sign-in button: Google's branding colors (light theme / dark theme) */

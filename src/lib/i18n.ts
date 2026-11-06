@@ -126,7 +126,11 @@ const listeners = new Set<() => void>();
 
 function safeStorageGet(key: string): string | null {
   try {
-    if (typeof window !== "undefined" && window.localStorage && typeof window.localStorage.getItem === "function") {
+    if (
+      typeof window !== "undefined" &&
+      window.localStorage &&
+      typeof window.localStorage.getItem === "function"
+    ) {
       return window.localStorage.getItem(key);
     }
   } catch {
@@ -137,7 +141,11 @@ function safeStorageGet(key: string): string | null {
 
 function safeStorageSet(key: string, value: string): void {
   try {
-    if (typeof window !== "undefined" && window.localStorage && typeof window.localStorage.setItem === "function") {
+    if (
+      typeof window !== "undefined" &&
+      window.localStorage &&
+      typeof window.localStorage.setItem === "function"
+    ) {
       window.localStorage.setItem(key, value);
     }
   } catch {
@@ -182,9 +190,12 @@ export function t(key: TranslationKey): string {
 export function useI18n() {
   const lang = useSyncExternalStore<Language>(subscribe, getLanguage, () => "en");
 
-  const translate = useCallback((key: TranslationKey): string => {
-    return DICTIONARY[lang][key] || DICTIONARY.en[key] || key;
-  }, [lang]);
+  const translate = useCallback(
+    (key: TranslationKey): string => {
+      return DICTIONARY[lang][key] || DICTIONARY.en[key] || key;
+    },
+    [lang],
+  );
 
   return {
     lang,

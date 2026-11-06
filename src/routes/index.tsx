@@ -10,9 +10,17 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Trip Mode - Collaborative Multi-Vehicle Navigation" },
-      { name: "description", content: "Separate vehicles travelling together share one live convoy map, glanceable convoy rail, and quick driving alerts." },
+      {
+        name: "description",
+        content:
+          "Separate vehicles travelling together share one live convoy map, glanceable convoy rail, and quick driving alerts.",
+      },
       { property: "og:title", content: "Trip Mode - Collaborative Multi-Vehicle Navigation" },
-      { property: "og:description", content: "See all vehicles on one shared map, monitor convoy gaps in real time, coordinate pitstops, and talk hands-free." },
+      {
+        property: "og:description",
+        content:
+          "See all vehicles on one shared map, monitor convoy gaps in real time, coordinate pitstops, and talk hands-free.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -33,7 +41,12 @@ type SavedTrip = {
 const QUICK_ALERTS = [
   { id: "speed", label: "Slow down", icon: "speed", hint: "Leader reducing pace" },
   { id: "fuel", label: "Need fuel", icon: "local_gas_station", hint: "Search pump along route" },
-  { id: "break", label: "Need a break", icon: "airline_seat_recline_normal", hint: "Next rest area" },
+  {
+    id: "break",
+    label: "Need a break",
+    icon: "airline_seat_recline_normal",
+    hint: "Next rest area",
+  },
   { id: "food", label: "Food stop", icon: "restaurant", hint: "Coordinate meal stop" },
   { id: "lost", label: "Lost the route", icon: "wrong_location", hint: "Off planned route" },
   { id: "wait", label: "Wait for me", icon: "hourglass_top", hint: "Caught at toll or traffic" },
@@ -72,7 +85,8 @@ function Home() {
   useEffect(() => {
     const isDarkSaved =
       localStorage.getItem("tripmode-theme") === "dark" ||
-      (!("tripmode-theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      (!("tripmode-theme" in localStorage) &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
     setIsDark(isDarkSaved);
     if (isDarkSaved) {
       document.documentElement.classList.add("dark");
@@ -117,14 +131,29 @@ function Home() {
       <header className="flex h-16 sm:h-20 items-center justify-between border-b border-border/70 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-[12px] bg-primary text-primary-foreground shadow-float transition-transform active:scale-95">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-6 w-6" fill="none">
-              <circle cx="24" cy="24" r="15" stroke="currentColor" strokeWidth="2" strokeOpacity="0.35" strokeDasharray="3 3" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 48 48"
+              className="h-6 w-6"
+              fill="none"
+            >
+              <circle
+                cx="24"
+                cy="24"
+                r="15"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeOpacity="0.35"
+                strokeDasharray="3 3"
+              />
               <path d="M24 11L33 34L24 29L15 34L24 11Z" fill="currentColor" />
             </svg>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[19px] sm:text-[21px] font-semibold tracking-tight">Trip Mode</span>
+              <span className="text-[19px] sm:text-[21px] font-semibold tracking-tight">
+                Trip Mode
+              </span>
               <span className="hidden xs:inline-flex rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-ink-secondary">
                 CONVOY
               </span>
@@ -172,11 +201,18 @@ function Home() {
             <div>
               <div className="font-semibold text-[16px] text-foreground">{trip.name}</div>
               <div className="text-[13px] text-muted-foreground">
-                Active convoy room • Invite Code <span className="font-mono font-medium text-foreground">{trip.inviteCode}</span>
+                Active convoy room • Invite Code{" "}
+                <span className="font-mono font-medium text-foreground">{trip.inviteCode}</span>
               </div>
             </div>
           </div>
-          <Link to="/trip" className={btn({ variant: "primary", className: "h-10 px-5 text-[14px] w-full sm:w-auto" })}>
+          <Link
+            to="/trip"
+            className={btn({
+              variant: "primary",
+              className: "h-10 px-5 text-[14px] w-full sm:w-auto",
+            })}
+          >
             <Icon name="play_arrow" className="text-[18px]" />
             Rejoin Live Map
           </Link>
@@ -196,7 +232,8 @@ function Home() {
               Travel together in separate vehicles
             </p>
             <p className="mt-1 text-[14px] text-muted-foreground leading-relaxed">
-              One shared live map for your group, real-time convoy gap monitoring, and push-to-talk voice coordination.
+              One shared live map for your group, real-time convoy gap monitoring, and push-to-talk
+              voice coordination.
             </p>
 
             {/* Destination Search Form */}
@@ -260,15 +297,21 @@ function Home() {
             {savedTrips.length > 0 ? (
               <ul className="divide-y divide-border rounded-[12px] border border-border bg-card overflow-hidden">
                 {savedTrips.map((st) => (
-                  <li key={st.id} className="flex min-h-14 items-center justify-between gap-3 px-3.5 py-2 hover:bg-secondary/40 transition-colors">
+                  <li
+                    key={st.id}
+                    className="flex min-h-14 items-center justify-between gap-3 px-3.5 py-2 hover:bg-secondary/40 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
                         <Icon name="history" className="text-[18px]" />
                       </span>
                       <div className="min-w-0">
-                        <div className="text-[14px] font-semibold text-foreground truncate">{st.name}</div>
+                        <div className="text-[14px] font-semibold text-foreground truncate">
+                          {st.name}
+                        </div>
                         <div className="text-[12px] text-muted-foreground truncate">
-                          {st.distanceKm > 0 ? `${st.distanceKm} km • ` : ""}{st.date}
+                          {st.distanceKm > 0 ? `${st.distanceKm} km • ` : ""}
+                          {st.date}
                         </div>
                       </div>
                     </div>
@@ -291,7 +334,10 @@ function Home() {
                 <p className="mt-1 text-[12px] text-muted-foreground max-w-xs">
                   Trips you complete and save will appear here for easy repeating.
                 </p>
-                <Link to="/create" className={btn({ variant: "quiet", className: "mt-3 h-9 px-3 text-[13px]" })}>
+                <Link
+                  to="/create"
+                  className={btn({ variant: "quiet", className: "mt-3 h-9 px-3 text-[13px]" })}
+                >
                   Plan your first trip
                 </Link>
               </div>
@@ -304,8 +350,11 @@ function Home() {
               <Icon name="verified_user" className="text-[20px]" />
             </span>
             <div>
-              <span className="font-semibold text-foreground block mb-0.5">Zero Persistent Tracking</span>
-              GPS positions are shared ephemerally only with approved convoy members while the trip is active. All coordinates are purged when the trip ends.
+              <span className="font-semibold text-foreground block mb-0.5">
+                Zero Persistent Tracking
+              </span>
+              GPS positions are shared ephemerally only with approved convoy members while the trip
+              is active. All coordinates are purged when the trip ends.
             </div>
           </div>
         </div>
@@ -317,12 +366,8 @@ function Home() {
             <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-leading" />
-                <span className="text-[14px] font-semibold text-foreground">
-                  Keyless Map Stack
-                </span>
-                <span className="text-[12px] text-muted-foreground">
-                  • OpenFreeMap Positron
-                </span>
+                <span className="text-[14px] font-semibold text-foreground">Keyless Map Stack</span>
+                <span className="text-[12px] text-muted-foreground">• OpenFreeMap Positron</span>
               </div>
               <div className="flex items-center gap-2">
                 <Link
@@ -380,9 +425,7 @@ function Home() {
                     <div className="text-[14px] font-semibold text-foreground truncate">
                       {alert.label}
                     </div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      {alert.hint}
-                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">{alert.hint}</div>
                   </div>
                 </div>
               ))}
@@ -397,7 +440,8 @@ function Home() {
                 <h4 className="font-semibold text-[15px] text-foreground">Signature Convoy Rail</h4>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                Horizontal route timeline with proportional vehicle chips and real-time gap brackets in IBM Plex Mono.
+                Horizontal route timeline with proportional vehicle chips and real-time gap brackets
+                in IBM Plex Mono.
               </p>
             </div>
 
@@ -407,27 +451,34 @@ function Home() {
                 <h4 className="font-semibold text-[15px] text-foreground">Turn-by-Turn Guidance</h4>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                Integrated maneuver cards, upcoming street names, and voice guidance running on keyless OpenStreetMap routing.
+                Integrated maneuver cards, upcoming street names, and voice guidance running on
+                keyless OpenStreetMap routing.
               </p>
             </div>
 
             <div className="rounded-[16px] border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center gap-2.5 text-primary">
                 <Icon name="mic" className="text-[22px]" />
-                <h4 className="font-semibold text-[15px] text-foreground">Push-To-Talk Walkie Talkie</h4>
+                <h4 className="font-semibold text-[15px] text-foreground">
+                  Push-To-Talk Walkie Talkie
+                </h4>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                Hold-to-speak voice audio for drivers. Zero typing distraction on the road, with earcon tone cues on connect.
+                Hold-to-speak voice audio for drivers. Zero typing distraction on the road, with
+                earcon tone cues on connect.
               </p>
             </div>
 
             <div className="rounded-[16px] border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center gap-2.5 text-primary">
                 <Icon name="local_gas_station" className="text-[22px]" />
-                <h4 className="font-semibold text-[15px] text-foreground">Corridor POI Intelligence</h4>
+                <h4 className="font-semibold text-[15px] text-foreground">
+                  Corridor POI Intelligence
+                </h4>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                Search corridor petrol pumps, rest areas, food stops, and EV chargers along the agreed convoy route.
+                Search corridor petrol pumps, rest areas, food stops, and EV chargers along the
+                agreed convoy route.
               </p>
             </div>
           </div>
@@ -468,7 +519,11 @@ function Home() {
                 autoFocus
                 className="h-12 w-full rounded-lg border border-border bg-secondary px-4 font-mono text-[16px] outline-none focus:border-primary uppercase tracking-widest text-center"
               />
-              <Button type="submit" className="w-full h-12 text-[15px] cursor-pointer" disabled={!code.trim()}>
+              <Button
+                type="submit"
+                className="w-full h-12 text-[15px] cursor-pointer"
+                disabled={!code.trim()}
+              >
                 Preview & Join Convoy
               </Button>
             </form>

@@ -3,7 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { RouteMap } from "@/components/trip/RouteMap";
 import { Button, Field, Icon, Screen, Segmented } from "@/components/trip/ui";
-import { fetchRoutes, PLACES, POPULAR_ROUTES, ROUTES, setRoutes, useRoutes, type Place, type RawRoute } from "@/lib/geo";
+import {
+  fetchRoutes,
+  PLACES,
+  POPULAR_ROUTES,
+  ROUTES,
+  setRoutes,
+  useRoutes,
+  type Place,
+  type RawRoute,
+} from "@/lib/geo";
 import routesData from "@/data/routes.json";
 import { RequireAuth } from "@/components/trip/RequireAuth";
 import { createTripRemote } from "@/lib/trip-sync";
@@ -22,9 +31,15 @@ export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
       { title: "Start a trip - Trip Mode" },
-      { name: "description", content: "Pick a destination, agree on one route and set the convoy rules." },
+      {
+        name: "description",
+        content: "Pick a destination, agree on one route and set the convoy rules.",
+      },
       { property: "og:title", content: "Start a trip - Trip Mode" },
-      { property: "og:description", content: "Pick a destination, agree on one route and set the convoy rules." },
+      {
+        property: "og:description",
+        content: "Pick a destination, agree on one route and set the convoy rules.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -90,6 +105,7 @@ function CreateInner({ session }: { session: Session }) {
     if (origin && dest && (!name || name.includes(" to "))) {
       setName(`${origin.name} to ${dest.name}`);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, dest]);
 
   const loadRoutes = async () => {
@@ -127,7 +143,9 @@ function CreateInner({ session }: { session: Session }) {
     setSaving(true);
     setRouteErr(null);
     try {
-      const tripName = (name.trim() || `${origin?.name ?? "Convoy"} to ${dest?.name ?? "Trip"}`).slice(0, 60);
+      const tripName = (
+        name.trim() || `${origin?.name ?? "Convoy"} to ${dest?.name ?? "Trip"}`
+      ).slice(0, 60);
       const t = tripStore.createTrip({
         name: tripName,
         origin: origin?.name ?? "Origin",
@@ -144,7 +162,9 @@ function CreateInner({ session }: { session: Session }) {
       await createTripRemote(t, raw, session.user.id);
       nav({ to: "/lobby" });
     } catch (e) {
-      setRouteErr(e instanceof Error ? e.message : "Could not create the trip in backend. Please try again.");
+      setRouteErr(
+        e instanceof Error ? e.message : "Could not create the trip in backend. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -193,14 +213,21 @@ function CreateInner({ session }: { session: Session }) {
               key={label}
               className={cn(
                 "transition-colors",
-                i === step ? "text-primary font-semibold" : i < step ? "text-foreground" : "text-tertiary",
+                i === step
+                  ? "text-primary font-semibold"
+                  : i < step
+                    ? "text-foreground"
+                    : "text-tertiary",
               )}
             >
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold mr-1.5"
+              <span
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold mr-1.5"
                 style={{
-                  backgroundColor: i === step ? "var(--primary)" : i < step ? "var(--secondary)" : "transparent",
+                  backgroundColor:
+                    i === step ? "var(--primary)" : i < step ? "var(--secondary)" : "transparent",
                   color: i === step ? "var(--primary-foreground)" : "inherit",
-                }}>
+                }}
+              >
                 {i < step ? "✓" : i + 1}
               </span>
               <span className="hidden xs:inline">{label}</span>
@@ -286,7 +313,10 @@ function CreateInner({ session }: { session: Session }) {
               </div>
 
               {routeErr && (
-                <div role="alert" className="flex items-center gap-2 rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20">
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20"
+                >
                   <Icon name="warning" className="text-[20px] shrink-0" />
                   <span>{routeErr}</span>
                 </div>
@@ -333,7 +363,9 @@ function CreateInner({ session }: { session: Session }) {
                           <span className="font-mono text-[12px] font-medium text-primary bg-card px-2 py-0.5 rounded-full border border-border">
                             {pr.km} km
                           </span>
-                          {isActive && <Icon name="check_circle" className="text-primary text-[18px]" />}
+                          {isActive && (
+                            <Icon name="check_circle" className="text-primary text-[18px]" />
+                          )}
                         </div>
                       </button>
                     );
@@ -354,11 +386,15 @@ function CreateInner({ session }: { session: Session }) {
                   </li>
                   <li className="flex items-start gap-2">
                     <Icon name="done" className="text-primary text-[16px] mt-0.5 shrink-0" />
-                    <span>Live vehicle positions stay synchronized to the same agreed road corridor.</span>
+                    <span>
+                      Live vehicle positions stay synchronized to the same agreed road corridor.
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Icon name="done" className="text-primary text-[16px] mt-0.5 shrink-0" />
-                    <span>Instant alerts trigger if anyone falls behind or takes an accidental detour.</span>
+                    <span>
+                      Instant alerts trigger if anyone falls behind or takes an accidental detour.
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -387,8 +423,12 @@ function CreateInner({ session }: { session: Session }) {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="flex h-3 w-3 rounded-full bg-leading shrink-0" />
                     <div className="truncate">
-                      <span className="font-semibold text-foreground">{activeSelectedRoute.name}</span>
-                      <span className="text-muted-foreground ml-2 hidden sm:inline">via {activeSelectedRoute.via}</span>
+                      <span className="font-semibold text-foreground">
+                        {activeSelectedRoute.name}
+                      </span>
+                      <span className="text-muted-foreground ml-2 hidden sm:inline">
+                        via {activeSelectedRoute.via}
+                      </span>
                     </div>
                   </div>
                   <div className="shrink-0 font-mono font-semibold text-primary">
@@ -429,11 +469,16 @@ function CreateInner({ session }: { session: Session }) {
                     >
                       <Icon
                         name={isSelected ? "radio_button_checked" : "radio_button_unchecked"}
-                        className={cn("mt-0.5 text-[22px] shrink-0", isSelected ? "text-primary" : "text-tertiary")}
+                        className={cn(
+                          "mt-0.5 text-[22px] shrink-0",
+                          isSelected ? "text-primary" : "text-tertiary",
+                        )}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-[15px] sm:text-[16px] text-foreground">{r.name}</span>
+                          <span className="font-semibold text-[15px] sm:text-[16px] text-foreground">
+                            {r.name}
+                          </span>
                           {isFastest ? (
                             <span className="rounded-full bg-leading/15 px-2 py-0.5 text-[11px] font-semibold text-leading">
                               Fastest
@@ -444,10 +489,14 @@ function CreateInner({ session }: { session: Session }) {
                             </span>
                           )}
                         </div>
-                        <div className="text-[13px] text-muted-foreground mt-1 line-clamp-1">{r.via}</div>
+                        <div className="text-[13px] text-muted-foreground mt-1 line-clamp-1">
+                          {r.via}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="font-mono text-[15px] sm:text-[16px] font-semibold text-foreground">{r.hours}</div>
+                        <div className="font-mono text-[15px] sm:text-[16px] font-semibold text-foreground">
+                          {r.hours}
+                        </div>
                         <div className="font-mono text-[12px] text-muted-foreground">{r.km} km</div>
                       </div>
                     </button>
@@ -461,12 +510,16 @@ function CreateInner({ session }: { session: Session }) {
                   <span>Single Corridor Guarantee</span>
                 </div>
                 <span>
-                  All vehicles share this active highway geometry. Turn-by-turn guidance and convoy gap alerts reference this single agreed corridor.
+                  All vehicles share this active highway geometry. Turn-by-turn guidance and convoy
+                  gap alerts reference this single agreed corridor.
                 </span>
               </div>
 
               {routeErr && (
-                <div role="alert" className="flex items-center gap-2 rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20">
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20"
+                >
                   <Icon name="warning" className="text-[18px] shrink-0" />
                   <span>{routeErr}</span>
                 </div>
@@ -543,8 +596,12 @@ function CreateInner({ session }: { session: Session }) {
                   <div className="flex items-start gap-3">
                     <Icon name="flag" className="text-primary mt-0.5 text-[22px] shrink-0" />
                     <div>
-                      <span className="block font-semibold text-[15px] text-foreground">Auto-end trip at destination</span>
-                      <span className="text-[13px] text-muted-foreground">Location sharing stops automatically once all cars arrive.</span>
+                      <span className="block font-semibold text-[15px] text-foreground">
+                        Auto-end trip at destination
+                      </span>
+                      <span className="text-[13px] text-muted-foreground">
+                        Location sharing stops automatically once all cars arrive.
+                      </span>
                     </div>
                   </div>
                   <input
@@ -557,10 +614,17 @@ function CreateInner({ session }: { session: Session }) {
 
                 <label className="flex items-center justify-between gap-4 rounded-[18px] border border-border bg-card p-4 sm:p-5 shadow-sm cursor-pointer hover:bg-secondary/20 transition-colors">
                   <div className="flex items-start gap-3">
-                    <Icon name="verified_user" className="text-primary mt-0.5 text-[22px] shrink-0" />
+                    <Icon
+                      name="verified_user"
+                      className="text-primary mt-0.5 text-[22px] shrink-0"
+                    />
                     <div>
-                      <span className="block font-semibold text-[15px] text-foreground">Host approval for new cars</span>
-                      <span className="text-[13px] text-muted-foreground">You approve each vehicle before they join the live map.</span>
+                      <span className="block font-semibold text-[15px] text-foreground">
+                        Host approval for new cars
+                      </span>
+                      <span className="text-[13px] text-muted-foreground">
+                        You approve each vehicle before they join the live map.
+                      </span>
                     </div>
                   </div>
                   <input
@@ -597,12 +661,20 @@ function CreateInner({ session }: { session: Session }) {
           </div>
 
           {routeErr && (
-            <div role="alert" className="flex items-center justify-between rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20">
+            <div
+              role="alert"
+              className="flex items-center justify-between rounded-xl bg-alert/10 p-3.5 text-[14px] text-alert border border-alert/20"
+            >
               <div className="flex items-center gap-2">
                 <Icon name="warning" className="text-[20px] shrink-0" />
                 <span>{routeErr}</span>
               </div>
-              <Button size="md" variant="secondary" className="h-8 px-3 text-[12px] cursor-pointer" onClick={() => void finish()}>
+              <Button
+                size="md"
+                variant="secondary"
+                className="h-8 px-3 text-[12px] cursor-pointer"
+                onClick={() => void finish()}
+              >
                 Retry
               </Button>
             </div>

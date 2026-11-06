@@ -1,6 +1,13 @@
 // Simulation harness: virtual vehicles replaying the agreed route with scripted scenarios.
 // Emits the same shape the realtime protocol would (position snapshots per tick).
-import { classify, lineLength, pointAt, routeProgress, type MemberStatus, type Point } from "./convoy";
+import {
+  classify,
+  lineLength,
+  pointAt,
+  routeProgress,
+  type MemberStatus,
+  type Point,
+} from "./convoy";
 import type { Role, VehicleColor } from "./trip-store";
 
 export const SIM_SECONDS_PER_TICK = 40;
@@ -42,11 +49,24 @@ export const SCENARIOS: Record<string, Scenario> = {
   E: { baseKmh: 82, signalLossAt: [2400, 3600] },
 };
 
-export function seedVehicles(me: { vehicleLabel: string; displayName: string; color: VehicleColor; role: Role }): SimVehicle[] {
+export function seedVehicles(me: {
+  vehicleLabel: string;
+  displayName: string;
+  color: VehicleColor;
+  role: Role;
+}): SimVehicle[] {
   const now = Date.now();
   type Identity = Pick<SimVehicle, "id" | "letter" | "name" | "driver" | "color" | "role" | "isMe">;
   const others: Identity[] = [];
-  const meV: Identity = { id: "A", letter: "A", name: me.vehicleLabel || "My car", driver: me.displayName || "You", color: me.color, role: me.role, isMe: true };
+  const meV: Identity = {
+    id: "A",
+    letter: "A",
+    name: me.vehicleLabel || "My car",
+    driver: me.displayName || "You",
+    color: me.color,
+    role: me.role,
+    isMe: true,
+  };
   return [meV, ...others].map((v, i) => ({
     ...v,
     progressM: 3000 - i * 500,
@@ -61,7 +81,12 @@ export function seedVehicles(me: { vehicleLabel: string; displayName: string; co
 }
 
 /** Advance one tick. Pure apart from Date.now passed in. */
-export function step(vs: SimVehicle[], simT: number, routeM: number, nowReal: number): SimVehicle[] {
+export function step(
+  vs: SimVehicle[],
+  simT: number,
+  routeM: number,
+  nowReal: number,
+): SimVehicle[] {
   return vs.map((v) => {
     const sc = SCENARIOS[v.id] ?? { baseKmh: 80 };
     const inRange = (r?: [number, number]) => !!r && simT >= r[0] && simT < r[1];
@@ -87,7 +112,12 @@ export function step(vs: SimVehicle[], simT: number, routeM: number, nowReal: nu
   });
 }
 
-export function vehicleStatus(v: SimVehicle, gapM: number, thresholdM: number, nowReal: number): MemberStatus {
+export function vehicleStatus(
+  v: SimVehicle,
+  gapM: number,
+  thresholdM: number,
+  nowReal: number,
+): MemberStatus {
   return classify({
     gapM,
     thresholdM,
@@ -121,8 +151,12 @@ export function applyFix(
 ): SimVehicle {
   const { progress, offset } = routeProgress(line, p);
   const moved = v.realP ? Math.hypot(p.x - v.realP.x, p.y - v.realP.y) : 0;
-  const speedKmh = speedMs !== null && speedMs >= 0 ? speedMs * 3.6 : dtS > 0 ? (moved / dtS) * 3.6 : 0;
-  const heading = v.realP && moved > 3 ? (Math.atan2(p.y - v.realP.y, p.x - v.realP.x) * 180) / Math.PI : (v.realHeading ?? 0);
+  const speedKmh =
+    speedMs !== null && speedMs >= 0 ? speedMs * 3.6 : dtS > 0 ? (moved / dtS) * 3.6 : 0;
+  const heading =
+    v.realP && moved > 3
+      ? (Math.atan2(p.y - v.realP.y, p.x - v.realP.x) * 180) / Math.PI
+      : (v.realHeading ?? 0);
   const routeM = lineLength(line);
   const wasStopped = v.speedKmh < 2;
   return {

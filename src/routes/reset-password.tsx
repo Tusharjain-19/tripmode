@@ -9,7 +9,10 @@ export const Route = createFileRoute("/reset-password")({
       { title: "Reset password - Trip Mode" },
       { name: "description", content: "Set a new password for your Trip Mode admin account." },
       { property: "og:title", content: "Reset password - Trip Mode" },
-      { property: "og:description", content: "Set a new password for your Trip Mode admin account." },
+      {
+        property: "og:description",
+        content: "Set a new password for your Trip Mode admin account.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -27,7 +30,9 @@ function ResetPassword() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((e) => { if (e === "PASSWORD_RECOVERY") setReady(true); });
+    const { data } = supabase.auth.onAuthStateChange((e) => {
+      if (e === "PASSWORD_RECOVERY") setReady(true);
+    });
     if (window.location.hash.includes("type=recovery")) setReady(true);
     return () => data.subscription.unsubscribe();
   }, []);
@@ -46,13 +51,33 @@ function ResetPassword() {
   return (
     <Screen title="Set a new password" back="/admin">
       {!ready ? (
-        <p className="mt-6 text-muted-foreground">Open this page from the reset link in your email. Links expire after one hour.</p>
+        <p className="mt-6 text-muted-foreground">
+          Open this page from the reset link in your email. Links expire after one hour.
+        </p>
       ) : (
         <form onSubmit={save} className="mt-6 space-y-4">
-          <Field label="New password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
-          <Field label="Repeat new password" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
-          {msg && <p role="alert" className="text-[14px] text-alert">{msg}</p>}
-          <Button type="submit" className="w-full" disabled={busy}>{busy ? "Saving" : "Save password"}</Button>
+          <Field
+            label="New password"
+            type="password"
+            autoComplete="new-password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+          />
+          <Field
+            label="Repeat new password"
+            type="password"
+            autoComplete="new-password"
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value)}
+          />
+          {msg && (
+            <p role="alert" className="text-[14px] text-alert">
+              {msg}
+            </p>
+          )}
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Saving" : "Save password"}
+          </Button>
         </form>
       )}
     </Screen>

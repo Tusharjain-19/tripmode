@@ -6,12 +6,12 @@ Data model for Trip Mode. Primary store: **PostgreSQL with PostGIS**. Live state
 
 ## 1. Storage strategy
 
-| Data | Store | Why |
-|---|---|---|
-| Users, trips, members, rules, alerts, chat | PostgreSQL | Relational, durable, queryable |
-| Route geometry and spatial calculations | PostgreSQL + PostGIS | `ST_LineLocatePoint`, distance along route |
-| Live positions, presence, rate limits | Redis | High write rate, short-lived, expiring |
-| Location history (breadcrumbs) | PostgreSQL, partitioned, short retention | Trip summary and replay, auto-deleted |
+| Data                                       | Store                                    | Why                                        |
+| ------------------------------------------ | ---------------------------------------- | ------------------------------------------ |
+| Users, trips, members, rules, alerts, chat | PostgreSQL                               | Relational, durable, queryable             |
+| Route geometry and spatial calculations    | PostgreSQL + PostGIS                     | `ST_LineLocatePoint`, distance along route |
+| Live positions, presence, rate limits      | Redis                                    | High write rate, short-lived, expiring     |
+| Location history (breadcrumbs)             | PostgreSQL, partitioned, short retention | Trip summary and replay, auto-deleted      |
 
 Principle: **live positions are ephemeral**. Redis is the source of truth during a trip. Only sampled breadcrumbs are persisted, and only with the member's consent.
 
@@ -254,16 +254,16 @@ Optimization: load the agreed route once into worker memory and compute progress
 
 ## 5. Redis keys (live state)
 
-| Key | Type | TTL | Content |
-|---|---|---|---|
-| `trip:{id}:pos` | Hash (field = memberId) | 1 h after last write | JSON `{lat,lng,speed,heading,ts,progressM,seq}` |
-| `trip:{id}:presence` | Sorted set (score = last ping ts) | 1 h | memberIds |
-| `trip:{id}:metrics` | String (JSON) | 5 min | Latest `convoy.metrics` |
-| `trip:{id}:state` | Hash | 12 h | status, thresholds cache |
-| `trip:{id}:events` | Stream (capped to 500) | 24 h | alerts and chat for replay |
-| `rl:{userId}:{action}` | Counter | Window | Rate limiting |
-| `ws:{connId}` | Hash | Session | userId, tripId, memberId |
-| `invite:attempts:{ipHash}` | Counter | 15 min | Brute-force protection |
+| Key                        | Type                              | TTL                  | Content                                         |
+| -------------------------- | --------------------------------- | -------------------- | ----------------------------------------------- |
+| `trip:{id}:pos`            | Hash (field = memberId)           | 1 h after last write | JSON `{lat,lng,speed,heading,ts,progressM,seq}` |
+| `trip:{id}:presence`       | Sorted set (score = last ping ts) | 1 h                  | memberIds                                       |
+| `trip:{id}:metrics`        | String (JSON)                     | 5 min                | Latest `convoy.metrics`                         |
+| `trip:{id}:state`          | Hash                              | 12 h                 | status, thresholds cache                        |
+| `trip:{id}:events`         | Stream (capped to 500)            | 24 h                 | alerts and chat for replay                      |
+| `rl:{userId}:{action}`     | Counter                           | Window               | Rate limiting                                   |
+| `ws:{connId}`              | Hash                              | Session              | userId, tripId, memberId                        |
+| `invite:attempts:{ipHash}` | Counter                           | 15 min               | Brute-force protection                          |
 
 Publish/subscribe channel per trip (`trip:{id}:bus`) so multiple API instances can fan out to connected sockets.
 
@@ -315,15 +315,15 @@ CREATE POLICY crumbs_owner ON location_breadcrumbs FOR SELECT USING (
 
 ## 7. Retention and deletion
 
-| Data | Retention | Mechanism |
-|---|---|---|
-| Live positions (Redis) | Deleted at trip end, hard TTL 1 h | TTL and explicit delete |
-| Breadcrumbs | Only stored if member opted in; deleted `retention_days` after trip end (default 1 day) | Drop daily partitions |
-| Chat messages | 30 days after trip end, or immediately on host delete | Scheduled job |
-| Trip events | 90 days | Scheduled job |
-| Invites | Deleted 7 days after expiry | Scheduled job |
-| Audit log | 1 year, contains no location data | |
-| Account deletion | User soft-deleted, personal data purged within 30 days, messages anonymized to "Former member" | Background job |
+| Data                   | Retention                                                                                      | Mechanism               |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ----------------------- |
+| Live positions (Redis) | Deleted at trip end, hard TTL 1 h                                                              | TTL and explicit delete |
+| Breadcrumbs            | Only stored if member opted in; deleted `retention_days` after trip end (default 1 day)        | Drop daily partitions   |
+| Chat messages          | 30 days after trip end, or immediately on host delete                                          | Scheduled job           |
+| Trip events            | 90 days                                                                                        | Scheduled job           |
+| Invites                | Deleted 7 days after expiry                                                                    | Scheduled job           |
+| Audit log              | 1 year, contains no location data                                                              |                         |
+| Account deletion       | User soft-deleted, personal data purged within 30 days, messages anonymized to "Former member" | Background job          |
 
 User controls: "Delete this trip's data now" and "Delete my account" must both work end to end and be tested.
 

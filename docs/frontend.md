@@ -6,22 +6,22 @@ Frontend architecture, stack, and implementation guidance. Read together with `d
 
 ## 1. Recommended stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| App framework | React Native + Expo (development builds) + TypeScript | One codebase for Android and iOS; closest to the web skills you already have |
-| Navigation | Expo Router | File-based, deep links for invite URLs |
-| Animation | React Native Reanimated + Gesture Handler | UI-thread animation for markers, sheets, rail |
-| Bottom sheet | @gorhom/bottom-sheet | Spring snap points, gesture-aware |
-| Map | MapLibre React Native (prototype) behind a `MapProvider` interface; Google Maps SDK implementation for the Google pitch | Open and free for the prototype; swappable |
-| Routing / ETA | Server-side via Google Routes API, or OSRM/Valhalla for free prototype | Keeps keys off the client |
-| State | Zustand (client state) + TanStack Query (server state) | Small, predictable |
-| Realtime | WebSocket (native) with reconnect logic | Positions and events |
-| Voice (push-to-talk) | LiveKit (WebRTC) | Low-latency audio rooms |
-| Storage | expo-secure-store (tokens), MMKV (cache) | |
-| Forms and validation | react-hook-form + zod | Shared schemas with backend |
-| i18n | i18next (English, Hindi first) | |
-| Testing | Jest, React Native Testing Library, Maestro (E2E) | |
-| Crash and performance | Sentry | |
+| Layer                 | Choice                                                                                                                  | Why                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| App framework         | React Native + Expo (development builds) + TypeScript                                                                   | One codebase for Android and iOS; closest to the web skills you already have |
+| Navigation            | Expo Router                                                                                                             | File-based, deep links for invite URLs                                       |
+| Animation             | React Native Reanimated + Gesture Handler                                                                               | UI-thread animation for markers, sheets, rail                                |
+| Bottom sheet          | @gorhom/bottom-sheet                                                                                                    | Spring snap points, gesture-aware                                            |
+| Map                   | MapLibre React Native (prototype) behind a `MapProvider` interface; Google Maps SDK implementation for the Google pitch | Open and free for the prototype; swappable                                   |
+| Routing / ETA         | Server-side via Google Routes API, or OSRM/Valhalla for free prototype                                                  | Keeps keys off the client                                                    |
+| State                 | Zustand (client state) + TanStack Query (server state)                                                                  | Small, predictable                                                           |
+| Realtime              | WebSocket (native) with reconnect logic                                                                                 | Positions and events                                                         |
+| Voice (push-to-talk)  | LiveKit (WebRTC)                                                                                                        | Low-latency audio rooms                                                      |
+| Storage               | expo-secure-store (tokens), MMKV (cache)                                                                                |                                                                              |
+| Forms and validation  | react-hook-form + zod                                                                                                   | Shared schemas with backend                                                  |
+| i18n                  | i18next (English, Hindi first)                                                                                          |                                                                              |
+| Testing               | Jest, React Native Testing Library, Maestro (E2E)                                                                       |                                                                              |
+| Crash and performance | Sentry                                                                                                                  |                                                                              |
 
 **Web companion (optional, later):** a Next.js page for invite links (`/t/:code`) that shows trip info and opens the app or store.
 
@@ -69,28 +69,56 @@ trip-mode/
 // src/design/tokens.ts
 export const palette = {
   light: {
-    surfaceBase: '#F7F5F0', surfaceRaised: '#FFFFFF', surfaceSunken: '#EDEAE2',
-    inkPrimary: '#16201B', inkSecondary: '#4F5B54', inkTertiary: '#7B867F',
-    lineSubtle: '#E1DDD2', brand: '#1B5A47', onBrand: '#F7F5F0',
-    leading: '#1E7A4F', caution: '#B7700A', alert: '#B3361B', info: '#2F5D8C',
+    surfaceBase: "#F7F5F0",
+    surfaceRaised: "#FFFFFF",
+    surfaceSunken: "#EDEAE2",
+    inkPrimary: "#16201B",
+    inkSecondary: "#4F5B54",
+    inkTertiary: "#7B867F",
+    lineSubtle: "#E1DDD2",
+    brand: "#1B5A47",
+    onBrand: "#F7F5F0",
+    leading: "#1E7A4F",
+    caution: "#B7700A",
+    alert: "#B3361B",
+    info: "#2F5D8C",
   },
   dark: {
-    surfaceBase: '#111613', surfaceRaised: '#1A211D', surfaceSunken: '#0C100E',
-    inkPrimary: '#ECEFEA', inkSecondary: '#A9B3AC', inkTertiary: '#76817A',
-    lineSubtle: '#2A332E', brand: '#5FBF9D', onBrand: '#0C100E',
-    leading: '#6FCB93', caution: '#E0A13B', alert: '#EE7B62', info: '#7FA6D1',
+    surfaceBase: "#111613",
+    surfaceRaised: "#1A211D",
+    surfaceSunken: "#0C100E",
+    inkPrimary: "#ECEFEA",
+    inkSecondary: "#A9B3AC",
+    inkTertiary: "#76817A",
+    lineSubtle: "#2A332E",
+    brand: "#5FBF9D",
+    onBrand: "#0C100E",
+    leading: "#6FCB93",
+    caution: "#E0A13B",
+    alert: "#EE7B62",
+    info: "#7FA6D1",
   },
 } as const;
 
 export const vehicleColors = [
-  '#E69F00', '#56B4E9', '#009E73', '#F0E442',
-  '#0072B2', '#CC79A7', '#9C6B30', '#5B6770',
+  "#E69F00",
+  "#56B4E9",
+  "#009E73",
+  "#F0E442",
+  "#0072B2",
+  "#CC79A7",
+  "#9C6B30",
+  "#5B6770",
 ] as const;
 
 export const motion = {
   ease: [0.2, 0, 0, 1] as const,
-  markerMs: 1000, railMs: 400, sheetSpring: { stiffness: 300, damping: 30 },
-  bannerInMs: 220, bannerOutMs: 160, screenMs: 280,
+  markerMs: 1000,
+  railMs: 400,
+  sheetSpring: { stiffness: 300, damping: 30 },
+  bannerInMs: 220,
+  bannerOutMs: 160,
+  screenMs: 280,
 };
 ```
 
@@ -104,28 +132,29 @@ Single WebSocket per active trip: `wss://api.example.com/v1/trips/:id/stream?tok
 
 **Client to server**
 
-| Event | Payload |
-|---|---|
-| `loc.update` | `{ lat, lng, speed, heading, accuracy, ts, seq }` |
-| `alert.send` | `{ type, note? }` |
-| `chat.send` | `{ text, clientId }` |
-| `ack` | `{ alertId }` |
-| `sos.trigger` | `{ lat, lng }` |
-| `presence.ping` | `{}` every 20 s |
+| Event           | Payload                                           |
+| --------------- | ------------------------------------------------- |
+| `loc.update`    | `{ lat, lng, speed, heading, accuracy, ts, seq }` |
+| `alert.send`    | `{ type, note? }`                                 |
+| `chat.send`     | `{ text, clientId }`                              |
+| `ack`           | `{ alertId }`                                     |
+| `sos.trigger`   | `{ lat, lng }`                                    |
+| `presence.ping` | `{}` every 20 s                                   |
 
 **Server to client**
 
-| Event | Payload |
-|---|---|
-| `snapshot` | Full state on connect: members, positions, route, rules |
-| `members.positions` | Batched array of `{ memberId, lat, lng, speed, heading, ts, routeProgressM }`, max 1 per 1 s |
-| `convoy.metrics` | `{ leaderId, gaps: [{ memberId, gapM, status }] }` |
-| `alert.new` / `alert.ack` | Alert objects |
-| `chat.new` | Message object |
-| `member.joined / left / stale` | Presence events |
-| `trip.ended` | Reason |
+| Event                          | Payload                                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| `snapshot`                     | Full state on connect: members, positions, route, rules                                      |
+| `members.positions`            | Batched array of `{ memberId, lat, lng, speed, heading, ts, routeProgressM }`, max 1 per 1 s |
+| `convoy.metrics`               | `{ leaderId, gaps: [{ memberId, gapM, status }] }`                                           |
+| `alert.new` / `alert.ack`      | Alert objects                                                                                |
+| `chat.new`                     | Message object                                                                               |
+| `member.joined / left / stale` | Presence events                                                                              |
+| `trip.ended`                   | Reason                                                                                       |
 
 Design notes:
+
 - The server batches positions at 1 Hz; client never receives raw per-device streams.
 - `seq` and `ts` allow dropping out-of-order updates.
 - On reconnect, request `snapshot` and replay missed `alert` and `chat` events by last-seen id.
@@ -140,7 +169,9 @@ export function createTripSocket(tripId: string, getToken: () => Promise<string>
   async function connect() {
     const token = await getToken();
     ws = new WebSocket(`${WS_URL}/v1/trips/${tripId}/stream?token=${token}`);
-    ws.onopen = () => { attempt = 0; };
+    ws.onopen = () => {
+      attempt = 0;
+    };
     ws.onmessage = (m) => listeners.forEach((l) => l(JSON.parse(m.data)));
     ws.onclose = () => {
       const delay = Math.min(1000 * 2 ** attempt++, 15000) + Math.random() * 500; // backoff + jitter
@@ -149,9 +180,15 @@ export function createTripSocket(tripId: string, getToken: () => Promise<string>
   }
   connect();
   return {
-    send: (type: string, payload: unknown) => ws?.readyState === 1 && ws.send(JSON.stringify({ type, payload })),
-    subscribe: (fn: (e: ServerEvent) => void) => { listeners.add(fn); return () => listeners.delete(fn); },
-    close: () => { ws?.close(); },
+    send: (type: string, payload: unknown) =>
+      ws?.readyState === 1 && ws.send(JSON.stringify({ type, payload })),
+    subscribe: (fn: (e: ServerEvent) => void) => {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    close: () => {
+      ws?.close();
+    },
   };
 }
 ```
@@ -226,15 +263,15 @@ Keep this logic in `lib/convoy.ts` as pure functions with unit tests.
 
 ## 9. Performance budgets
 
-| Metric | Target |
-|---|---|
-| Cold start to interactive | Under 2.5 s on a mid-range Android |
-| Live screen frame rate | 60 fps with 10 vehicles |
-| JS thread busy time during live trip | Under 25% |
-| Battery drain during a 2 h trip | Under 12% (screen on, navigating) |
-| Data usage per hour | Under 15 MB excluding voice |
-| Voice latency (PTT) | Under 400 ms mouth to ear |
-| Bundle | Fonts subset to Latin and Devanagari; images as WebP/SVG |
+| Metric                               | Target                                                   |
+| ------------------------------------ | -------------------------------------------------------- |
+| Cold start to interactive            | Under 2.5 s on a mid-range Android                       |
+| Live screen frame rate               | 60 fps with 10 vehicles                                  |
+| JS thread busy time during live trip | Under 25%                                                |
+| Battery drain during a 2 h trip      | Under 12% (screen on, navigating)                        |
+| Data usage per hour                  | Under 15 MB excluding voice                              |
+| Voice latency (PTT)                  | Under 400 ms mouth to ear                                |
+| Bundle                               | Fonts subset to Latin and Devanagari; images as WebP/SVG |
 
 ---
 

@@ -58,7 +58,13 @@ const Inner = lazyRetry(() => import("./RouteMapInner"), "route-map");
 export function RouteMap(props: RouteMapProps) {
   const v = useSyncExternalStore(subscribeRoutes, getRoutesVersion, getRoutesVersion);
   const fallback = (
-    <div className={cn(props.className, "relative flex items-center justify-center bg-map-land overflow-hidden")} aria-label="Loading map">
+    <div
+      className={cn(
+        props.className,
+        "relative flex items-center justify-center bg-map-land overflow-hidden",
+      )}
+      aria-label="Loading map"
+    >
       <div className="absolute inset-0 bg-[radial-gradient(#1b5a47_1px,transparent_1px)] [background-size:20px_20px] opacity-10" />
       <div className="flex items-center gap-2 rounded-full border border-border/80 bg-card/85 px-3 py-1.5 shadow-sm backdrop-blur-xs text-[12px] text-muted-foreground animate-pulse">
         <span className="h-2 w-2 rounded-full bg-primary" />

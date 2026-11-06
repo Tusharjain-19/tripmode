@@ -10,7 +10,15 @@ setWorkerUrl(workerUrl);
 const INDIA_CENTER: LngLat = [79.0, 22.5];
 
 /** Tap anywhere on the map to choose a point. */
-export default function MapPickerInner({ value, onPick, className }: { value: LngLat | null; onPick: (p: LngLat) => void; className?: string }) {
+export default function MapPickerInner({
+  value,
+  onPick,
+  className,
+}: {
+  value: LngLat | null;
+  onPick: (p: LngLat) => void;
+  className?: string;
+}) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const marker = useRef<Marker | null>(null);
@@ -24,7 +32,10 @@ export default function MapPickerInner({ value, onPick, className }: { value: Ln
       style: "https://tiles.openfreemap.org/styles/positron",
       center: value ?? INDIA_CENTER,
       zoom: value ? 11 : 4,
-      maxBounds: [[60, 4], [100, 40]],
+      maxBounds: [
+        [60, 4],
+        [100, 40],
+      ],
       attributionControl: { compact: true },
     });
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");

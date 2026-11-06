@@ -4,18 +4,58 @@ import { ConvoyRail } from "@/components/trip/ConvoyRail";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
 import { formatKm, gapsToLeader, statusMessage, type MemberStatus } from "@/lib/convoy";
-import { metersPerUnit, ROUTES, searchPlaces, shortestArc, snapToRoute, toLngLat, toMeters } from "@/lib/geo";
+import {
+  metersPerUnit,
+  ROUTES,
+  searchPlaces,
+  shortestArc,
+  snapToRoute,
+  toLngLat,
+  toMeters,
+} from "@/lib/geo";
 import { useServerFn } from "@tanstack/react-start";
 import { suggestStopsFromChat } from "@/lib/stops.functions";
 import { useGeolocation } from "@/lib/use-geolocation";
 import { useI18n } from "@/lib/i18n";
 import { RequireAuth } from "@/components/trip/RequireAuth";
-import { advanceStep, distanceToRouteM, fetchGuidance, formatDistance, haversineM, instruction, maneuverIcon, type NavLeg, type NavRoute } from "@/lib/nav";
+import {
+  advanceStep,
+  distanceToRouteM,
+  fetchGuidance,
+  formatDistance,
+  haversineM,
+  instruction,
+  maneuverIcon,
+  type NavLeg,
+  type NavRoute,
+} from "@/lib/nav";
 import { CATEGORIES, searchNearby, type NearbyPlace, type PlaceCategory } from "@/lib/places";
 import type { MapStyleId } from "@/components/trip/RouteMap";
-import { confirmStopRemote, createStopRemote, dismissStopRemote, endTripRemote, leaveTripRemote, sendMessage, useMembers, useStops, useTripStatus, useMessages, usePositions, usePublishPosition, useRestoreTrip, type Member } from "@/lib/trip-sync";
+import {
+  confirmStopRemote,
+  createStopRemote,
+  dismissStopRemote,
+  endTripRemote,
+  leaveTripRemote,
+  sendMessage,
+  useMembers,
+  useStops,
+  useTripStatus,
+  useMessages,
+  usePositions,
+  usePublishPosition,
+  useRestoreTrip,
+  type Member,
+} from "@/lib/trip-sync";
 import type { VehicleColor } from "@/lib/trip-store";
-import { applyFix, routeMeters, TICK_MS, vehiclePoint, vehicleStatus, type SimVehicle } from "@/lib/simulation";
+import {
+  applyFix,
+  routeMeters,
+  TICK_MS,
+  vehiclePoint,
+  vehicleStatus,
+  type SimVehicle,
+} from "@/lib/simulation";
 import { tripStore, useTrip } from "@/lib/trip-store";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +63,16 @@ export const Route = createFileRoute("/trip")({
   head: () => ({
     meta: [
       { title: "Live Convoy Navigation - Trip Mode" },
-      { name: "description", content: "Live convoy map with the group's positions, gaps and Google Maps turn-by-turn guidance." },
+      {
+        name: "description",
+        content:
+          "Live convoy map with the group's positions, gaps and Google Maps turn-by-turn guidance.",
+      },
       { property: "og:title", content: "Live Convoy Navigation - Trip Mode" },
-      { property: "og:description", content: "Live convoy map with the group's positions, gaps and alerts." },
+      {
+        property: "og:description",
+        content: "Live convoy map with the group's positions, gaps and alerts.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -64,18 +111,28 @@ function TripGateInner({ uid }: { uid: string }) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <Icon name="hourglass_top" className="text-[40px] text-tertiary" />
-        <p className="max-w-xs text-muted-foreground">The host has not approved you yet. Your location is not shared.</p>
-        <Link to="/lobby" className={btn()}>Go to trip lobby</Link>
+        <p className="max-w-xs text-muted-foreground">
+          The host has not approved you yet. Your location is not shared.
+        </p>
+        <Link to="/lobby" className={btn()}>
+          Go to trip lobby
+        </Link>
       </div>
     );
   if (!trip?.id || !mine)
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <Icon name="location_off" className="text-[40px] text-tertiary" />
-        <p className="max-w-xs text-muted-foreground">Join the trip and agree to share before opening the live map.</p>
+        <p className="max-w-xs text-muted-foreground">
+          Join the trip and agree to share before opening the live map.
+        </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link to="/lobby" className={btn()}>Go to trip lobby</Link>
-          <Link to="/create" className={btn({ variant: "secondary" })}>Create trip</Link>
+          <Link to="/lobby" className={btn()}>
+            Go to trip lobby
+          </Link>
+          <Link to="/create" className={btn({ variant: "secondary" })}>
+            Create trip
+          </Link>
         </div>
       </div>
     );
@@ -91,11 +148,32 @@ const QUICK = [
   { id: "wait", label: "Wait for me", icon: "hourglass_top" },
 ] as const;
 
-type Banner = { id: number; kind: "system" | "quick" | "sent" | "sos"; text: string; tone: "info" | "caution" | "alert"; from?: SimVehicle | undefined; acks?: number; ackable?: boolean };
-type Msg = { clientId: string; fromId: string; text: string; state: "sending" | "sent" | "delivered"; at: number };
+type Banner = {
+  id: number;
+  kind: "system" | "quick" | "sent" | "sos";
+  text: string;
+  tone: "info" | "caution" | "alert";
+  from?: SimVehicle | undefined;
+  acks?: number;
+  ackable?: boolean;
+};
+type Msg = {
+  clientId: string;
+  fromId: string;
+  text: string;
+  state: "sending" | "sent" | "delivered";
+  at: number;
+};
 type Camera = MapCamera;
 const WEDGE: Record<VehicleColor, string> = {
-  v1: "border-l-v1", v2: "border-l-v2", v3: "border-l-v3", v4: "border-l-v4", v5: "border-l-v5", v6: "border-l-v6", v7: "border-l-v7", v8: "border-l-v8",
+  v1: "border-l-v1",
+  v2: "border-l-v2",
+  v3: "border-l-v3",
+  v4: "border-l-v4",
+  v5: "border-l-v5",
+  v6: "border-l-v6",
+  v7: "border-l-v7",
+  v8: "border-l-v8",
 };
 
 const SHEET_H = ["auto", "48vh", "88vh"];
@@ -110,15 +188,30 @@ function getCardinalDirection(angle: number): string {
 
 function mkVehicle(m: Member, isMe: boolean): SimVehicle {
   return {
-    id: m.userId, letter: m.letter, name: m.vehicleLabel, driver: m.displayName, color: m.color, role: m.role, isMe,
-    progressM: 0, speedKmh: 0, offsetM: 0, lastUpdateReal: 0, stoppedForS: 0, offRouteForS: 0, arrivedAtS: null, stops: 0,
+    id: m.userId,
+    letter: m.letter,
+    name: m.vehicleLabel,
+    driver: m.displayName,
+    color: m.color,
+    role: m.role,
+    isMe,
+    progressM: 0,
+    speedKmh: 0,
+    offsetM: 0,
+    lastUpdateReal: 0,
+    stoppedForS: 0,
+    offRouteForS: 0,
+    arrivedAtS: null,
+    stops: 0,
   };
 }
 
 function playEarcon(type: "start" | "end") {
   try {
     if (typeof window === "undefined") return;
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
     const osc = ctx.createOscillator();
@@ -159,7 +252,13 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [meState, setMeState] = useState<SimVehicle>(() => mkVehicle(mine, true));
   const [others, setOthers] = useState<Record<string, SimVehicle>>({});
   const positions = usePositions(trip.id);
-  const vehicles = useMemo(() => [{ ...meState, letter: mine.letter, name: mine.vehicleLabel, color: mine.color }, ...Object.values(others)], [meState, others, mine]);
+  const vehicles = useMemo(
+    () => [
+      { ...meState, letter: mine.letter, name: mine.vehicleLabel, color: mine.color },
+      ...Object.values(others),
+    ],
+    [meState, others, mine],
+  );
   const [now, setNow] = useState(() => Date.now());
   const [camera, setCamera] = useState<Camera>({ mode: "follow" });
   const [bearing, setBearing] = useState(0);
@@ -196,12 +295,23 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   vehiclesRef.current = vehicles;
   const messages = useMessages(trip.id, (m) => {
     if (m.userId === uid) return;
-    const from = vehiclesRef.current.find((v) => v.id === m.userId) ?? (() => { const mm = members.find((x) => x.userId === m.userId); return mm ? mkVehicle(mm, false) : undefined; })();
+    const from =
+      vehiclesRef.current.find((v) => v.id === m.userId) ??
+      (() => {
+        const mm = members.find((x) => x.userId === m.userId);
+        return mm ? mkVehicle(mm, false) : undefined;
+      })();
     const who = from?.driver ?? "A member";
     if (m.kind === "chat") {
       if (!chatOpenRef.current) setUnread((u) => u + 1);
     } else if (m.kind === "quick") {
-      showBanner({ kind: "quick", text: `${who}: ${m.body}`, tone: "caution", from, ackable: true });
+      showBanner({
+        kind: "quick",
+        text: `${who}: ${m.body}`,
+        tone: "caution",
+        from,
+        ackable: true,
+      });
       navigator.vibrate?.(60);
       if (audioMode !== "mute" && typeof speechSynthesis !== "undefined") {
         speechSynthesis.speak(new SpeechSynthesisUtterance(`${who} says: ${m.body}`));
@@ -215,7 +325,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     }
   });
   const msgs: Msg[] = useMemo(
-    () => messages.filter((m) => m.kind === "chat").map((m) => ({ clientId: m.id, fromId: m.userId, text: m.body, state: "sent" as const, at: m.at })),
+    () =>
+      messages
+        .filter((m) => m.kind === "chat")
+        .map((m) => ({
+          clientId: m.id,
+          fromId: m.userId,
+          text: m.body,
+          state: "sent" as const,
+          at: m.at,
+        })),
     [messages],
   );
 
@@ -229,7 +348,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   useEffect(() => {
     const f = geo.fix;
     if (!f) return;
-    setMeState((v) => applyFix(v, route.line, toMeters([f.lng, f.lat]), f.speedMs, v.lastUpdateReal ? Math.max(0, (f.at - v.lastUpdateReal) / 1000) : 0, f.at));
+    setMeState((v) =>
+      applyFix(
+        v,
+        route.line,
+        toMeters([f.lng, f.lat]),
+        f.speedMs,
+        v.lastUpdateReal ? Math.max(0, (f.at - v.lastUpdateReal) / 1000) : 0,
+        f.at,
+      ),
+    );
   }, [geo.fix, route.line]);
   usePublishPosition(trip.id, uid, geo.publishedFix);
 
@@ -241,16 +369,39 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         if (m.userId === uid) continue;
         const p = positions[m.userId];
         if (!p) continue;
-        const base = { ...(prev[m.userId] ?? mkVehicle(m, false)), letter: m.letter, name: m.vehicleLabel, driver: m.displayName, color: m.color, role: m.role };
-        next[m.userId] = p.at === base.lastUpdateReal ? base : applyFix(base, route.line, toMeters([p.lng, p.lat]), p.speedMs, base.lastUpdateReal ? Math.max(0, (p.at - base.lastUpdateReal) / 1000) : 0, p.at);
+        const base = {
+          ...(prev[m.userId] ?? mkVehicle(m, false)),
+          letter: m.letter,
+          name: m.vehicleLabel,
+          driver: m.displayName,
+          color: m.color,
+          role: m.role,
+        };
+        next[m.userId] =
+          p.at === base.lastUpdateReal
+            ? base
+            : applyFix(
+                base,
+                route.line,
+                toMeters([p.lng, p.lat]),
+                p.speedMs,
+                base.lastUpdateReal ? Math.max(0, (p.at - base.lastUpdateReal) / 1000) : 0,
+                p.at,
+              );
       }
       return next;
     });
   }, [members, positions, uid, route.line]);
 
-  const gaps: Record<string, number> = useMemo(() => gapsToLeader(vehicles.map((v) => ({ id: v.id, progressM: v.progressM }))), [vehicles]);
+  const gaps: Record<string, number> = useMemo(
+    () => gapsToLeader(vehicles.map((v) => ({ id: v.id, progressM: v.progressM }))),
+    [vehicles],
+  );
   const statuses = useMemo(
-    () => Object.fromEntries(vehicles.map((v) => [v.id, vehicleStatus(v, gaps[v.id] ?? 0, thresholdM, now)])) as Record<string, MemberStatus>,
+    () =>
+      Object.fromEntries(
+        vehicles.map((v) => [v.id, vehicleStatus(v, gaps[v.id] ?? 0, thresholdM, now)]),
+      ) as Record<string, MemberStatus>,
     [vehicles, gaps, thresholdM, now],
   );
   const meV = vehicles.find((v) => v.isMe)!;
@@ -271,7 +422,12 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       const text = statusMessage(`Vehicle ${v.letter}`, s, gaps[v.id] ?? 0);
       if (!text) continue;
       lastAlert.current[key] = Date.now();
-      showBanner({ kind: "system", text, tone: s === "arrived" ? "info" : s === "behind" || s === "stale" ? "caution" : "alert", from: v });
+      showBanner({
+        kind: "system",
+        text,
+        tone: s === "arrived" ? "info" : s === "behind" || s === "stale" ? "caution" : "alert",
+        from: v,
+      });
       if (audioMode !== "mute" && typeof speechSynthesis !== "undefined") {
         speechSynthesis.speak(new SpeechSynthesisUtterance(text));
       }
@@ -290,7 +446,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       distanceKm: Math.round(meV.progressM / 1000),
       durationMin: Math.round((Date.now() - startedAt.current) / 60000),
       longestGapKm: Math.round(longestGap.current / 100) / 10,
-      arrivals: vehicles.map((v) => ({ name: v.name, color: v.color, minutes: v.arrivedAtS === null ? null : Math.round(v.arrivedAtS / 60) })),
+      arrivals: vehicles.map((v) => ({
+        name: v.name,
+        color: v.color,
+        minutes: v.arrivedAtS === null ? null : Math.round(v.arrivedAtS / 60),
+      })),
       stops: vehicles.reduce((a, v) => a + v.stops, 0),
     });
     nav({ to: "/summary" });
@@ -311,7 +471,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     try {
       await endTripRemote(trip.id!);
     } catch {
-      showBanner({ kind: "system", text: "Could not end the trip. Check your connection.", tone: "alert" });
+      showBanner({
+        kind: "system",
+        text: "Could not end the trip. Check your connection.",
+        tone: "alert",
+      });
       return;
     }
     endTrip();
@@ -329,12 +493,18 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const suggested = stops.filter((s) => s.status === "suggested");
   const confirmed = stops.filter((s) => s.status === "confirmed");
   const suggestFn = useServerFn(suggestStopsFromChat);
-  const [stopState, setStopState] = useState<{ busy: boolean; note: string | null }>({ busy: false, note: null });
+  const [stopState, setStopState] = useState<{ busy: boolean; note: string | null }>({
+    busy: false,
+    note: null,
+  });
   const findStops = async () => {
     setStopState({ busy: true, note: null });
     try {
       const r = await suggestFn({ data: { tripId: trip.id! } });
-      setStopState({ busy: false, note: r.ok ? (r.added ? null : "No new stops found in the chat.") : r.error });
+      setStopState({
+        busy: false,
+        note: r.ok ? (r.added ? null : "No new stops found in the chat.") : r.error,
+      });
     } catch {
       setStopState({ busy: false, note: "Could not read the chat right now." });
     }
@@ -344,17 +514,26 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     let at: [number, number] | null = null;
     try {
       at = (await searchPlaces(query || name))[0]?.lngLat ?? null;
-    } catch { /* keep without a pin */ }
+    } catch {
+      /* keep without a pin */
+    }
     try {
       await confirmStopRemote(id, at);
       await sendMessage(trip.id!, uid, "chat", `Stop added: ${name}`.slice(0, MAX_CHAT));
     } catch {
-      showBanner({ kind: "system", text: "Stop not shared. Check your connection.", tone: "alert" });
+      showBanner({
+        kind: "system",
+        text: "Stop not shared. Check your connection.",
+        tone: "alert",
+      });
     }
   };
 
   // Positions and camera with route snapping (frontend.md §6)
-  const points: Record<string, { p: { x: number; y: number }; heading: number; offRoute: boolean }> = useMemo(
+  const points: Record<
+    string,
+    { p: { x: number; y: number }; heading: number; offRoute: boolean }
+  > = useMemo(
     () =>
       Object.fromEntries(
         vehicles.map((v) => {
@@ -369,7 +548,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               },
             ];
           }
-          return [v.id, { ...vehiclePoint(route.line, v.progressM, v.offsetM, mpu), offRoute: false }];
+          return [
+            v.id,
+            { ...vehiclePoint(route.line, v.progressM, v.offsetM, mpu), offRoute: false },
+          ];
         }),
       ),
     [vehicles, route.line, mpu],
@@ -384,13 +566,19 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
   const sendQuick = (label: string) => {
     if (Date.now() - lastQuickSent.current < 5000) {
-      showBanner({ kind: "system", text: "Wait a few seconds before sending another alert.", tone: "info" });
+      showBanner({
+        kind: "system",
+        text: "Wait a few seconds before sending another alert.",
+        tone: "info",
+      });
       return;
     }
     lastQuickSent.current = Date.now();
     setQuickOpen(false);
     showBanner({ kind: "sent", text: `Sent: ${label}`, tone: "info" });
-    sendMessage(trip.id!, uid, "quick", label).catch(() => showBanner({ kind: "system", text: "Alert not sent. Check your connection.", tone: "alert" }));
+    sendMessage(trip.id!, uid, "quick", label).catch(() =>
+      showBanner({ kind: "system", text: "Alert not sent. Check your connection.", tone: "alert" }),
+    );
     navigator.vibrate?.(30);
   };
 
@@ -400,7 +588,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     setDraft("");
     sendMessage(trip.id!, uid, "chat", text).catch(() => {
       setDraft(text);
-      showBanner({ kind: "system", text: "Message not sent. Check your connection.", tone: "alert" });
+      showBanner({
+        kind: "system",
+        text: "Message not sent. Check your connection.",
+        tone: "alert",
+      });
     });
   };
 
@@ -408,7 +600,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     const last = [...msgs].reverse().find((m) => m.fromId !== meV.id);
     if (!last || typeof speechSynthesis === "undefined") return;
     const from = vehicles.find((v) => v.id === last.fromId);
-    speechSynthesis.speak(new SpeechSynthesisUtterance(`${from?.driver ?? "Someone"} says: ${last.text}`));
+    speechSynthesis.speak(
+      new SpeechSynthesisUtterance(`${from?.driver ?? "Someone"} says: ${last.text}`),
+    );
   };
 
   // SOS long-press then 5 second cancel window
@@ -431,8 +625,17 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     if (sosLeft === 0) {
       setSos("sent");
       const f = geo.fix;
-      void sendMessage(trip.id!, uid, "sos", f ? `Location ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}` : "Location unavailable");
-      showBanner({ kind: "sos", text: "SOS sent to all members with your location and vehicle.", tone: "alert" });
+      void sendMessage(
+        trip.id!,
+        uid,
+        "sos",
+        f ? `Location ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}` : "Location unavailable",
+      );
+      showBanner({
+        kind: "sos",
+        text: "SOS sent to all members with your location and vehicle.",
+        tone: "alert",
+      });
       return;
     }
     const t = setTimeout(() => setSosLeft((s) => s - 1), 1000);
@@ -481,7 +684,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   // Turn-by-turn guidance from your position to the destination
   const dest = route.coords[route.coords.length - 1]!;
   const waypoints = useMemo(
-    () => confirmed.filter((s) => s.lng !== null && s.lat !== null).map((s) => [s.lng!, s.lat!] as [number, number]),
+    () =>
+      confirmed
+        .filter((s) => s.lng !== null && s.lat !== null)
+        .map((s) => [s.lng!, s.lat!] as [number, number]),
     [confirmed],
   );
 
@@ -502,7 +708,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       setRerouting(true);
       showBanner({ kind: "system", text: msg, tone: "info" });
       const f = geo.fix;
-      const startPoint: [number, number] = f ? [f.lng, f.lat] : (route.coords[0] ?? [75.7873, 26.9124]);
+      const startPoint: [number, number] = f
+        ? [f.lng, f.lat]
+        : (route.coords[0] ?? [75.7873, 26.9124]);
       try {
         const g = await fetchGuidance(startPoint, dest, waypoints);
         setGuide(g);
@@ -541,12 +749,15 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
   useEffect(() => {
     const f = geo.fix;
-    const startPoint: [number, number] = f ? [f.lng, f.lat] : (route.coords[0] ?? [75.7873, 26.9124]);
+    const startPoint: [number, number] = f
+      ? [f.lng, f.lat]
+      : (route.coords[0] ?? [75.7873, 26.9124]);
     const offGuide =
       guide &&
       guide.steps[stepIdx] &&
       f &&
-      haversineM([f.lng, f.lat], guide.steps[stepIdx]!.location) > guide.steps[stepIdx]!.distanceM + 500;
+      haversineM([f.lng, f.lat], guide.steps[stepIdx]!.location) >
+        guide.steps[stepIdx]!.distanceM + 500;
     if (guide && !offGuide && Date.now() - lastRouteAt.current < 45000) return;
     lastRouteAt.current = Date.now();
     fetchGuidance(startPoint, dest, waypoints)
@@ -566,6 +777,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       lastRouteAt.current = Date.now();
       void triggerReroute("Off agreed route • Recalculating path...");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo.fix?.lng, geo.fix?.lat, guide?.geometry, meV.speedKmh, rerouting, triggerReroute]);
 
   const here: [number, number] | null = geo.fix ? [geo.fix.lng, geo.fix.lat] : null;
@@ -581,19 +793,30 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const toNextM = nextStep && here ? haversineM(here, nextStep.location) : null;
 
   useEffect(() => {
-    if (!nextStep || toNextM === null || audioMode !== "all" || typeof speechSynthesis === "undefined") return;
+    if (
+      !nextStep ||
+      toNextM === null ||
+      audioMode !== "all" ||
+      typeof speechSynthesis === "undefined"
+    )
+      return;
     const band = toNextM < 120 ? "now" : toNextM < 600 ? "soon" : null;
     if (!band) return;
     const key = `${stepIdx}:${band}`;
     if (spoken.current === key) return;
     spoken.current = key;
-    const text = band === "now" ? instruction(nextStep) : `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`;
+    const text =
+      band === "now"
+        ? instruction(nextStep)
+        : `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`;
     speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   }, [nextStep, toNextM, stepIdx, audioMode]);
 
   const speakNow = () => {
     if (!nextStep || typeof speechSynthesis === "undefined") return;
-    const text = toNextM ? `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}` : instruction(nextStep);
+    const text = toNextM
+      ? `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`
+      : instruction(nextStep);
     speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   };
 
@@ -611,7 +834,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const estMinutes = Math.round(estSeconds / 60);
   const estHours = Math.floor(estMinutes / 60);
   const estMins = estMinutes % 60;
-  const etaTimeStr = new Date(Date.now() + estSeconds * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const etaTimeStr = new Date(Date.now() + estSeconds * 1000).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background select-none">
@@ -620,17 +846,40 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur-xs">
           <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-[24px] bg-card p-6 text-center shadow-float border border-border">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon name={geo.state === "denied" || geo.state === "unavailable" ? "location_off" : "my_location"} className="text-[32px]" />
+              <Icon
+                name={
+                  geo.state === "denied" || geo.state === "unavailable"
+                    ? "location_off"
+                    : "my_location"
+                }
+                className="text-[32px]"
+              />
             </span>
             <h2 className="text-[20px] font-semibold">Share your location for this trip</h2>
             <p className="text-[14px] text-muted-foreground leading-relaxed">
-              Your GPS coordinates are shared in real time with convoy members to compute gaps and guide the route. Sharing automatically ceases when you leave.
+              Your GPS coordinates are shared in real time with convoy members to compute gaps and
+              guide the route. Sharing automatically ceases when you leave.
             </p>
-            {geo.error && <p role="alert" className="text-[13px] text-alert font-medium">{geo.error}</p>}
-            <Button className="w-full" size="lg" onClick={geo.request} disabled={geo.state === "asking"}>
-              {geo.state === "asking" ? "Acquiring GPS fix..." : geo.state === "denied" ? "Retry GPS Permission" : "Allow Live Location"}
+            {geo.error && (
+              <p role="alert" className="text-[13px] text-alert font-medium">
+                {geo.error}
+              </p>
+            )}
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={geo.request}
+              disabled={geo.state === "asking"}
+            >
+              {geo.state === "asking"
+                ? "Acquiring GPS fix..."
+                : geo.state === "denied"
+                  ? "Retry GPS Permission"
+                  : "Allow Live Location"}
             </Button>
-            <Link to="/lobby" className="text-[14px] text-muted-foreground underline">Back to convoy lobby</Link>
+            <Link to="/lobby" className="text-[14px] text-muted-foreground underline">
+              Back to convoy lobby
+            </Link>
           </div>
         </div>
       )}
@@ -653,7 +902,12 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         onBearingChange={setBearing}
         onUserPan={handleUserPan}
         mapStyle={mapStyle}
-        places={nearby.map((p) => ({ id: p.id, name: p.name, icon: CATEGORIES.find((c) => c.id === p.category)!.icon, lngLat: p.lngLat }))}
+        places={nearby.map((p) => ({
+          id: p.id,
+          name: p.name,
+          icon: CATEGORIES.find((c) => c.id === p.category)!.icon,
+          lngLat: p.lngLat,
+        }))}
         className="absolute inset-0 h-full w-full"
         vehicles={vehicles.map((v): MapVehicle => {
           const pt = points[v.id]!;
@@ -680,7 +934,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             simulated: !v.realP,
             vehicleType: members.find((m) => m.userId === v.id)?.vehicleType,
             name: v.isMe ? "You" : v.driver,
-            staleLabel: stale ? `last seen ${Math.round((now - v.lastUpdateReal) / 1000)} s ago` : undefined,
+            staleLabel: stale
+              ? `last seen ${Math.round((now - v.lastUpdateReal) / 1000)} s ago`
+              : undefined,
             label: `${v.name}, vehicle ${v.letter}, ${s}${v.realP ? "" : ", waiting for location"}`,
           };
         })}
@@ -704,13 +960,20 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                   <div className="font-mono text-[24px] font-bold tracking-tight leading-none text-white">
                     {formatDistance(toNextM)}
                   </div>
-                  {rerouting && <span className="animate-pulse text-[11px] font-medium text-white/80">Rerouting...</span>}
+                  {rerouting && (
+                    <span className="animate-pulse text-[11px] font-medium text-white/80">
+                      Rerouting...
+                    </span>
+                  )}
                 </div>
                 <div className="truncate text-[16px] font-medium text-white/95 mt-1 leading-snug">
                   {instruction(nextStep)}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex flex-col items-end gap-1.5 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -720,7 +983,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Recalculate route"
                   >
-                    <Icon name="alt_route" className={cn("text-[18px]", rerouting && "animate-spin")} />
+                    <Icon
+                      name="alt_route"
+                      className={cn("text-[18px]", rerouting && "animate-spin")}
+                    />
                   </button>
                   <button
                     type="button"
@@ -760,14 +1026,25 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           /* Route info when turn guidance is resolving */
           <div className="pointer-events-auto flex w-full max-w-md items-center justify-between rounded-[20px] border border-border bg-card/95 px-4 py-2.5 shadow-float backdrop-blur-xs">
             <div className="flex items-center gap-2.5">
-              <span className={cn("h-2.5 w-2.5 rounded-full animate-pulse", geo.state === "granted" ? "bg-leading" : "bg-caution")} />
+              <span
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full animate-pulse",
+                  geo.state === "granted" ? "bg-leading" : "bg-caution",
+                )}
+              />
               <div>
-                <div className="font-semibold text-[14px] leading-tight truncate max-w-[200px]">{trip.name}</div>
-                <div className="text-[12px] text-muted-foreground">{geo.state === "granted" ? "GPS Locked • Live Convoy" : "Connecting GPS..."}</div>
+                <div className="font-semibold text-[14px] leading-tight truncate max-w-[200px]">
+                  {trip.name}
+                </div>
+                <div className="text-[12px] text-muted-foreground">
+                  {geo.state === "granted" ? "GPS Locked • Live Convoy" : "Connecting GPS..."}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 font-mono">
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-[13px] font-bold">{Math.round(meV.speedKmh)} km/h</span>
+              <span className="rounded-full bg-secondary px-2.5 py-1 text-[13px] font-bold">
+                {Math.round(meV.speedKmh)} km/h
+              </span>
             </div>
           </div>
         )}
@@ -778,11 +1055,19 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             <span
               className={cn(
                 "h-2.5 w-2.5 shrink-0 rounded-full",
-                geo.isSharing ? "bg-leading animate-pulse" : geo.isPaused ? "bg-caution" : "bg-muted",
+                geo.isSharing
+                  ? "bg-leading animate-pulse"
+                  : geo.isPaused
+                    ? "bg-caution"
+                    : "bg-muted",
               )}
             />
             <span className="font-medium text-foreground truncate">
-              {geo.isPaused ? t("locationPaused") : geo.isSharing ? t("sharingLocation") : t("connectingGps")}
+              {geo.isPaused
+                ? t("locationPaused")
+                : geo.isSharing
+                  ? t("sharingLocation")
+                  : t("connectingGps")}
             </span>
           </div>
 
@@ -840,21 +1125,51 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             role="status"
             className={cn(
               "banner-in pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-[16px] border-l-4 bg-card p-3 shadow-float border border-border",
-              banner.tone === "alert" ? "border-l-alert" : banner.tone === "caution" ? "border-l-caution" : "border-l-info",
+              banner.tone === "alert"
+                ? "border-l-alert"
+                : banner.tone === "caution"
+                  ? "border-l-caution"
+                  : "border-l-info",
             )}
           >
-            {banner.from ? <VehicleChip letter={banner.from.letter} color={banner.from.color} size={30} /> : <Icon name={banner.kind === "sos" ? "emergency" : "campaign"} className={banner.kind === "sos" ? "text-alert text-[24px]" : "text-info text-[24px]"} />}
+            {banner.from ? (
+              <VehicleChip letter={banner.from.letter} color={banner.from.color} size={30} />
+            ) : (
+              <Icon
+                name={banner.kind === "sos" ? "emergency" : "campaign"}
+                className={
+                  banner.kind === "sos" ? "text-alert text-[24px]" : "text-info text-[24px]"
+                }
+              />
+            )}
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-medium leading-snug">{banner.text}</div>
-              {banner.acks !== undefined && <div className="text-[12px] text-muted-foreground">{banner.acks} of {othersCount} acknowledged</div>}
+              {banner.acks !== undefined && (
+                <div className="text-[12px] text-muted-foreground">
+                  {banner.acks} of {othersCount} acknowledged
+                </div>
+              )}
             </div>
             {banner.ackable && (
-              <Button variant="secondary" size="md" className="h-9 px-3 text-[13px]" onClick={() => setBanner(null)}>
+              <Button
+                variant="secondary"
+                size="md"
+                className="h-9 px-3 text-[13px]"
+                onClick={() => setBanner(null)}
+              >
                 Got it
               </Button>
             )}
             {banner.kind === "sos" && (
-              <Button variant="destructive" size="md" className="h-9 px-3 text-[13px]" onClick={() => { setBanner(null); setSos("idle"); }}>
+              <Button
+                variant="destructive"
+                size="md"
+                className="h-9 px-3 text-[13px]"
+                onClick={() => {
+                  setBanner(null);
+                  setSos("idle");
+                }}
+              >
                 Close
               </Button>
             )}
@@ -866,7 +1181,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       <div className="pointer-events-none absolute left-3.5 bottom-36 z-20 flex flex-col items-center">
         <div className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-card/95 p-3 shadow-float backdrop-blur-md transition-transform hover:scale-105">
           <div className="font-mono text-[28px] font-bold tracking-tight text-foreground leading-none">
-            {Math.round(geo.fix?.speedMs != null && geo.fix.speedMs >= 0 ? geo.fix.speedMs * 3.6 : meV.speedKmh)}
+            {Math.round(
+              geo.fix?.speedMs != null && geo.fix.speedMs >= 0
+                ? geo.fix.speedMs * 3.6
+                : meV.speedKmh,
+            )}
           </div>
           <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             km/h
@@ -902,10 +1221,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             setCamera({ mode: "north" });
             setTimeout(() => setCamera({ mode: "follow" }), 600);
           }}
-          className={cn("flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer", ctl)}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer",
+            ctl,
+          )}
           title={`Orientation: ${Math.round(bearing)}°`}
         >
-          <div style={{ transform: `rotate(${-bearing}deg)`, transition: "transform 200ms ease-out" }} className="flex flex-col items-center justify-center">
+          <div
+            style={{ transform: `rotate(${-bearing}deg)`, transition: "transform 200ms ease-out" }}
+            className="flex flex-col items-center justify-center"
+          >
             <span className="block h-3 w-1 bg-alert rounded-t-sm" />
             <span className="block h-3 w-1 bg-muted-foreground rounded-b-sm" />
           </div>
@@ -919,7 +1244,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           type="button"
           aria-label="Recenter on my car"
           onClick={() => setCamera({ mode: "follow" })}
-          className={cn("flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer", ctl, camera.mode === "follow" && "text-primary ring-2 ring-primary/40")}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            ctl,
+            camera.mode === "follow" && "text-primary ring-2 ring-primary/40",
+          )}
           title="Recenter vehicle"
         >
           <Icon name="my_location" className="text-[22px]" />
@@ -930,7 +1259,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           type="button"
           aria-label="Fit whole convoy"
           onClick={() => setCamera({ mode: "fit" })}
-          className={cn("flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer", ctl, camera.mode === "fit" && "text-primary ring-2 ring-primary/40")}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            ctl,
+            camera.mode === "fit" && "text-primary ring-2 ring-primary/40",
+          )}
           title="Fit entire convoy"
         >
           <Icon name="groups" className="text-[22px]" />
@@ -941,10 +1274,23 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           type="button"
           aria-label="Toggle voice guidance"
           onClick={cycleAudio}
-          className={cn("flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer", ctl, audioMode === "mute" && "text-tertiary")}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            ctl,
+            audioMode === "mute" && "text-tertiary",
+          )}
           title={`Audio: ${audioMode}`}
         >
-          <Icon name={audioMode === "all" ? "volume_up" : audioMode === "alerts" ? "notifications_active" : "volume_off"} className="text-[22px]" />
+          <Icon
+            name={
+              audioMode === "all"
+                ? "volume_up"
+                : audioMode === "alerts"
+                  ? "notifications_active"
+                  : "volume_off"
+            }
+            className="text-[22px]"
+          />
         </button>
 
         {/* Map Layers (Satellite, Dark, Detailed) */}
@@ -952,7 +1298,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           type="button"
           aria-label="Map style layers"
           onClick={() => setStyleOpen(!styleOpen)}
-          className={cn("flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer", ctl, styleOpen && "text-primary")}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            ctl,
+            styleOpen && "text-primary",
+          )}
           title="Layers"
         >
           <Icon name="layers" className="text-[22px]" />
@@ -965,12 +1315,17 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           onPointerDown={sosStart}
           onPointerUp={sosRelease}
           onPointerLeave={sosRelease}
-          className={cn("relative mt-2 flex items-center justify-center rounded-full bg-card text-alert shadow-float border border-alert/30 select-none", ctl)}
+          className={cn(
+            "relative mt-2 flex items-center justify-center rounded-full bg-card text-alert shadow-float border border-alert/30 select-none",
+            ctl,
+          )}
           title="Hold 1.2s for Convoy SOS"
         >
           <svg className="absolute inset-0 -rotate-90 pointer-events-none" viewBox="0 0 48 48">
             <circle
-              cx={24} cy={24} r={21}
+              cx={24}
+              cy={24}
+              r={21}
               fill="none"
               strokeWidth={3}
               className="stroke-alert sos-fill"
@@ -985,16 +1340,36 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
       {/* Map Style Selector Popover */}
       {styleOpen && (
-        <div className="absolute right-18 top-64 z-40 w-48 rounded-[18px] border border-border bg-card p-2 shadow-float" role="menu">
-          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-tertiary">Map Type</div>
-          {([["default", "Clean (Default)", "map"], ["detailed", "Detailed", "terrain"], ["dark", "Night Navigation", "dark_mode"], ["satellite", "Satellite Aerial", "satellite_alt"]] as const).map(([id, label, icon]) => (
+        <div
+          className="absolute right-18 top-64 z-40 w-48 rounded-[18px] border border-border bg-card p-2 shadow-float"
+          role="menu"
+        >
+          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-tertiary">
+            Map Type
+          </div>
+          {(
+            [
+              ["default", "Clean (Default)", "map"],
+              ["detailed", "Detailed", "terrain"],
+              ["dark", "Night Navigation", "dark_mode"],
+              ["satellite", "Satellite Aerial", "satellite_alt"],
+            ] as const
+          ).map(([id, label, icon]) => (
             <button
               key={id}
               type="button"
               role="menuitemradio"
               aria-checked={mapStyle === id}
-              onClick={() => { setMapStyle(id); setStyleOpen(false); }}
-              className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] transition-colors cursor-pointer", mapStyle === id ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-secondary")}
+              onClick={() => {
+                setMapStyle(id);
+                setStyleOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] transition-colors cursor-pointer",
+                mapStyle === id
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "hover:bg-secondary",
+              )}
             >
               <Icon name={icon} className="text-[18px]" />
               <span>{label}</span>
@@ -1014,7 +1389,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             <button
               type="button"
               aria-label="Close nearby"
-              onClick={() => { setNearbyOpen(false); setNearby([]); setNearbyCat(null); }}
+              onClick={() => {
+                setNearbyOpen(false);
+                setNearby([]);
+                setNearbyCat(null);
+              }}
               className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary cursor-pointer"
             >
               <Icon name="close" />
@@ -1027,7 +1406,12 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 type="button"
                 onClick={() => void findNearby(c.id)}
                 aria-pressed={nearbyCat === c.id}
-                className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer", nearbyCat === c.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary hover:bg-secondary/80")}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors cursor-pointer",
+                  nearbyCat === c.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-secondary hover:bg-secondary/80",
+                )}
               >
                 <Icon name={c.icon} className="text-[16px]" /> {c.label}
               </button>
@@ -1040,8 +1424,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 Scanning corridor for {nearbyCat}...
               </div>
             )}
-            {nearbyState === "error" && <p className="p-6 text-center text-alert text-[14px]">Nearby places busy. Try another category.</p>}
-            {nearbyState === "idle" && nearbyCat && nearby.length === 0 && <p className="p-6 text-center text-muted-foreground text-[14px]">No {nearbyCat} found within 8 km.</p>}
+            {nearbyState === "error" && (
+              <p className="p-6 text-center text-alert text-[14px]">
+                Nearby places busy. Try another category.
+              </p>
+            )}
+            {nearbyState === "idle" && nearbyCat && nearby.length === 0 && (
+              <p className="p-6 text-center text-muted-foreground text-[14px]">
+                No {nearbyCat} found within 8 km.
+              </p>
+            )}
             <ul className="divide-y divide-border">
               {nearby.map((p) => (
                 <li
@@ -1054,11 +1446,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                   className="flex items-center gap-3 py-3 px-2 hover:bg-secondary/40 rounded-xl transition-colors cursor-pointer"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
-                    <Icon name={CATEGORIES.find((c) => c.id === p.category)!.icon} className="text-[20px]" />
+                    <Icon
+                      name={CATEGORIES.find((c) => c.id === p.category)!.icon}
+                      className="text-[20px]"
+                    />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-[15px]">{p.name}</div>
-                    <div className="font-mono text-[13px] text-muted-foreground">{formatDistance(p.distanceM)} away from route</div>
+                    <div className="font-mono text-[13px] text-muted-foreground">
+                      {formatDistance(p.distanceM)} away from route
+                    </div>
                   </div>
                   <div className="flex gap-1.5">
                     <button
@@ -1096,10 +1493,13 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               </div>
               <div className="mt-1 flex items-center gap-2 text-[13px]">
                 <span className="text-muted-foreground">
-                  {CATEGORIES.find((c) => c.id === selectedPlace.category)?.label ?? "Point of Interest"}
+                  {CATEGORIES.find((c) => c.id === selectedPlace.category)?.label ??
+                    "Point of Interest"}
                 </span>
                 <span className="text-muted-foreground">•</span>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">Open 24 hours</span>
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  Open 24 hours
+                </span>
               </div>
             </div>
             <button
@@ -1113,7 +1513,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
           <div className="mt-3.5 flex items-center justify-between border-t border-border/60 pt-3">
             <div className="text-[12px] text-muted-foreground">
-              <span className="font-semibold text-foreground font-mono">{formatDistance(selectedPlace.distanceM)}</span> detour
+              <span className="font-semibold text-foreground font-mono">
+                {formatDistance(selectedPlace.distanceM)}
+              </span>{" "}
+              detour
             </div>
             <button
               onClick={() => void handleAddStop(selectedPlace)}
@@ -1133,9 +1536,18 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-6 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-[24px] border border-alert bg-card p-6 text-center shadow-float">
             <div className="font-mono text-[56px] font-bold leading-none text-alert">{sosLeft}</div>
-            <h3 className="mt-3 text-[20px] font-semibold text-alert">Broadcasting Emergency SOS</h3>
-            <p className="mt-1 text-[14px] text-muted-foreground">Your real-time GPS coordinates are being transmitted to every vehicle in this convoy.</p>
-            <Button variant="secondary" size="lg" className="mt-6 w-full text-[16px]" onClick={() => setSos("idle")}>
+            <h3 className="mt-3 text-[20px] font-semibold text-alert">
+              Broadcasting Emergency SOS
+            </h3>
+            <p className="mt-1 text-[14px] text-muted-foreground">
+              Your real-time GPS coordinates are being transmitted to every vehicle in this convoy.
+            </p>
+            <Button
+              variant="secondary"
+              size="lg"
+              className="mt-6 w-full text-[16px]"
+              onClick={() => setSos("idle")}
+            >
               Cancel SOS
             </Button>
           </div>
@@ -1153,7 +1565,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 <div>
                   <h2 className="text-[17px] font-semibold">Route Plan & Steps</h2>
                   <p className="text-[12px] text-muted-foreground font-mono">
-                    {formatDistance(guide.distanceM)} • {Math.round(guide.durationS / 60)} min • Fastest road route
+                    {formatDistance(guide.distanceM)} • {Math.round(guide.durationS / 60)} min •
+                    Fastest road route
                   </p>
                 </div>
               </div>
@@ -1173,14 +1586,19 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 <span className="truncate text-[13px] font-medium">{trip.origin || "Origin"}</span>
                 {waypoints.length > 0 && (
                   <>
-                    <Icon name="arrow_forward" className="text-[14px] text-muted-foreground shrink-0" />
+                    <Icon
+                      name="arrow_forward"
+                      className="text-[14px] text-muted-foreground shrink-0"
+                    />
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary">
                       +{waypoints.length} stop{waypoints.length > 1 ? "s" : ""}
                     </span>
                   </>
                 )}
                 <Icon name="arrow_forward" className="text-[14px] text-muted-foreground shrink-0" />
-                <span className="truncate text-[13px] font-medium">{trip.destination || "Destination"}</span>
+                <span className="truncate text-[13px] font-medium">
+                  {trip.destination || "Destination"}
+                </span>
               </div>
               <button
                 onClick={() => {
@@ -1196,7 +1614,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
             {/* Turn-by-Turn Steps List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Turn-by-turn guidance</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Turn-by-turn guidance
+              </div>
               <ul className="space-y-2">
                 {guide.steps.map((s, idx) => {
                   const isCurrent = idx === stepIdx;
@@ -1210,7 +1630,12 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                           : "border-border/60 bg-card/60 hover:bg-secondary/40 text-foreground",
                       )}
                     >
-                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", isCurrent ? "bg-primary text-white" : "bg-secondary text-foreground")}>
+                      <span
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          isCurrent ? "bg-primary text-white" : "bg-secondary text-foreground",
+                        )}
+                      >
                         <Icon name={maneuverIcon(s)} className="text-[20px]" />
                       </span>
                       <div className="flex-1 min-w-0">
@@ -1243,7 +1668,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       {/* BOTTOM SHEET: Convoy Rail & Roster Drawer */}
       <section
         className="absolute inset-x-0 bottom-[92px] z-10 mx-auto flex max-w-xl flex-col rounded-t-[26px] border-t border-border bg-card/95 backdrop-blur-md shadow-float"
-        style={{ height: driving || snap === 0 ? undefined : SHEET_H[snap], transition: "height 380ms cubic-bezier(0.2, 0.9, 0.3, 1)" }}
+        style={{
+          height: driving || snap === 0 ? undefined : SHEET_H[snap],
+          transition: "height 380ms cubic-bezier(0.2, 0.9, 0.3, 1)",
+        }}
         aria-label="Convoy details"
       >
         {/* Grab Handle */}
@@ -1260,7 +1688,15 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         {/* Signature Convoy Rail (Always Visible in Navigation Dock) */}
         <div className="shrink-0 px-4 pb-2">
           <ConvoyRail
-            members={vehicles.map((v) => ({ id: v.id, letter: v.letter, color: v.color, progressM: v.progressM, status: statuses[v.id] ?? "following", isMe: v.isMe, name: v.name }))}
+            members={vehicles.map((v) => ({
+              id: v.id,
+              letter: v.letter,
+              color: v.color,
+              progressM: v.progressM,
+              status: statuses[v.id] ?? "following",
+              isMe: v.isMe,
+              name: v.name,
+            }))}
             routeM={routeM}
             thresholdM={thresholdM}
             onFocus={(id) => setCamera({ mode: "focus", id })}
@@ -1289,7 +1725,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="overline text-tertiary">Convoy Vehicles ({vehicles.length})</h3>
-                <span className="text-[12px] text-muted-foreground">Tap any car to focus camera</span>
+                <span className="text-[12px] text-muted-foreground">
+                  Tap any car to focus camera
+                </span>
               </div>
               <ul className="divide-y divide-border rounded-[16px] border border-border bg-card shadow-sm overflow-hidden">
                 {sortedMembers.map((v, i) => (
@@ -1299,11 +1737,18 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                       className="flex min-h-15 w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary/40 transition-colors cursor-pointer"
                       onClick={() => setCamera({ mode: "focus", id: v.id })}
                     >
-                      <VehicleChip letter={v.letter} color={v.color} size={34} ring={v.isMe ? "me" : "none"} />
+                      <VehicleChip
+                        letter={v.letter}
+                        color={v.color}
+                        size={34}
+                        ring={v.isMe ? "me" : "none"}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-[15px] font-semibold truncate">
                           {v.name}
-                          {v.isMe && <span className="text-[12px] font-normal text-primary"> (You)</span>}
+                          {v.isMe && (
+                            <span className="text-[12px] font-normal text-primary"> (You)</span>
+                          )}
                         </div>
                         <div className="text-[13px] text-muted-foreground flex items-center gap-1.5">
                           <span>{v.driver}</span>
@@ -1315,7 +1760,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                         <div className="font-mono text-[14px] font-semibold text-foreground">
                           {i === 0 ? "Leader" : formatKm(gaps[v.id] ?? 0)}
                         </div>
-                        <div className="font-mono text-[12px] text-muted-foreground">{Math.round(v.speedKmh)} km/h</div>
+                        <div className="font-mono text-[12px] text-muted-foreground">
+                          {Math.round(v.speedKmh)} km/h
+                        </div>
                       </div>
                     </button>
                   </li>
@@ -1328,15 +1775,27 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               <div className="space-y-3 pt-2">
                 <h3 className="overline text-tertiary">Trip Details & Rules</h3>
                 <div className="rounded-[16px] bg-secondary/80 p-4 text-[14px] space-y-1.5">
-                  <div className="font-semibold">{route.name} route ({route.via})</div>
-                  <div className="text-muted-foreground">Alert threshold: {trip.thresholdKm} km gap • Alerts by: {trip.alertsBy}</div>
+                  <div className="font-semibold">
+                    {route.name} route ({route.via})
+                  </div>
+                  <div className="text-muted-foreground">
+                    Alert threshold: {trip.thresholdKm} km gap • Alerts by: {trip.alertsBy}
+                  </div>
                 </div>
                 {isHost && (
-                  <Button variant="secondary" className="w-full" onClick={() => void endForEveryone()}>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => void endForEveryone()}
+                  >
                     End Convoy for Everyone
                   </Button>
                 )}
-                <Button variant="quiet" className="w-full text-alert" onClick={() => setExitConfirm(true)}>
+                <Button
+                  variant="quiet"
+                  className="w-full text-alert"
+                  onClick={() => setExitConfirm(true)}
+                >
                   Stop Sharing & Leave Convoy
                 </Button>
               </div>
@@ -1348,7 +1807,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       {/* BOTTOM: Google Maps Driving Dock */}
       <footer className="absolute inset-x-0 bottom-0 z-20 mx-auto flex h-[92px] max-w-xl items-center justify-between border-t border-border bg-card px-5 shadow-float">
         {/* Left: Google Maps ETA Readout */}
-        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setSnap((s) => (s === 0 ? 1 : 0))}>
+        <div
+          className="min-w-0 flex-1 cursor-pointer"
+          onClick={() => setSnap((s) => (s === 0 ? 1 : 0))}
+        >
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-[22px] font-bold text-leading leading-none">
               {estHours > 0 ? `${estHours} hr ${estMins} min` : `${estMins} min`}
@@ -1386,9 +1848,14 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             )}
             title={t("pttHold")}
           >
-            {talking && [0, 400, 800].map((d) => (
-              <span key={d} className="ptt-ring absolute inset-0 rounded-full border-2 border-primary" style={{ animationDelay: `${d}ms` }} />
-            ))}
+            {talking &&
+              [0, 400, 800].map((d) => (
+                <span
+                  key={d}
+                  className="ptt-ring absolute inset-0 rounded-full border-2 border-primary"
+                  style={{ animationDelay: `${d}ms` }}
+                />
+              ))}
             <Icon name={talking ? "mic" : "mic_none"} className="text-[32px]" />
           </button>
         </div>
@@ -1408,7 +1875,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           <button
             type="button"
             className="relative flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-secondary/80 transition-colors cursor-pointer"
-            onClick={() => { setChatOpen(true); setUnread(0); }}
+            onClick={() => {
+              setChatOpen(true);
+              setUnread(0);
+            }}
             aria-label="Open group chat"
             title="Group Chat"
           >
@@ -1447,12 +1917,20 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
       {/* Quick Alerts Sheet (6-Button Driving Grid) */}
       {quickOpen && (
-        <div className="absolute inset-0 z-50 flex items-end bg-black/40 backdrop-blur-xs" onClick={() => setQuickOpen(false)}>
-          <div className="screen-in mx-auto w-full max-w-xl rounded-t-[26px] bg-card p-5 pb-8 shadow-float" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="absolute inset-0 z-50 flex items-end bg-black/40 backdrop-blur-xs"
+          onClick={() => setQuickOpen(false)}
+        >
+          <div
+            className="screen-in mx-auto w-full max-w-xl rounded-t-[26px] bg-card p-5 pb-8 shadow-float"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-[18px] font-semibold">Broadcast to Convoy</h2>
-                <p className="text-[13px] text-muted-foreground">One-tap driving alerts with instant audio banner for all cars.</p>
+                <p className="text-[13px] text-muted-foreground">
+                  One-tap driving alerts with instant audio banner for all cars.
+                </p>
               </div>
               <button
                 type="button"
@@ -1484,12 +1962,20 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
       {/* Group Chat Drawer */}
       {chatOpen && (
-        <div className="absolute inset-0 z-50 flex items-end bg-black/40 backdrop-blur-xs" onClick={() => setChatOpen(false)}>
-          <div className="screen-in mx-auto flex h-[82vh] w-full max-w-xl flex-col rounded-t-[26px] bg-card shadow-float" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="absolute inset-0 z-50 flex items-end bg-black/40 backdrop-blur-xs"
+          onClick={() => setChatOpen(false)}
+        >
+          <div
+            className="screen-in mx-auto flex h-[82vh] w-full max-w-xl flex-col rounded-t-[26px] bg-card shadow-float"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-border">
               <div>
                 <h2 className="text-[18px] font-semibold">Convoy Chat</h2>
-                <p className="text-[12px] text-muted-foreground">AI automatically suggests stops from your chat conversation.</p>
+                <p className="text-[12px] text-muted-foreground">
+                  AI automatically suggests stops from your chat conversation.
+                </p>
               </div>
               <button
                 type="button"
@@ -1504,19 +1990,37 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               {msgs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
                   <Icon name="chat_bubble_outline" className="text-[36px] text-tertiary mb-2" />
-                  <p className="text-[14px]">No messages yet. Message the group or propose stops!</p>
+                  <p className="text-[14px]">
+                    No messages yet. Message the group or propose stops!
+                  </p>
                 </div>
               ) : (
                 msgs.map((m) => {
                   const from = vehicles.find((v) => v.id === m.fromId);
                   const isMine = m.fromId === meV.id;
                   return (
-                    <li key={m.clientId} className={cn("flex gap-2.5", isMine && "flex-row-reverse")}>
+                    <li
+                      key={m.clientId}
+                      className={cn("flex gap-2.5", isMine && "flex-row-reverse")}
+                    >
                       {from && <VehicleChip letter={from.letter} color={from.color} size={28} />}
-                      <div className={cn("max-w-[78%] rounded-[18px] px-3.5 py-2.5 text-[15px]", isMine ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground")}>
-                        {!isMine && <div className="text-[11px] font-semibold text-muted-foreground mb-0.5">{from?.driver}</div>}
+                      <div
+                        className={cn(
+                          "max-w-[78%] rounded-[18px] px-3.5 py-2.5 text-[15px]",
+                          isMine
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-foreground",
+                        )}
+                      >
+                        {!isMine && (
+                          <div className="text-[11px] font-semibold text-muted-foreground mb-0.5">
+                            {from?.driver}
+                          </div>
+                        )}
                         <div className="leading-relaxed">{m.text}</div>
-                        {isMine && <div className="mt-1 text-right text-[10px] opacity-75">{m.state}</div>}
+                        {isMine && (
+                          <div className="mt-1 text-right text-[10px] opacity-75">{m.state}</div>
+                        )}
                       </div>
                     </li>
                   );
@@ -1526,14 +2030,22 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             <div className="border-t border-border p-3">
               {driving ? (
                 <div className="flex items-center gap-3">
-                  <p className="flex-1 text-[13px] text-muted-foreground">Typing is disabled while driving above 10 km/h.</p>
+                  <p className="flex-1 text-[13px] text-muted-foreground">
+                    Typing is disabled while driving above 10 km/h.
+                  </p>
                   <Button size="lg" onClick={readAloud}>
                     <Icon name="record_voice_over" />
                     Read aloud
                   </Button>
                 </div>
               ) : (
-                <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendChat(); }}>
+                <form
+                  className="flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendChat();
+                  }}
+                >
                   <input
                     value={draft}
                     maxLength={MAX_CHAT}
@@ -1561,7 +2073,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             </span>
             <h3 className="text-[18px] font-semibold">Exit Convoy Navigation?</h3>
             <p className="mt-1.5 text-[14px] text-muted-foreground">
-              Your live location sharing will cease immediately. Other members will be notified that you left the convoy.
+              Your live location sharing will cease immediately. Other members will be notified that
+              you left the convoy.
             </p>
             <div className="mt-6 flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={() => setExitConfirm(false)}>
@@ -1592,46 +2105,80 @@ function StatusText({ s }: { s: MemberStatus }) {
 }
 
 type StopItem = ReturnType<typeof useStops>[number];
-function StopsPanel(p: { isHost: boolean; suggested: StopItem[]; confirmed: StopItem[]; here: [number, number] | null; busy: boolean; note: string | null; onFind: () => void; onConfirm: (s: StopItem) => void; onDismiss: (s: StopItem) => void }) {
+function StopsPanel(p: {
+  isHost: boolean;
+  suggested: StopItem[];
+  confirmed: StopItem[];
+  here: [number, number] | null;
+  busy: boolean;
+  note: string | null;
+  onFind: () => void;
+  onConfirm: (s: StopItem) => void;
+  onDismiss: (s: StopItem) => void;
+}) {
   if (!p.isHost && p.confirmed.length === 0) return null;
   return (
     <section className="space-y-2" aria-label="Convoy Stops">
       <div className="flex items-center justify-between gap-2">
         <h3 className="overline text-tertiary">Convoy Stops</h3>
         {p.isHost && (
-          <button className="flex min-h-9 items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 text-[13px] font-semibold hover:bg-primary/20 transition-colors" onClick={p.onFind} disabled={p.busy}>
+          <button
+            className="flex min-h-9 items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 text-[13px] font-semibold hover:bg-primary/20 transition-colors"
+            onClick={p.onFind}
+            disabled={p.busy}
+          >
             <Icon name="auto_awesome" className="text-[16px]" />
             {p.busy ? "Analyzing chat..." : "Find stops in chat"}
           </button>
         )}
       </div>
-      {p.note && <p className="text-[13px] text-muted-foreground rounded-lg bg-secondary p-2.5" role="status">{p.note}</p>}
-      {p.isHost && p.suggested.map((s) => (
-        <div key={s.id} className="rounded-[16px] border border-dashed border-primary/50 bg-primary/5 p-3.5 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-primary uppercase tracking-wider">
-            <span>AI Suggested Stop</span>
-            <span>Host Only</span>
+      {p.note && (
+        <p
+          className="text-[13px] text-muted-foreground rounded-lg bg-secondary p-2.5"
+          role="status"
+        >
+          {p.note}
+        </p>
+      )}
+      {p.isHost &&
+        p.suggested.map((s) => (
+          <div
+            key={s.id}
+            className="rounded-[16px] border border-dashed border-primary/50 bg-primary/5 p-3.5 space-y-2"
+          >
+            <div className="flex items-center justify-between text-[11px] font-semibold text-primary uppercase tracking-wider">
+              <span>AI Suggested Stop</span>
+              <span>Host Only</span>
+            </div>
+            <div className="font-semibold text-[15px]">{s.name}</div>
+            {s.reason && <div className="text-[13px] text-muted-foreground">{s.reason}</div>}
+            <div className="flex gap-2 pt-1">
+              <Button className="flex-1 h-9 text-[13px]" onClick={() => p.onConfirm(s)}>
+                Add to Convoy
+              </Button>
+              <Button
+                variant="quiet"
+                className="h-9 px-3 text-[13px]"
+                onClick={() => p.onDismiss(s)}
+              >
+                Dismiss
+              </Button>
+            </div>
           </div>
-          <div className="font-semibold text-[15px]">{s.name}</div>
-          {s.reason && <div className="text-[13px] text-muted-foreground">{s.reason}</div>}
-          <div className="flex gap-2 pt-1">
-            <Button className="flex-1 h-9 text-[13px]" onClick={() => p.onConfirm(s)}>
-              Add to Convoy
-            </Button>
-            <Button variant="quiet" className="h-9 px-3 text-[13px]" onClick={() => p.onDismiss(s)}>
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      ))}
+        ))}
       {p.confirmed.map((s) => (
-        <div key={s.id} className="flex items-center gap-3 rounded-[16px] border border-border bg-secondary/50 p-3">
+        <div
+          key={s.id}
+          className="flex items-center gap-3 rounded-[16px] border border-border bg-secondary/50 p-3"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Icon name="location_on" className="text-[20px]" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-[14px]">{s.name}</div>
-            {s.reason && <div className="truncate text-[12px] text-muted-foreground">{s.reason}</div>}
+            {s.reason && (
+              <div className="truncate text-[12px] text-muted-foreground">{s.reason}</div>
+            )}
           </div>
           {s.lng !== null && s.lat !== null && (
             <div className="text-right font-mono text-[13px] font-semibold text-muted-foreground">

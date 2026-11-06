@@ -205,7 +205,11 @@ export function PlacePicker({
         </button>
       </div>
 
-      {err && <p role="alert" className="mt-1 text-[13px] text-alert">{err}</p>}
+      {err && (
+        <p role="alert" className="mt-1 text-[13px] text-alert">
+          {err}
+        </p>
+      )}
 
       {/* Dropdown Auto-complete */}
       {open && results.length > 0 && (
@@ -224,10 +228,18 @@ export function PlacePicker({
               >
                 <Icon name="location_on" className="text-primary text-[20px] mt-0.5" />
                 <span className="flex-1 min-w-0">
-                  <span className="block font-medium text-[14px] text-foreground truncate">{r.name}</span>
-                  {r.detail && <span className="block text-[12px] text-muted-foreground truncate">{r.detail}</span>}
+                  <span className="block font-medium text-[14px] text-foreground truncate">
+                    {r.name}
+                  </span>
+                  {r.detail && (
+                    <span className="block text-[12px] text-muted-foreground truncate">
+                      {r.detail}
+                    </span>
+                  )}
                 </span>
-                {value?.name === r.name && <Icon name="check" className="text-leading text-[18px]" />}
+                {value?.name === r.name && (
+                  <Icon name="check" className="text-leading text-[18px]" />
+                )}
               </button>
             </li>
           ))}
@@ -262,10 +274,21 @@ export function PlacePicker({
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-border bg-card p-4">
               <div className="min-w-0 flex-1">
-                <div className={cn("truncate font-medium text-[15px]", !mapPoint && "text-muted-foreground")}>
-                  {mapPoint ? (mapPlace?.name ?? "Resolving place name...") : "Tap anywhere on the map to place a pin"}
+                <div
+                  className={cn(
+                    "truncate font-medium text-[15px]",
+                    !mapPoint && "text-muted-foreground",
+                  )}
+                >
+                  {mapPoint
+                    ? (mapPlace?.name ?? "Resolving place name...")
+                    : "Tap anywhere on the map to place a pin"}
                 </div>
-                {mapPlace?.detail && <div className="truncate text-[12px] text-muted-foreground">{mapPlace.detail}</div>}
+                {mapPlace?.detail && (
+                  <div className="truncate text-[12px] text-muted-foreground">
+                    {mapPlace.detail}
+                  </div>
+                )}
               </div>
               <Button
                 disabled={!mapPoint || !mapPlace}

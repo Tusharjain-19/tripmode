@@ -39,11 +39,7 @@ export function getAdaptiveIntervalMs(speedMs: number | null): number {
  * 1. Drop fixes with accuracy worse than 50 m.
  * 2. Send only if moved > 8 m, OR heading changed > 15°, OR heartbeat due (15 s).
  */
-export function shouldTransmitFix(
-  prev: GeoFix | null,
-  next: GeoFix,
-  heartbeatMs = 15000,
-): boolean {
+export function shouldTransmitFix(prev: GeoFix | null, next: GeoFix, heartbeatMs = 15000): boolean {
   if (next.accuracyM > 50) return false;
   if (!prev) return true;
 
@@ -130,10 +126,16 @@ export function useGeolocation() {
       (e) => {
         if (e.code === e.PERMISSION_DENIED) {
           setState("denied");
-          setError("Location permission was denied. Allow it in your browser settings, then try again.");
+          setError(
+            "Location permission was denied. Allow it in your browser settings, then try again.",
+          );
           stop();
         } else {
-          setError(e.code === e.TIMEOUT ? "Waiting for a GPS signal." : "Location is unavailable right now.");
+          setError(
+            e.code === e.TIMEOUT
+              ? "Waiting for a GPS signal."
+              : "Location is unavailable right now.",
+          );
         }
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 },

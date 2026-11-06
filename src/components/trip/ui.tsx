@@ -4,9 +4,22 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { ON_VEHICLE, type VehicleColor } from "@/lib/trip-store";
 
-export function Icon({ name, className, label }: { name: string; className?: string; label?: string }) {
+export function Icon({
+  name,
+  className,
+  label,
+}: {
+  name: string;
+  className?: string;
+  label?: string;
+}) {
   return (
-    <span className={cn("ms text-[24px]", className)} aria-hidden={label ? undefined : true} aria-label={label} role={label ? "img" : undefined}>
+    <span
+      className={cn("ms text-[24px]", className)}
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
+      role={label ? "img" : undefined}
+    >
       {name}
     </span>
   );
@@ -28,19 +41,52 @@ export const btn = cva(
   },
 );
 
-export function Button({ variant, size, className, type = "button", ...p }: ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof btn>) {
+export function Button({
+  variant,
+  size,
+  className,
+  type = "button",
+  ...p
+}: ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof btn>) {
   return <button type={type} className={cn(btn({ variant, size }), className)} {...p} />;
 }
 
 const colorBg: Record<VehicleColor, string> = {
-  v1: "bg-v1", v2: "bg-v2", v3: "bg-v3", v4: "bg-v4", v5: "bg-v5", v6: "bg-v6", v7: "bg-v7", v8: "bg-v8",
+  v1: "bg-v1",
+  v2: "bg-v2",
+  v3: "bg-v3",
+  v4: "bg-v4",
+  v5: "bg-v5",
+  v6: "bg-v6",
+  v7: "bg-v7",
+  v8: "bg-v8",
 };
-export const vehicleBg = (c: VehicleColor) => cn(colorBg[c], ON_VEHICLE[c] === "dark" ? "text-on-vehicle-dark" : "text-on-vehicle-light");
+export const vehicleBg = (c: VehicleColor) =>
+  cn(colorBg[c], ON_VEHICLE[c] === "dark" ? "text-on-vehicle-dark" : "text-on-vehicle-light");
 export const vehicleFill: Record<VehicleColor, string> = {
-  v1: "fill-v1", v2: "fill-v2", v3: "fill-v3", v4: "fill-v4", v5: "fill-v5", v6: "fill-v6", v7: "fill-v7", v8: "fill-v8",
+  v1: "fill-v1",
+  v2: "fill-v2",
+  v3: "fill-v3",
+  v4: "fill-v4",
+  v5: "fill-v5",
+  v6: "fill-v6",
+  v7: "fill-v7",
+  v8: "fill-v8",
 };
 
-export function VehicleChip({ letter, color, size = 32, ring, className }: { letter: string; color: VehicleColor; size?: number; ring?: "none" | "caution" | "alert" | "stale" | "me"; className?: string }) {
+export function VehicleChip({
+  letter,
+  color,
+  size = 32,
+  ring,
+  className,
+}: {
+  letter: string;
+  color: VehicleColor;
+  size?: number;
+  ring?: "none" | "caution" | "alert" | "stale" | "me";
+  className?: string;
+}) {
   return (
     <span
       className={cn(
@@ -76,12 +122,22 @@ export function Screen({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <div className={cn("screen-in mx-auto flex min-h-screen flex-col px-4 pb-8", maxWidth, className)}>
+      <div
+        className={cn(
+          "screen-in mx-auto flex min-h-screen flex-col px-4 pb-8",
+          maxWidth,
+          className,
+        )}
+      >
         {(title || back || headerRight) && (
           <header className="flex h-16 items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               {back && (
-                <Link to={back} className={btn({ variant: "quiet", size: "icon" })} aria-label="Back">
+                <Link
+                  to={back}
+                  className={btn({ variant: "quiet", size: "icon" })}
+                  aria-label="Back"
+                >
                   <Icon name="arrow_back" />
                 </Link>
               )}
@@ -96,7 +152,17 @@ export function Screen({
   );
 }
 
-export function Segmented<T extends string | number>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+export function Segmented<T extends string | number>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  label: string;
+}) {
   return (
     <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-secondary p-1">
       {options.map((o) => (
@@ -108,7 +174,9 @@ export function Segmented<T extends string | number>({ value, options, onChange,
           onClick={() => onChange(o.value)}
           className={cn(
             "min-h-11 flex-1 rounded-[6px] text-[14px] font-medium transition-colors cursor-pointer",
-            value === o.value ? "bg-card text-foreground shadow-float font-semibold" : "text-muted-foreground hover:text-foreground",
+            value === o.value
+              ? "bg-card text-foreground shadow-float font-semibold"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.label}
@@ -118,11 +186,18 @@ export function Segmented<T extends string | number>({ value, options, onChange,
   );
 }
 
-export function Field({ label, hint, ...p }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
+export function Field({
+  label,
+  hint,
+  ...p
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[14px] font-medium">{label}</span>
-      <input className="h-12 w-full rounded-lg border border-transparent bg-secondary px-4 text-[16px] outline-none focus:border-ring" {...p} />
+      <input
+        className="h-12 w-full rounded-lg border border-transparent bg-secondary px-4 text-[16px] outline-none focus:border-ring"
+        {...p}
+      />
       {hint && <span className="mt-1 block text-[12px] text-tertiary">{hint}</span>}
     </label>
   );

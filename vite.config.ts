@@ -8,6 +8,7 @@ function reactRefreshRuntimePlugin(): Plugin {
     name: "vite:react-refresh-runtime",
     resolveId(id) {
       if (id === "/@react-refresh") return id;
+      return null;
     },
     load(id) {
       if (id === "/@react-refresh") {
@@ -21,6 +22,7 @@ function reactRefreshRuntimePlugin(): Plugin {
           export default { injectIntoGlobalHook(w) {} };
         `;
       }
+      return null;
     },
   };
 }

@@ -13,7 +13,7 @@ import { RequireAuth } from "@/components/trip/RequireAuth";
 import { advanceStep, distanceToRouteM, fetchGuidance, formatDistance, haversineM, instruction, maneuverIcon, type NavLeg, type NavRoute } from "@/lib/nav";
 import { CATEGORIES, searchNearby, type NearbyPlace, type PlaceCategory } from "@/lib/places";
 import type { MapStyleId } from "@/components/trip/RouteMap";
-import { confirmStopRemote, dismissStopRemote, endTripRemote, leaveTripRemote, sendMessage, useMembers, useStops, useTripStatus, useMessages, usePositions, usePublishPosition, useRestoreTrip, type Member } from "@/lib/trip-sync";
+import { confirmStopRemote, createStopRemote, dismissStopRemote, endTripRemote, leaveTripRemote, sendMessage, useMembers, useStops, useTripStatus, useMessages, usePositions, usePublishPosition, useRestoreTrip, type Member } from "@/lib/trip-sync";
 import type { VehicleColor } from "@/lib/trip-store";
 import { applyFix, routeMeters, TICK_MS, vehiclePoint, vehicleStatus, type SimVehicle } from "@/lib/simulation";
 import { tripStore, useTrip } from "@/lib/trip-store";
@@ -75,7 +75,7 @@ function TripGateInner({ uid }: { uid: string }) {
         <p className="max-w-xs text-muted-foreground">Join the trip and agree to share before opening the live map.</p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Link to="/lobby" className={btn()}>Go to trip lobby</Link>
-          <Link to="/create" className={btn({ variant: "outline" })}>Create trip</Link>
+          <Link to="/create" className={btn({ variant: "secondary" })}>Create trip</Link>
         </div>
       </div>
     );
@@ -473,7 +473,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     void sendMessage(trip.id!, uid, "quick", `Proposing stop: ${p.name}`);
     showBanner({ kind: "sent", text: `Proposed ${p.name} as convoy stop`, tone: "info" });
     if (isHost) {
-      await confirmStopRemote(trip.id!, p.name, p.lngLat).catch(() => undefined);
+      await createStopRemote(trip.id!, p.name, p.lngLat).catch(() => undefined);
     }
     setSelectedPlace(null);
   };

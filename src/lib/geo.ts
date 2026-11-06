@@ -129,7 +129,9 @@ const listeners = new Set<() => void>();
 export const getRoutesVersion = () => version;
 export const subscribeRoutes = (l: () => void) => {
   listeners.add(l);
-  return () => listeners.delete(l);
+  return () => {
+    listeners.delete(l);
+  };
 };
 export function setRoutes(raw: RawRoute[]) {
   if (!raw.length) return;
@@ -141,7 +143,10 @@ export function setRoutes(raw: RawRoute[]) {
 /** Reactive hook to re-render whenever the convoy route corridors are updated. */
 export function useRoutes(): RouteOption[] {
   const [_, setV] = useState(0);
-  useEffect(() => subscribeRoutes(() => setV((v) => v + 1)), []);
+  useEffect(() => {
+    const unsub = subscribeRoutes(() => setV((v) => v + 1));
+    return () => unsub();
+  }, []);
   return ROUTES;
 }
 
@@ -232,7 +237,8 @@ export async function fetchRoutes(from: LngLat, to: LngLat): Promise<RawRoute[]>
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timeout = controller ? setTimeout(() => controller.abort(), 2500) : null;
     const url = `https://router.project-osrm.org/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?alternatives=3&overview=full&geometries=geojson`;
-    const res = await fetch(url, { signal: controller ? controller.signal : undefined });
+    const fetchInit: RequestInit = controller ? { signal: controller.signal } : {};
+    const res = await fetch(url, fetchInit);
     if (timeout) clearTimeout(timeout);
     if (res.ok) {
       const j = (await res.json()) as { code: string; routes?: OsrmRoute[] };

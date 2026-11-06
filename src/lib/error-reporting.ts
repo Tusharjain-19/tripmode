@@ -62,7 +62,7 @@ export function reportAppError(error: unknown, context: Record<string, unknown> 
   // Strip potential coordinates pattern from error message
   safeMessage = safeMessage.replace(/-?\d{1,3}\.\d{4,}/g, "[COORD]");
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env["NODE_ENV"] !== "production") {
     console.error("[App Error]", safeMessage, safeContext);
   }
 }

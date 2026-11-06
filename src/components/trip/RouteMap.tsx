@@ -40,7 +40,7 @@ export type RouteMapProps = {
   selected: number;
   showAlternates?: boolean;
   travelledM?: number;
-  activeRouteCoords?: LngLat[];
+  activeRouteCoords?: LngLat[] | undefined;
   nextManeuverLngLat?: LngLat | null;
   destinationLngLat?: LngLat | null;
   vehicles?: MapVehicle[];

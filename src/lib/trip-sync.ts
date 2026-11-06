@@ -179,6 +179,18 @@ export function useStops(tripId: string | undefined) {
   return stops;
 }
 
+export async function createStopRemote(tripId: string, name: string, lngLat: [number, number] | null) {
+  const { error } = await supabase.from("trip_stops").insert({
+    trip_id: tripId,
+    name,
+    query: name,
+    lng: lngLat?.[0] ?? null,
+    lat: lngLat?.[1] ?? null,
+    status: "confirmed",
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function confirmStopRemote(stopId: string, lngLat: [number, number] | null) {
   const { error } = await supabase.from("trip_stops").update({ status: "confirmed", lng: lngLat?.[0] ?? null, lat: lngLat?.[1] ?? null }).eq("id", stopId);
   if (error) throw new Error(error.message);

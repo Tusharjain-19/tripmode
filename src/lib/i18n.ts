@@ -170,7 +170,9 @@ export function toggleLanguage() {
 
 function subscribe(callback: () => void) {
   listeners.add(callback);
-  return () => listeners.delete(callback);
+  return () => {
+    listeners.delete(callback);
+  };
 }
 
 export function t(key: TranslationKey): string {
@@ -178,7 +180,7 @@ export function t(key: TranslationKey): string {
 }
 
 export function useI18n() {
-  const lang = useSyncExternalStore(subscribe, getLanguage, () => "en");
+  const lang = useSyncExternalStore<Language>(subscribe, getLanguage, () => "en");
 
   const translate = useCallback((key: TranslationKey): string => {
     return DICTIONARY[lang][key] || DICTIONARY.en[key] || key;

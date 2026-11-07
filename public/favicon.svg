@@ -1,10 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
-  <rect width="48" height="48" rx="14" fill="#1B5A47" />
-  <!-- Instrument grid ring -->
-  <circle cx="24" cy="24" r="15" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.3" stroke-dasharray="3 3" />
-  <!-- Convoy navigation chevron / instrument arrow -->
-  <path d="M24 11L33 34L24 29L15 34L24 11Z" fill="#F7F5F0" />
-  <!-- Convoy point dot -->
-  <circle cx="24" cy="24" r="2.5" fill="#1B5A47" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <!-- Precision Instrument Rounded Squircle Background -->
+  <rect width="120" height="120" rx="32" fill="#1B5A47" />
 
+  <!-- Subtle Instrument Calibration Ring -->
+  <circle cx="60" cy="60" r="44" stroke="#F7F5F0" stroke-width="1.5" stroke-opacity="0.22" stroke-dasharray="3 3" />
+
+  <!-- Cardinal Alignment Ticks -->
+  <line x1="60" y1="12" x2="60" y2="18" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.45" stroke-linecap="round" />
+  <line x1="60" y1="102" x2="60" y2="108" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
+  <line x1="12" y1="60" x2="18" y2="60" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
+  <line x1="102" y1="60" x2="108" y2="60" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
+
+  <!-- Convoy Route Polyline (Route Corridor) -->
+  <path d="M 40 88 C 40 68, 52 56, 60 44" stroke="#F7F5F0" stroke-width="4" stroke-linecap="round" stroke-opacity="0.35" />
+  <path d="M 60 44 C 64 38, 66 32, 66 26" stroke="#F7F5F0" stroke-width="4" stroke-linecap="round" stroke-opacity="0.85" />
+
+  <!-- Trailing Convoy Vehicle B (Amber Chip) -->
+  <circle cx="40" cy="88" r="6" fill="#E69F00" stroke="#16201B" stroke-width="2" />
+
+  <!-- Trailing Convoy Vehicle A (Sky Blue Chip) -->
+  <circle cx="56" cy="54" r="7" fill="#56B4E9" stroke="#16201B" stroke-width="2" />
+
+  <!-- Lead Vehicle (Precision Directional Wedge / Heading Arrow) -->
+  <path d="M 66 18 L 78 40 L 66 35 L 54 40 Z" fill="#F7F5F0" stroke="#16201B" stroke-width="1.5" stroke-linejoin="round" />
+
+  <!-- Lead Vehicle Core Node -->
+  <circle cx="66" cy="30" r="2.5" fill="#1B5A47" />
+</svg>

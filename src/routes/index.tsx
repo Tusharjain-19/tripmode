@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { RouteMap } from "@/components/trip/RouteMap";
 import { btn, Icon, Screen, Button } from "@/components/trip/ui";
+import { Logo } from "@/components/trip/Logo";
 import { useTrip } from "@/lib/trip-store";
 import { ensureGuest, useSession } from "@/lib/auth";
 import { useEffect, useState } from "react";
@@ -129,40 +130,7 @@ function Home() {
     <Screen maxWidth="max-w-7xl" className="px-3 sm:px-6 lg:px-8">
       {/* Top Application Header */}
       <header className="flex h-16 sm:h-20 items-center justify-between border-b border-border/70 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-[12px] bg-primary text-primary-foreground shadow-float transition-transform active:scale-95">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 48 48"
-              className="h-6 w-6"
-              fill="none"
-            >
-              <circle
-                cx="24"
-                cy="24"
-                r="15"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeOpacity="0.35"
-                strokeDasharray="3 3"
-              />
-              <path d="M24 11L33 34L24 29L15 34L24 11Z" fill="currentColor" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[19px] sm:text-[21px] font-semibold tracking-tight">
-                Trip Mode
-              </span>
-              <span className="hidden xs:inline-flex rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-ink-secondary">
-                CONVOY
-              </span>
-            </div>
-            <p className="text-[12px] text-muted-foreground hidden sm:block">
-              Collaborative multi-vehicle navigation
-            </p>
-          </div>
-        </div>
+        <Logo variant="full" size={44} />
 
         {/* Header Right Controls */}
         <div className="flex items-center gap-2 sm:gap-3">

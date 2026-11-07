@@ -3,16 +3,25 @@ package app.tripmode.convoy
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.GeolocationPermissions
+import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -21,6 +30,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
+import androidx.core.app.NotificationCompat
 
 class MainActivity : Activity() {
 
@@ -29,6 +39,8 @@ class MainActivity : Activity() {
 
     private val defaultBaseUrl = "https://tripmode-orcin.vercel.app"
     private val PERMISSION_REQUEST_CODE = 1001
+    private val NOTIFICATION_PERMISSION_CODE = 1002
+    private val CHANNEL_ID = "trip_mode_convoy_alerts"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,10 +48,13 @@ class MainActivity : Activity() {
         // 1. Keep phone screen awake during convoy driving
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // 2. Request runtime permissions for GPS location & Push-to-Talk audio
+        // 2. Set up notification channel for system alerts & convoy push notifications
+        createNotificationChannel()
+
+        // 3. Request runtime permissions for GPS location, Push-to-Talk audio, and Notifications
         checkConvoyPermissions()
 
-        // 3. Build Root Layout
+        // 4. Build Root Layout
         val rootLayout = FrameLayout(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -71,7 +86,7 @@ class MainActivity : Activity() {
 
         setupWebView()
 
-        // 4. Handle initial deep link intent if app was opened via link
+        // 5. Handle initial deep link intent if app was opened via link
         val initialUrl = resolveIntentUrl(intent) ?: defaultBaseUrl
         webView.loadUrl(initialUrl)
     }
@@ -89,7 +104,7 @@ class MainActivity : Activity() {
         val data: Uri = intent?.data ?: return null
         val scheme: String = data.scheme ?: return null
 
-        // Handle custom scheme: tripmode://join/ABC123 -> https://tripmode.app/join/ABC123
+        // Handle custom scheme: tripmode://join/ABC123 -> https://tripmode-orcin.vercel.app/join/ABC123
         if (scheme == "tripmode") {
             val path = data.path ?: ""
             val host = data.host ?: ""
@@ -100,7 +115,7 @@ class MainActivity : Activity() {
             }
         }
 
-        // Handle standard HTTPS App Links (e.g. https://tripmode.app/join/ABC123)
+        // Handle standard HTTPS App Links
         if (scheme == "https" || scheme == "http") {
             return data.toString()
         }
@@ -123,6 +138,9 @@ class MainActivity : Activity() {
         settings.loadWithOverviewMode = true
         settings.displayZoomControls = false
         settings.builtInZoomControls = false
+
+        // Bridge for Web App to trigger Native Push Notifications and Haptic Vibration
+        webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -185,16 +203,88 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Trip Mode Convoy Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Realtime convoy alerts, emergency road notices, and admin push announcements"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 100, 250)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
+                    .build()
+                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), audioAttributes)
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun showNativeNotification(title: String, body: String, tone: String?, targetUrl: String?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
+                return
+            }
+        }
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (!targetUrl.isNullOrEmpty()) {
+                data = Uri.parse(targetUrl)
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val vibrationPattern = when (tone) {
+            "alert" -> longArrayOf(0, 300, 150, 300, 150, 500)
+            "caution" -> longArrayOf(0, 200, 100, 200)
+            else -> longArrayOf(0, 150, 80, 150)
+        }
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_LIGHTS)
+            .setSound(soundUri)
+            .setVibrate(vibrationPattern)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setCategory(if (tone == "alert") NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_MESSAGE)
+            .build()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notifId = (System.currentTimeMillis() % 100000).toInt()
+        notificationManager.notify(notifId, notification)
+    }
+
     private fun checkConvoyPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val permissions = arrayOf(
+            val permissionsList = mutableListOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.RECORD_AUDIO
             )
-            val needRequest = permissions.any { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissionsList.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            val needRequest = permissionsList.any { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
             if (needRequest) {
-                requestPermissions(permissions, PERMISSION_REQUEST_CODE)
+                requestPermissions(permissionsList.toTypedArray(), PERMISSION_REQUEST_CODE)
             }
         }
     }
@@ -216,6 +306,32 @@ class MainActivity : Activity() {
             webView.goBack()
         } else {
             super.onBackPressed()
+        }
+    }
+
+    inner class WebAppInterface(private val context: Context) {
+        @JavascriptInterface
+        fun isNativeApp(): Boolean = true
+
+        @JavascriptInterface
+        fun getAppVersion(): String = "1.0.0"
+
+        @JavascriptInterface
+        fun postNotification(title: String, body: String, tone: String?, targetUrl: String?) {
+            runOnUiThread {
+                showNativeNotification(title, body, tone, targetUrl)
+            }
+        }
+
+        @JavascriptInterface
+        fun vibrate(durationMs: Long) {
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(durationMs)
+            }
         }
     }
 }

@@ -24,3 +24,4 @@ describe("Network status monitoring", () => {
     expect(result.current.isOnline).toBe(true);
   });
 });
+

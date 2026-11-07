@@ -31,26 +31,28 @@ function Summary() {
 
   const handleSave = () => {
     try {
-      const list = JSON.parse(localStorage.getItem("tripmode.savedTrips") ?? "[]");
-      list.unshift({
+      const raw = localStorage.getItem("tripmode.savedTrips");
+      const list = raw ? JSON.parse(raw) : [];
+      const safeList = Array.isArray(list) ? list : [];
+      safeList.unshift({
         id: trip?.id || Math.random().toString(36).slice(2),
         name: trip?.name || "Trip",
-        origin: trip?.origin || "",
-        destination: trip?.destination || "",
+        origin: trip?.origin || "Origin",
+        destination: trip?.destination || "Destination",
         distanceKm: s?.distanceKm || 0,
         durationMin: s?.durationMin || 0,
         date: new Date().toLocaleDateString(),
       });
-      localStorage.setItem("tripmode.savedTrips", JSON.stringify(list.slice(0, 10)));
+      localStorage.setItem("tripmode.savedTrips", JSON.stringify(safeList.slice(0, 10)));
     } catch {
       // ignore
     }
     setSaved(true);
   };
 
-  if (!s || !trip)
+  if (!s && !trip)
     return (
-      <Screen title="Trip summary" back="/" maxWidth="max-w-md">
+      <Screen title="Trip Summary" back="/" maxWidth="max-w-md">
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <Icon name="history_toggle_off" className="text-[48px] text-tertiary" />
           <h2 className="mt-4 text-[20px] font-semibold text-foreground">
@@ -66,8 +68,14 @@ function Summary() {
       </Screen>
     );
 
-  const h = Math.floor(s.durationMin / 60);
-  const m = s.durationMin % 60;
+  const durationMin = Math.max(0, s?.durationMin ?? 0);
+  const h = Math.floor(durationMin / 60);
+  const m = durationMin % 60;
+  const arrivals = Array.isArray(s?.arrivals) ? s.arrivals : [];
+  const distanceKm = s?.distanceKm ?? 0;
+  const longestGapKm = s?.longestGapKm ?? 0;
+  const stops = s?.stops ?? 0;
+  const destination = trip?.destination ?? "Your Destination";
 
   return (
     <Screen
@@ -76,7 +84,7 @@ function Summary() {
       maxWidth="max-w-2xl lg:max-w-3xl"
       className="px-4 sm:px-6"
     >
-      {/* Google Maps Style Destination Arrival Banner */}
+      {/* Destination Arrival Banner */}
       <div className="rounded-[24px] border border-leading/30 bg-leading/10 p-5 sm:p-6 text-center shadow-sm">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-leading text-white shadow-leading/20 shadow-md">
           <Icon name="check" className="text-[32px] font-bold" />
@@ -84,19 +92,19 @@ function Summary() {
         <h2 className="mt-3 text-[24px] sm:text-[26px] font-bold tracking-tight text-foreground">
           You Have Arrived!
         </h2>
-        <p className="mt-1 font-semibold text-foreground text-[16px]">{trip.destination}</p>
+        <p className="mt-1 font-semibold text-foreground text-[16px]">{destination}</p>
         <p className="text-[13px] text-muted-foreground">
           Location sharing has automatically ceased for all vehicles.
         </p>
       </div>
 
-      {/* Convoy Metric Cards (Responsive 2 cols on mobile, 4 cols on tablet/desktop) */}
+      {/* Convoy Metric Cards */}
       <dl className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          ["Distance Covered", `${s.distanceKm} km`, "straighten"],
+          ["Distance Covered", `${distanceKm} km`, "straighten"],
           ["Convoy Duration", `${h > 0 ? `${h} h ` : ""}${m} min`, "schedule"],
-          ["Longest Convoy Gap", `${s.longestGapKm} km`, "compare_arrows"],
-          ["Pitstops Made", String(s.stops), "local_gas_station"],
+          ["Longest Convoy Gap", `${longestGapKm} km`, "compare_arrows"],
+          ["Pitstops Made", String(stops), "local_gas_station"],
         ].map(([k, v, icon]) => (
           <div key={k} className="rounded-[18px] border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -111,30 +119,32 @@ function Summary() {
       </dl>
 
       {/* Arrival Order List */}
-      <section className="mt-6">
-        <h3 className="overline mb-2 text-tertiary">Convoy Arrival Order</h3>
-        <ul className="divide-y divide-border rounded-[18px] border border-border bg-card shadow-sm overflow-hidden">
-          {s.arrivals.map((a, i) => (
-            <li
-              key={a.name}
-              className="flex min-h-15 items-center gap-3 px-4 py-2 hover:bg-secondary/30 transition-colors"
-            >
-              <span className="font-mono text-[13px] font-bold text-muted-foreground w-4 text-center">
-                {i + 1}
-              </span>
-              <VehicleChip letter={String.fromCharCode(65 + i)} color={a.color} size={32} />
-              <div className="flex-1 min-w-0">
-                <span className="font-medium text-[15px] truncate block text-foreground">
-                  {a.name}
+      {arrivals.length > 0 && (
+        <section className="mt-6">
+          <h3 className="overline mb-2 text-tertiary">Convoy Arrival Order</h3>
+          <ul className="divide-y divide-border rounded-[18px] border border-border bg-card shadow-sm overflow-hidden">
+            {arrivals.map((a, i) => (
+              <li
+                key={a.name || i}
+                className="flex min-h-15 items-center gap-3 px-4 py-2 hover:bg-secondary/30 transition-colors"
+              >
+                <span className="font-mono text-[13px] font-bold text-muted-foreground w-4 text-center">
+                  {i + 1}
                 </span>
-              </div>
-              <span className="font-mono text-[13px] font-semibold text-muted-foreground">
-                {a.minutes === null ? "Did not arrive" : `+${a.minutes} min`}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+                <VehicleChip letter={String.fromCharCode(65 + i)} color={a.color ?? "v1"} size={32} />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-[15px] truncate block text-foreground">
+                    {a.name || `Vehicle ${i + 1}`}
+                  </span>
+                </div>
+                <span className="font-mono text-[13px] font-semibold text-muted-foreground">
+                  {a.minutes === null ? "Did not arrive" : `+${a.minutes} min`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Actions */}
       <div className="mt-8 space-y-2.5 pb-6">

@@ -206,36 +206,78 @@ const short = (h: NominatimHit) => {
   return { name, detail };
 };
 
-export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Place[]> {
-  const clean = q.trim().toLowerCase();
-  const localMatches = PLACES.filter(
-    (p) =>
-      p.name.toLowerCase().includes(clean) || (p.detail && p.detail.toLowerCase().includes(clean)),
-  );
+const INDIAN_ACRONYMS: Record<string, string> = {
+  bmsce: "BMS College of Engineering",
+  msrit: "MS Ramaiah Institute of Technology",
+  rvce: "RV College of Engineering",
+  pesit: "PES University",
+  pes: "PES University",
+  iitb: "IIT Bombay",
+  iitd: "IIT Delhi",
+  iitm: "IIT Madras",
+  iitk: "IIT Kanpur",
+  iitkgp: "IIT Kharagpur",
+  iitr: "IIT Roorkee",
+  iitg: "IIT Guwahati",
+  aiims: "AIIMS Hospital",
+  bits: "BITS Pilani",
+  cp: "Connaught Place",
+  mgroad: "MG Road",
+  ecity: "Electronic City",
+};
 
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&countrycodes=in&q=${encodeURIComponent(q)}`;
-    const res = await fetch(url, { signal: signal ?? null, headers: { "Accept-Language": "en" } });
-    if (res.ok) {
-      const hits = (await res.json()) as NominatimHit[];
-      const remote = hits.map((h) => ({
-        ...short(h),
-        lngLat: [Number(h.lon), Number(h.lat)] as LngLat,
-      }));
-      const seen = new Set(localMatches.map((m) => m.name.toLowerCase()));
-      const combined = [...localMatches];
-      for (const r of remote) {
-        if (!seen.has(r.name.toLowerCase())) {
-          combined.push(r);
-          seen.add(r.name.toLowerCase());
-        }
-      }
-      return combined.length > 0 ? combined : localMatches;
-    }
-  } catch {
-    // Return instant local matches on network delay or error
+export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Place[]> {
+  const clean = q.trim();
+  if (!clean) return [];
+
+  // Expand common Indian abbreviations so search resolves exact colleges, landmarks, and roads
+  let expanded = clean;
+  for (const [abbr, full] of Object.entries(INDIAN_ACRONYMS)) {
+    expanded = expanded.replace(new RegExp(`\\b${abbr}\\b`, "gi"), full);
   }
-  return localMatches;
+
+  const queries = [expanded];
+  if (expanded.toLowerCase() !== clean.toLowerCase()) {
+    queries.push(clean);
+  }
+
+  const remoteHits: Place[] = [];
+  const seenNames = new Set<string>();
+
+  for (const queryStr of queries) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&countrycodes=in&q=${encodeURIComponent(queryStr)}`;
+      const res = await fetch(url, { signal: signal ?? null, headers: { "Accept-Language": "en" } });
+      if (res.ok) {
+        const hits = (await res.json()) as NominatimHit[];
+        for (const h of hits) {
+          const s = short(h);
+          const key = `${s.name.toLowerCase()}|${Number(h.lon).toFixed(3)}|${Number(h.lat).toFixed(3)}`;
+          if (!seenNames.has(key)) {
+            seenNames.add(key);
+            remoteHits.push({
+              name: s.name,
+              detail: s.detail,
+              lngLat: [Number(h.lon), Number(h.lat)],
+            });
+          }
+        }
+        if (remoteHits.length > 0) break;
+      }
+    } catch {
+      // Try next query or fallback
+    }
+  }
+
+  if (remoteHits.length > 0) {
+    return remoteHits;
+  }
+
+  // Fallback to local popular places matching the query
+  const lower = clean.toLowerCase();
+  return PLACES.filter(
+    (p) => p.name.toLowerCase().includes(lower) || (p.detail && p.detail.toLowerCase().includes(lower)),
+  );
 }
 
 export async function reversePlace(lngLat: LngLat): Promise<Place> {

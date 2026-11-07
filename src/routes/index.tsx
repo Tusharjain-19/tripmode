@@ -218,7 +218,7 @@ function Home() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Where to? Search destination..."
+                  placeholder="Where to? (e.g. BMSCE Bengaluru, Goa, Manali...)"
                   className="flex-1 bg-transparent text-[15px] sm:text-[16px] text-foreground outline-none placeholder:text-muted-foreground font-medium"
                 />
                 <button
@@ -228,24 +228,6 @@ function Home() {
                 >
                   <Icon name="arrow_forward" className="text-[19px]" />
                 </button>
-              </div>
-
-              {/* Popular Destination Quick Tap Chips */}
-              <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[12px]">
-                <span className="text-muted-foreground font-medium shrink-0">Popular:</span>
-                {["Jaipur", "Udaipur", "Agra", "Delhi", "Goa"].map((city) => (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery(city);
-                      nav({ to: "/create", search: { dest: city } });
-                    }}
-                    className="shrink-0 rounded-full border border-border/80 bg-secondary/50 px-2.5 py-0.5 text-foreground hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
-                  >
-                    {city}
-                  </button>
-                ))}
               </div>
             </form>
 

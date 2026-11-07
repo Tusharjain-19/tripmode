@@ -65,3 +65,4 @@ export function useNetworkStatus() {
 
   return { isOnline, isChecking, wasOffline, checkConnection };
 }
+

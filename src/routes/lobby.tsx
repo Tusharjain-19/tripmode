@@ -167,7 +167,7 @@ function Lobby({ session }: { session: Session }) {
   }, [qrOpen, link]);
 
   const share = async () => {
-    const shareMessage = `🚗 Join my convoy on Trip Mode!\nTrip: ${trip.name}\n📍 Heading to: ${trip.destination}\n🔑 Convoy Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}`;
+    const shareMessage = `Join my convoy on Trip Mode!\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}`;
 
     // 1. Android Native App Bridge (Opens native Android Share Sheet: WhatsApp, Telegram, etc.)
     const androidBridge = (

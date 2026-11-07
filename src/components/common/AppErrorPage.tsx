@@ -90,3 +90,4 @@ export function AppErrorPage({ error, reset }: ErrorComponentProps) {
     </div>
   );
 }
+

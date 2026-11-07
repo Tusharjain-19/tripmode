@@ -32,25 +32,43 @@ export function NoInternetScreen({ onRetry }: { onRetry?: () => void }) {
         Trip Mode needs a cellular or Wi-Fi connection to synchronize live convoy vehicles, voice coordination, and hazard reports.
       </p>
 
-      {/* Helpful Driver Tips */}
-      <div className="mt-6 w-full max-w-sm rounded-[18px] border border-border bg-card p-4 text-left shadow-xs">
-        <div className="text-[12px] font-semibold uppercase tracking-wider text-tertiary mb-2.5">
+      {/* Helpful Driver Diagnostics & Meme */}
+      <div className="mt-5 w-full max-w-sm rounded-[18px] border border-border bg-card p-4 text-left shadow-xs space-y-3">
+        <div className="text-[12px] font-semibold uppercase tracking-wider text-tertiary">
           Driver Diagnostics
         </div>
         <ul className="space-y-2 text-[13px] text-foreground/90">
           <li className="flex items-start gap-2">
             <Icon name="check_circle" className="text-leading text-[16px] shrink-0 mt-0.5" />
-            <span>Local GPS speedometer continues working.</span>
+            <span>Local GPS speedometer continues working offline.</span>
           </li>
           <li className="flex items-start gap-2">
             <Icon name="check_circle" className="text-leading text-[16px] shrink-0 mt-0.5" />
-            <span>Cached route corridors remain visible on map.</span>
+            <span>Map corridors remain visible on your screen.</span>
           </li>
           <li className="flex items-start gap-2">
             <Icon name="sync" className="text-primary text-[16px] shrink-0 mt-0.5" />
             <span>Vehicles will auto-reconnect as soon as signal returns.</span>
           </li>
         </ul>
+
+        {/* Highway Driver Meme Box - Zero Emojis */}
+        <div className="mt-3 rounded-xl border border-dashed border-border/90 bg-secondary/60 p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-muted-foreground uppercase">
+              CARRIER PIGEON PROTOCOL
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-border text-foreground">
+              0 BARS
+            </span>
+          </div>
+          <p className="font-mono text-[12px] text-foreground italic leading-relaxed">
+            "Try holding the phone out the sunroof. Maybe the satellite will wave back."
+          </p>
+          <div className="mt-1.5 text-[10px] text-muted-foreground font-mono">
+            Lost somewhere between 4G and the highway dhaba.
+          </div>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -74,3 +92,4 @@ export function NoInternetScreen({ onRetry }: { onRetry?: () => void }) {
     </div>
   );
 }
+

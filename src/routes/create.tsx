@@ -7,9 +7,12 @@ import {
   fetchRoutes,
   PLACES,
   POPULAR_ROUTES,
+  reversePlace,
   ROUTES,
+  searchPlaces,
   setRoutes,
   useRoutes,
+  type LngLat,
   type Place,
   type RawRoute,
 } from "@/lib/geo";
@@ -65,28 +68,67 @@ function CreateInner({ session }: { session: Session }) {
   const routes = useRoutes();
   const [step, setStep] = useState(0);
 
-  // Initial place resolution from search query or default Jaipur
+  // Take starting location as current GPS location (no default Jaipur)
   const [origin, setOrigin] = useState<Place | null>(() => {
     if (search.origin) {
       const match = PLACES.find((p) => p.name.toLowerCase() === search.origin!.toLowerCase());
-      return match ?? { name: search.origin, lngLat: PLACES[0]!.lngLat };
+      return match ?? { name: search.origin, lngLat: [77.5946, 12.9716] };
     }
-    return PLACES[0]!; // Jaipur default
+    return null;
   });
 
-  const [dest, setDest] = useState<Place | null>(() => {
-    if (search.dest) {
-      const match = PLACES.find((p) => p.name.toLowerCase() === search.dest!.toLowerCase());
-      return match ?? { name: search.dest, lngLat: PLACES[1]!.lngLat };
-    }
-    return PLACES[1]!; // Udaipur default
-  });
+  // Destination starts empty (no default Udaipur)
+  const [dest, setDest] = useState<Place | null>(null);
 
-  const [name, setName] = useState(() => {
-    const o = search.origin || "Jaipur";
-    const d = search.dest || "Udaipur";
-    return `${o} to ${d}`;
-  });
+  const [name, setName] = useState("");
+
+  // Acquire user's current GPS location immediately for origin
+  useEffect(() => {
+    if (origin) return;
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lngLat: LngLat = [pos.coords.longitude, pos.coords.latitude];
+          try {
+            const p = await reversePlace(lngLat);
+            setOrigin({
+              name: p.name || "My Current Location",
+              detail: p.detail || "GPS Location",
+              lngLat,
+            });
+          } catch {
+            setOrigin({
+              name: "My Current Location",
+              detail: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+              lngLat,
+            });
+          }
+        },
+        () => {
+          // If denied, fallback to empty so driver can type their starting location
+        },
+        { enableHighAccuracy: true, timeout: 6000 },
+      );
+    }
+  }, [origin]);
+
+  // If destination was provided in search param (e.g. from home search bar "bmsce bengaluru"),
+  // geocode it immediately against the Indian map
+  useEffect(() => {
+    if (!search.dest) return;
+    const clean = search.dest.trim();
+    if (!clean) return;
+
+    searchPlaces(clean)
+      .then((hits) => {
+        if (hits.length > 0) {
+          setDest(hits[0]!);
+        } else {
+          setDest({ name: clean, lngLat: [77.5946, 12.9716] });
+        }
+      })
+      .catch(() => undefined);
+  }, [search.dest]);
 
   const [loading, setLoading] = useState(false);
   const [routeErr, setRouteErr] = useState<string | null>(null);
@@ -325,51 +367,26 @@ function CreateInner({ session }: { session: Session }) {
 
             {/* Right Column: Popular Routes & Convoy Guide (Col 8 to 12) */}
             <div className="lg:col-span-5 space-y-4">
-              {/* Popular Convoy Corridors Card */}
+              {/* Indian Map Search Guidance Card */}
               <div className="rounded-[18px] border border-border bg-card p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Icon name="auto_awesome" className="text-primary text-[20px]" />
+                  <Icon name="map" className="text-primary text-[20px]" />
                   <h3 className="text-[14px] font-semibold tracking-wider text-foreground uppercase">
-                    Popular Convoy Routes
+                    Any Destination in India
                   </h3>
                 </div>
-                <p className="text-[13px] text-muted-foreground mb-3">
-                  Tap any verified highway corridor to populate starting place and destination.
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  Search any college, landmark, city, or address across India. Your starting point defaults to your current GPS position.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
-                  {POPULAR_ROUTES.map((pr) => {
-                    const isActive = origin?.name === pr.origin.name && dest?.name === pr.dest.name;
-                    return (
-                      <button
-                        key={pr.name}
-                        type="button"
-                        onClick={() => selectPopularRoute(pr)}
-                        className={cn(
-                          "flex items-center justify-between rounded-xl border p-3 text-left transition-all cursor-pointer",
-                          isActive
-                            ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
-                            : "border-border bg-secondary/40 hover:bg-secondary text-foreground",
-                        )}
-                      >
-                        <div className="min-w-0 pr-2">
-                          <div className="font-semibold text-[13px] sm:text-[14px] text-foreground truncate">
-                            {pr.name}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
-                            High-speed corridor
-                          </div>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1.5">
-                          <span className="font-mono text-[12px] font-medium text-primary bg-card px-2 py-0.5 rounded-full border border-border">
-                            {pr.km} km
-                          </span>
-                          {isActive && (
-                            <Icon name="check_circle" className="text-primary text-[18px]" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="mt-3.5 space-y-2 text-[12px] text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Icon name="my_location" className="text-leading text-[16px]" />
+                    <span>Origin automatically uses your live GPS coordinates</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon name="alt_route" className="text-primary text-[16px]" />
+                    <span>Calculates turn-by-turn highway corridors across Indian road network</span>
+                  </div>
                 </div>
               </div>
 

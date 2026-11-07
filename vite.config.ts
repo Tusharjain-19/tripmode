@@ -6,16 +6,17 @@ import { nitro } from "nitro/vite";
 
 export default defineConfig(({ command }) => ({
   resolve: {
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "@tanstack/react-router", "@tanstack/react-start"],
     tsconfigPaths: true,
   },
-  optimizeDeps: {
-    include: ["react", "react-dom"],
-  },
   server: {
-    host: true,
+    host: "0.0.0.0",
     port: 5173,
-    strictPort: false,
+    strictPort: true,
+    hmr: {
+      host: "localhost",
+      port: 5173,
+    },
   },
   build: {
     target: "es2022",

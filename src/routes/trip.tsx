@@ -353,7 +353,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             driver: m.displayName,
             color: m.color,
             role: m.role,
-            vehicleType: m.vehicleType ?? (idx % 2 === 1 ? "bike" : "car"),
+            vehicleType: m.vehicleType ?? "car",
           };
           if (!p) {
             // Position not published yet by other device: place on route near me so they are visible
@@ -377,66 +377,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                   );
           }
         });
-      } else {
-        // No other real members connected yet: provide simulated companion convoy vehicles (Car + Bike)
-        // so the user can see other vehicles driving with them, test convoy gaps, map markers, and rail!
-        const companions: Array<{
-          id: string;
-          name: string;
-          driver: string;
-          color: VehicleColor;
-          vehicleType: "car" | "bike";
-          offsetProgressM: number;
-          speedKmh: number;
-        }> = [
-          {
-            id: "sim-scout",
-            name: "Scout Car",
-            driver: "Alex (Scout)",
-            color: (mine.color === "v2" ? "v3" : "v2") as VehicleColor,
-            vehicleType: "car",
-            offsetProgressM: 850,
-            speedKmh: Math.max(45, meState.speedKmh || 65),
-          },
-          {
-            id: "sim-sweep",
-            name: "Sweep Bike",
-            driver: "Sam (Rider)",
-            color: (mine.color === "v4" ? "v5" : "v4") as VehicleColor,
-            vehicleType: "bike",
-            offsetProgressM: -620,
-            speedKmh: Math.max(40, meState.speedKmh || 60),
-          },
-        ];
-
-        companions.forEach((c) => {
-          const prevV = prev[c.id];
-          const targetProgress = Math.min(
-            routeM,
-            Math.max(0, meState.progressM + c.offsetProgressM),
-          );
-          next[c.id] = {
-            id: c.id,
-            letter: c.vehicleType === "bike" ? "B" : "C",
-            name: c.name,
-            driver: c.driver,
-            color: c.color,
-            role: "driver",
-            isMe: false,
-            vehicleType: c.vehicleType,
-            progressM: prevV
-              ? Math.min(routeM, prevV.progressM + (c.speedKmh / 3.6) * 1.2)
-              : targetProgress,
-            speedKmh: c.speedKmh,
-            offsetM: 0,
-            lastUpdateReal: Date.now(),
-            stoppedForS: 0,
-            offRouteForS: 0,
-            arrivedAtS: null,
-            stops: 0,
-          };
-        });
       }
+      // No dummy simulation vehicles! Only real convoy members appear on map.
       return next;
     });
   }, [
@@ -1222,7 +1164,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       </div>
 
       {/* LEFT: Google Maps Speedometer & Speed Limit HUD (Skiper UI style) */}
-      <div className="pointer-events-none absolute left-3.5 bottom-36 z-20 flex flex-col items-center">
+      <div className="pointer-events-none absolute left-3.5 bottom-24 z-20 flex flex-col items-center">
         <div className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-card/95 p-3 shadow-float backdrop-blur-md transition-transform hover:scale-105">
           <div className="font-mono text-[28px] font-bold tracking-tight text-foreground leading-none">
             {Math.round(
@@ -1243,7 +1185,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
       {/* Floating Google Maps Recenter Pill (shown after user pans/drags map) */}
       {isFreeLook && (
-        <div className="banner-in pointer-events-auto absolute bottom-36 inset-x-0 z-30 flex justify-center">
+        <div className="banner-in pointer-events-auto absolute bottom-24 inset-x-0 z-20 flex justify-center">
           <button
             type="button"
             onClick={handleRecenter}
@@ -1411,7 +1353,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       </div>
 
       {/* Google Maps Floating "Report" Hazard Action Button (bottom right above dock, Image 2 style) */}
-      <div className="absolute right-3.5 bottom-28 z-20">
+      <div className="absolute right-3.5 bottom-24 z-20">
         <button
           type="button"
           aria-label="Report Road Hazard"
@@ -1753,147 +1695,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       )}
 
-      {/* BOTTOM SHEET: Convoy Rail & Roster Drawer */}
-      <section
-        className="absolute inset-x-0 bottom-[92px] z-10 mx-auto flex max-w-xl flex-col rounded-t-[26px] border-t border-border bg-card/95 backdrop-blur-md shadow-float"
-        style={{
-          height: driving || snap === 0 ? undefined : SHEET_H[snap],
-          transition: "height 380ms cubic-bezier(0.2, 0.9, 0.3, 1)",
-        }}
-        aria-label="Convoy details"
-      >
-        {/* Grab Handle */}
-        <button
-          type="button"
-          className="flex h-6 w-full shrink-0 items-center justify-center cursor-pointer hover:bg-secondary/40 rounded-t-[26px]"
-          aria-label={snap === 2 ? "Collapse details" : "Expand details"}
-          onClick={() => setSnap((s) => (s + 1) % 3)}
-          disabled={driving}
-        >
-          <span className="h-1.5 w-12 rounded-full bg-border" />
-        </button>
-
-        {/* Signature Convoy Rail (Always Visible in Navigation Dock) */}
-        <div className="shrink-0 px-4 pb-2">
-          <ConvoyRail
-            members={vehicles.map((v) => ({
-              id: v.id,
-              letter: v.letter,
-              color: v.color,
-              progressM: v.progressM,
-              status: statuses[v.id] ?? "following",
-              isMe: v.isMe,
-              name: v.name,
-            }))}
-            routeM={routeM}
-            thresholdM={thresholdM}
-            onFocus={(id) => setCamera({ mode: "focus", id })}
-            origin={trip.origin}
-            destination={trip.destination}
-          />
-        </div>
-
-        {/* Expanded Drawer Content (Snap 1 or 2) */}
-        {!driving && snap > 0 && (
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 space-y-4">
-            {/* AI Stop Suggestions from Chat */}
-            <StopsPanel
-              isHost={isHost}
-              suggested={suggested}
-              confirmed={confirmed}
-              here={here}
-              busy={stopState.busy}
-              note={stopState.note}
-              onFind={() => void findStops()}
-              onConfirm={(s) => void confirmStop(s.id, s.name, s.query)}
-              onDismiss={(s) => void dismissStopRemote(s.id).catch(() => undefined)}
-            />
-
-            {/* Convoy Vehicles Roster */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="overline text-tertiary">Convoy Vehicles ({vehicles.length})</h3>
-                <span className="text-[12px] text-muted-foreground">
-                  Tap any car to focus camera
-                </span>
-              </div>
-              <ul className="divide-y divide-border rounded-[16px] border border-border bg-card shadow-sm overflow-hidden">
-                {sortedMembers.map((v, i) => (
-                  <li key={v.id}>
-                    <button
-                      type="button"
-                      className="flex min-h-15 w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary/40 transition-colors cursor-pointer"
-                      onClick={() => setCamera({ mode: "focus", id: v.id })}
-                    >
-                      <VehicleChip
-                        letter={v.letter}
-                        color={v.color}
-                        size={34}
-                        ring={v.isMe ? "me" : "none"}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[15px] font-semibold truncate">
-                          {v.name}
-                          {v.isMe && (
-                            <span className="text-[12px] font-normal text-primary"> (You)</span>
-                          )}
-                        </div>
-                        <div className="text-[13px] text-muted-foreground flex items-center gap-1.5">
-                          <span>{v.driver}</span>
-                          <span>•</span>
-                          <StatusText s={statuses[v.id] ?? "following"} />
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-mono text-[14px] font-semibold text-foreground">
-                          {i === 0 ? "Leader" : formatKm(gaps[v.id] ?? 0)}
-                        </div>
-                        <div className="font-mono text-[12px] text-muted-foreground">
-                          {Math.round(v.speedKmh)} km/h
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Full Snap: Settings & Controls */}
-            {snap === 2 && (
-              <div className="space-y-3 pt-2">
-                <h3 className="overline text-tertiary">Trip Details & Rules</h3>
-                <div className="rounded-[16px] bg-secondary/80 p-4 text-[14px] space-y-1.5">
-                  <div className="font-semibold">
-                    {route.name} route ({route.via})
-                  </div>
-                  <div className="text-muted-foreground">
-                    Alert threshold: {trip.thresholdKm} km gap • Alerts by: {trip.alertsBy}
-                  </div>
-                </div>
-                {isHost && (
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => void endForEveryone()}
-                  >
-                    End Convoy for Everyone
-                  </Button>
-                )}
-                <Button
-                  variant="quiet"
-                  className="w-full text-alert"
-                  onClick={() => setExitConfirm(true)}
-                >
-                  Stop Sharing & Leave Convoy
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
       {/* BOTTOM: Google Maps Driving Navigation Dock (Image 2 style) */}
-      <footer className="absolute inset-x-0 bottom-0 z-20 mx-auto flex h-[88px] max-w-xl items-center justify-between border-t border-border/80 bg-card/95 backdrop-blur-md px-4 shadow-float">
+      <footer className="absolute inset-x-0 bottom-0 z-30 mx-auto flex h-[88px] max-w-xl items-center justify-between border-t border-border/80 bg-card/95 backdrop-blur-md px-4 shadow-float">
         {/* Left: Google Maps Circular Exit Button */}
         <button
           type="button"
@@ -1970,7 +1773,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           onClick={() => setRailOpen(false)}
         >
           <div
-            className="screen-in mx-auto w-full max-w-xl rounded-t-[28px] border-t border-border bg-card p-5 pb-8 shadow-float space-y-4"
+            className="screen-in mx-auto w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-t-[28px] border-t border-border bg-card p-5 pb-8 shadow-float space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
@@ -2061,6 +1864,41 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* AI Stop Suggestions & Route Stops */}
+            <div className="pt-2">
+              <StopsPanel
+                isHost={isHost}
+                suggested={suggested}
+                confirmed={confirmed}
+                here={here}
+                busy={stopState.busy}
+                note={stopState.note}
+                onFind={() => void findStops()}
+                onConfirm={(s) => void confirmStop(s.id, s.name, s.query)}
+                onDismiss={(s) => void dismissStopRemote(s.id).catch(() => undefined)}
+              />
+            </div>
+
+            {/* Convoy Rules & Leave Actions */}
+            <div className="pt-2 space-y-2 border-t border-border">
+              {isHost && (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => void endForEveryone()}
+                >
+                  End Convoy for Everyone
+                </Button>
+              )}
+              <Button
+                variant="quiet"
+                className="w-full text-alert"
+                onClick={() => setExitConfirm(true)}
+              >
+                Stop Sharing & Leave Convoy
+              </Button>
             </div>
           </div>
         </div>

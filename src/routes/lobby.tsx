@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { JoinSteps } from "@/components/trip/JoinSteps";
 import { RouteMap } from "@/components/trip/RouteMap";
 import {
@@ -56,6 +57,7 @@ function Lobby({ session }: { session: Session }) {
   const nav = useNavigate();
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const members = useMembers(trip?.id);
   const mine = members.find((m) => m.userId === uid);
   const others = members.filter((m) => m.userId !== uid && m.approved);
@@ -148,15 +150,58 @@ function Lobby({ session }: { session: Session }) {
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${trip.inviteCode}`
       : `/join/${trip.inviteCode}`;
-  const share = async () => {
-    if (navigator.share) {
-      await navigator
-        .share({ title: trip.name, text: `Join ${trip.name} on Trip Mode Convoy`, url: link })
+
+  useEffect(() => {
+    if (qrOpen && link) {
+      QRCode.toDataURL(link, {
+        width: 240,
+        margin: 1.5,
+        color: {
+          dark: "#0F261E",
+          light: "#FFFFFF",
+        },
+      })
+        .then(setQrDataUrl)
         .catch(() => undefined);
-    } else {
-      await navigator.clipboard.writeText(link);
+    }
+  }, [qrOpen, link]);
+
+  const share = async () => {
+    const shareMessage = `🚗 Join my convoy on Trip Mode!\nTrip: ${trip.name}\n📍 Heading to: ${trip.destination}\n🔑 Convoy Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}`;
+
+    // 1. Android Native App Bridge (Opens native Android Share Sheet: WhatsApp, Telegram, etc.)
+    const androidBridge = (
+      window as unknown as {
+        AndroidBridge?: { share: (title: string, text: string, url: string) => void };
+      }
+    ).AndroidBridge;
+
+    if (typeof window !== "undefined" && androidBridge?.share) {
+      androidBridge.share(`Join ${trip.name} Convoy`, shareMessage, link);
+      return;
+    }
+
+    // 2. Web Share API (Mobile Browsers)
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Trip Mode: ${trip.name}`,
+          text: shareMessage,
+          url: link,
+        });
+        return;
+      } catch {
+        // User closed share sheet without picking an app
+      }
+    }
+
+    // 3. Fallback: Copy to Clipboard
+    try {
+      await navigator.clipboard.writeText(shareMessage);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
     }
   };
 
@@ -334,35 +379,37 @@ function Lobby({ session }: { session: Session }) {
 
             <ul className="divide-y divide-border rounded-[20px] border border-border bg-card shadow-sm overflow-hidden">
               {/* Current User */}
-              <li className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-3 bg-primary/5">
-                <VehicleChip
-                  letter={mine?.letter ?? "A"}
-                  color={mine?.color ?? me.color}
-                  vehicleType={mine?.vehicleType ?? me.vehicleType}
-                  ring="me"
-                  size={40}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[15px] text-foreground truncate">
-                      {mine?.vehicleLabel ?? me.vehicleLabel}
-                    </span>
-                    <span className="text-[11px] font-semibold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
-                      You{isHost ? " • Host" : ""}
-                    </span>
-                  </div>
-                  <div className="text-[13px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                    <span>{me.displayName}</span>
-                    <span>•</span>
-                    <span className="font-medium text-foreground">
-                      {(mine?.vehicleType ?? me.vehicleType) === "bike"
-                        ? "Two-wheeler (Bike)"
-                        : "Car"}
-                    </span>
+              <li className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-primary/5">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <VehicleChip
+                    letter={mine?.letter ?? "A"}
+                    color={mine?.color ?? me.color}
+                    vehicleType={mine?.vehicleType ?? me.vehicleType}
+                    ring="me"
+                    size={42}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[15px] text-foreground truncate">
+                        {mine?.vehicleLabel ?? me.vehicleLabel}
+                      </span>
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
+                        You{isHost ? " • Host" : ""}
+                      </span>
+                    </div>
+                    <div className="text-[13px] text-muted-foreground flex items-center gap-1.5 mt-0.5 truncate">
+                      <span>{me.displayName}</span>
+                      <span>•</span>
+                      <span className="font-medium text-foreground">
+                        {(mine?.vehicleType ?? me.vehicleType) === "bike"
+                          ? "Two-wheeler (Bike)"
+                          : "Car"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 justify-end">
                   <button
                     type="button"
                     onClick={() => {
@@ -402,28 +449,30 @@ function Lobby({ session }: { session: Session }) {
               {others.map((o) => (
                 <li
                   key={o.userId}
-                  className="flex min-h-16 items-center gap-3 px-4 py-2.5 hover:bg-secondary/20"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-secondary/20 transition-colors"
                 >
-                  <VehicleChip
-                    letter={o.letter}
-                    color={o.color}
-                    vehicleType={o.vehicleType}
-                    size={36}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-[15px] text-foreground">
-                      {o.vehicleLabel}{" "}
-                      <span className="text-[12px] text-muted-foreground">
-                        ({o.vehicleType === "bike" ? "Bike" : "Car"})
-                      </span>
-                    </div>
-                    <div className="text-[13px] text-muted-foreground">
-                      {o.displayName} • {o.role === "driver" ? "Driver" : "Passenger"}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <VehicleChip
+                      letter={o.letter}
+                      color={o.color}
+                      vehicleType={o.vehicleType}
+                      size={38}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[15px] text-foreground truncate">
+                        {o.vehicleLabel}{" "}
+                        <span className="text-[12px] font-normal text-muted-foreground">
+                          ({o.vehicleType === "bike" ? "Bike" : "Car"})
+                        </span>
+                      </div>
+                      <div className="text-[13px] text-muted-foreground truncate">
+                        {o.displayName} • {o.role === "driver" ? "Driver" : "Passenger"}
+                      </div>
                     </div>
                   </div>
                   <span
                     className={cn(
-                      "text-[13px] font-semibold flex items-center gap-1.5",
+                      "text-[13px] font-semibold flex items-center gap-1.5 shrink-0 self-end sm:self-auto",
                       o.ready ? "text-leading" : "text-tertiary",
                     )}
                   >
@@ -627,12 +676,19 @@ function Lobby({ session }: { session: Session }) {
             <p className="text-[13px] text-muted-foreground">
               Point your phone camera to join {trip.name} immediately.
             </p>
-            <div className="my-5 flex items-center justify-center p-4 bg-white rounded-2xl border border-border shadow-inner mx-auto w-fit">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`}
-                alt="Convoy QR Code"
-                className="h-44 w-44 object-contain"
-              />
+            <div className="my-5 flex items-center justify-center p-4 bg-white rounded-2xl border border-border shadow-inner mx-auto w-fit min-h-[190px] min-w-[190px]">
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Convoy QR Code"
+                  className="h-44 w-44 object-contain rounded-lg"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-10">
+                  <Icon name="sync" className="animate-spin text-[28px] text-primary" />
+                  <span className="text-[12px]">Generating QR...</span>
+                </div>
+              )}
             </div>
             <div className="rounded-xl bg-secondary p-2.5 font-mono text-[14px] font-semibold select-all text-foreground">
               Code: {trip.inviteCode}

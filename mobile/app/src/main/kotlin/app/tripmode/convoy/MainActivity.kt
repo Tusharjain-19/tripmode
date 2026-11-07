@@ -325,6 +325,21 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun share(title: String, text: String, url: String) {
+            runOnUiThread {
+                val fullMessage = if (text.isNotEmpty()) "$text\n$url" else url
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, fullMessage)
+                    putExtra(Intent.EXTRA_SUBJECT, title)
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, title)
+                startActivity(shareIntent)
+            }
+        }
+
+        @JavascriptInterface
         fun vibrate(durationMs: Long) {
             val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

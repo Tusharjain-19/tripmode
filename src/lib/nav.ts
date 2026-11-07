@@ -45,49 +45,68 @@ export async function fetchGuidance(
 
   const allPoints = [from, ...waypoints, to];
   const pointsStr = allPoints.map((p) => `${p[0]},${p[1]}`).join(";");
-  const url = `https://router.project-osrm.org/route/v1/driving/${pointsStr}?steps=true&overview=full&geometries=geojson`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error("Directions are unavailable right now.");
-  const j = (await res.json()) as {
-    code: string;
-    routes?: {
-      distance: number;
-      duration: number;
-      geometry?: { coordinates: number[][] };
-      legs: {
-        distance: number;
-        duration: number;
-        summary: string;
-        steps: OsrmStep[];
-      }[];
-    }[];
-  };
-  const r = j.routes?.[0];
-  if (j.code !== "Ok" || !r) throw new Error("No road route from here.");
-  const coords: LngLat[] = (r.geometry?.coordinates ?? []).map((c) => [c[0]!, c[1]!] as LngLat);
-  const legs: NavLeg[] = (r.legs ?? []).map((l) => ({
-    distanceM: l.distance,
-    durationS: l.duration,
-    summary: l.summary || "Main road",
-    steps: l.steps.map((s) => ({
-      type: s.maneuver.type,
-      modifier: s.maneuver.modifier,
-      name: s.name,
-      ref: s.ref,
-      exit: s.maneuver.exit,
-      location: [s.maneuver.location[0]!, s.maneuver.location[1]!] as LngLat,
-      distanceM: s.distance,
-    })),
-  }));
-  const steps: NavStep[] = legs.flatMap((l) => l.steps);
+  const mirrors = [
+    "https://router.project-osrm.org",
+    "https://routing.openstreetmap.de/routed-car",
+  ];
 
-  return {
-    distanceM: r.distance,
-    durationS: r.duration,
-    geometry: coords,
-    legs,
-    steps,
-  };
+  let lastError = "Directions are unavailable right now.";
+
+  for (const base of mirrors) {
+    try {
+      const url = `${base}/route/v1/driving/${pointsStr}?steps=true&overview=full&geometries=geojson`;
+      const res = await fetch(url, { signal });
+      if (!res.ok) continue;
+      const j = (await res.json()) as {
+        code: string;
+        routes?: {
+          distance: number;
+          duration: number;
+          geometry?: { coordinates: number[][] };
+          legs: {
+            distance: number;
+            duration: number;
+            summary: string;
+            steps: OsrmStep[];
+          }[];
+        }[];
+      };
+      const r = j.routes?.[0];
+      if (j.code === "Ok" && r) {
+        const coords: LngLat[] = (r.geometry?.coordinates ?? []).map((c) => [c[0]!, c[1]!] as LngLat);
+        const legs: NavLeg[] = (r.legs ?? []).map((l) => ({
+          distanceM: l.distance,
+          durationS: l.duration,
+          summary: l.summary || "Main road",
+          steps: l.steps.map((s) => ({
+            type: s.maneuver.type,
+            modifier: s.maneuver.modifier,
+            name: s.name,
+            ref: s.ref,
+            exit: s.maneuver.exit,
+            location: [s.maneuver.location[0]!, s.maneuver.location[1]!] as LngLat,
+            distanceM: s.distance,
+          })),
+        }));
+        const steps: NavStep[] = legs.flatMap((l) => l.steps);
+
+        return {
+          distanceM: r.distance,
+          durationS: r.duration,
+          geometry: coords,
+          legs,
+          steps,
+        };
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        throw e;
+      }
+      lastError = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  throw new Error(lastError);
 }
 
 /** Minimum distance from a point to a polyline in meters. */

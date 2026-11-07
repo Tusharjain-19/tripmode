@@ -60,8 +60,22 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            fitsSystemWindows = true
             setBackgroundColor(0xFF000000.toInt()) // Pure black OLED default
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = 0xFF000000.toInt()
+        }
+
+        rootLayout.setOnApplyWindowInsetsListener { view, insets ->
+            val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(android.view.WindowInsets.Type.statusBars()).top
+            } else {
+                @Suppress("DEPRECATION")
+                insets.systemWindowInsetTop
+            }
+            view.setPadding(0, topInset, 0, 0)
+            insets
         }
 
         progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
@@ -327,7 +341,13 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun share(title: String, text: String, url: String) {
             runOnUiThread {
-                val fullMessage = if (text.isNotEmpty()) "$text\n$url" else url
+                val fullMessage = if (text.isNotEmpty() && !text.contains(url)) {
+                    "$text\n$url"
+                } else if (text.isNotEmpty()) {
+                    text
+                } else {
+                    url
+                }
                 val sendIntent = Intent().apply {
                     action = Intent.ACTION_SEND
                     putExtra(Intent.EXTRA_TEXT, fullMessage)

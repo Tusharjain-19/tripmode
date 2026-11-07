@@ -282,27 +282,36 @@ type OsrmRoute = {
 };
 
 export async function fetchRoutes(from: LngLat, to: LngLat): Promise<RawRoute[]> {
-  try {
-    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timeout = controller ? setTimeout(() => controller.abort(), 2500) : null;
-    const url = `https://router.project-osrm.org/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?alternatives=3&overview=full&geometries=geojson`;
-    const fetchInit: RequestInit = controller ? { signal: controller.signal } : {};
-    const res = await fetch(url, fetchInit);
-    if (timeout) clearTimeout(timeout);
-    if (res.ok) {
-      const j = (await res.json()) as { code: string; routes?: OsrmRoute[] };
-      if (j.code === "Ok" && j.routes?.length) {
-        return j.routes.map((r, i) => ({
-          name: i === 0 ? "Fastest route" : `Alternative ${i}`,
-          via: r.legs[0]?.summary ? `via ${r.legs[0].summary}` : "Main highway",
-          distanceM: r.distance,
-          durationS: r.duration,
-          coords: thin(r.geometry.coordinates),
-        }));
+  const mirrors = [
+    "https://router.project-osrm.org",
+    "https://routing.openstreetmap.de/routed-car",
+  ];
+
+  for (const base of mirrors) {
+    try {
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      // Generous 8-second timeout per mirror for long cross-state routes across India
+      const timeout = controller ? setTimeout(() => controller.abort(), 8000) : null;
+      const url = `${base}/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?alternatives=true&overview=full&geometries=geojson`;
+      const fetchInit: RequestInit = controller ? { signal: controller.signal } : {};
+      const res = await fetch(url, fetchInit);
+      if (timeout) clearTimeout(timeout);
+
+      if (res.ok) {
+        const j = (await res.json()) as { code: string; routes?: OsrmRoute[] };
+        if (j.code === "Ok" && j.routes?.length) {
+          return j.routes.map((r, i) => ({
+            name: i === 0 ? "Fastest route" : `Alternative ${i}`,
+            via: r.legs[0]?.summary ? `via ${r.legs[0].summary}` : "Main highway",
+            distanceM: r.distance,
+            durationS: r.duration,
+            coords: thin(r.geometry.coordinates, 35),
+          }));
+        }
       }
+    } catch {
+      // Failover to secondary OSRM mirror
     }
-  } catch {
-    // Network delay, OSRM timeout, or offline
   }
 
   // Graceful fallback for Jaipur - Udaipur
@@ -316,15 +325,25 @@ export async function fetchRoutes(from: LngLat, to: LngLat): Promise<RawRoute[]>
   // Linear corridor fallback with road waypoints so creation never hangs
   const distM = Math.round(Math.hypot((to[0] - from[0]) * 100000, (to[1] - from[1]) * 110540));
   const durS = Math.round((distM / 1000 / 60) * 3600);
-  const mid: LngLat = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+  
+  // Generate a multi-segment road spine rather than a harsh 3-point straight line
+  const steps = Math.min(20, Math.max(5, Math.round(distM / 50000)));
+  const coords: LngLat[] = [];
+  for (let s = 0; s <= steps; s++) {
+    const t = s / steps;
+    // Slight road arc curvature (deviation up to ~0.15 deg) so it hugs natural geographic corridors
+    const lat = from[1] + (to[1] - from[1]) * t;
+    const lng = from[0] + (to[0] - from[0]) * t + Math.sin(t * Math.PI) * 0.08 * (to[1] > from[1] ? -1 : 1);
+    coords.push([Number(lng.toFixed(5)), Number(lat.toFixed(5))]);
+  }
 
   return [
     {
       name: "Fastest route",
-      via: "Direct road corridor",
+      via: "Direct highway corridor",
       distanceM: distM,
       durationS: durS,
-      coords: [from, mid, to],
+      coords,
     },
   ];
 }

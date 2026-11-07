@@ -1003,8 +1003,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         })}
       />
 
-      {/* TOP: Google Maps Navigation Header (Image 2 style) */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2.5 p-3 z-30">
+      {/* TOP: Google Maps Navigation Header (Image 2 style) with Safe-Area clearance */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2.5 px-3 pb-3 pt-[max(env(safe-area-inset-top),28px)] z-30">
         {/* Navigation Turn-by-Turn Card (Emerald Pine Header) */}
         {nextStep && toNextM !== null ? (
           <div

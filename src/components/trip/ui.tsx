@@ -124,6 +124,7 @@ export function Screen({
   maxWidth = "max-w-md",
   className,
   headerRight,
+  hideBuffer = false,
 }: {
   children: ReactNode;
   title?: string;
@@ -131,9 +132,17 @@ export function Screen({
   maxWidth?: string;
   className?: string;
   headerRight?: ReactNode;
+  hideBuffer?: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-200">
+      {/* Top Safe Area / Status Bar Buffer - prevents wifi, battery, clock, and notch overlap on mobile devices */}
+      {!hideBuffer && (
+        <div
+          className="w-full h-7 sm:h-0 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
+          aria-hidden="true"
+        />
+      )}
       <div
         className={cn(
           "screen-in mx-auto flex min-h-screen flex-col px-4 pb-8",

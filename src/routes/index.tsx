@@ -129,8 +129,8 @@ function Home() {
   return (
     <Screen maxWidth="max-w-7xl" className="px-3 sm:px-6 lg:px-8">
       {/* Top Application Header */}
-      <header className="flex h-16 sm:h-20 items-center justify-between border-b border-border/70 pb-2">
-        <Logo variant="full" size={44} />
+      <header className="flex h-14 sm:h-18 items-center justify-between border-b border-border/60 pb-1">
+        <Logo variant="full" size={38} />
 
         {/* Header Right Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -138,23 +138,23 @@ function Home() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-secondary cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:bg-secondary active:scale-95 cursor-pointer shadow-xs"
             aria-label={isDark ? "Switch to day driving mode" : "Switch to night driving mode"}
             title={isDark ? "Day Mode (Surface Light)" : "Night Driving Mode (Instrument Dark)"}
           >
-            <Icon name={isDark ? "light_mode" : "dark_mode"} className="text-[20px]" />
+            <Icon name={isDark ? "light_mode" : "dark_mode"} className="text-[19px]" />
           </button>
 
           <Link
             to="/create"
             className={btn({
               variant: "primary",
-              className: "h-10 px-4 text-[14px] font-medium rounded-full shadow-sm",
+              className:
+                "hidden sm:inline-flex h-10 px-4 text-[14px] font-medium rounded-full shadow-sm",
             })}
           >
             <Icon name="add_road" className="text-[18px]" />
-            <span className="hidden sm:inline">Start Convoy</span>
-            <span className="sm:hidden">Start</span>
+            <span>Start Convoy</span>
           </Link>
         </div>
       </header>
@@ -200,8 +200,8 @@ function Home() {
               Travel together in separate vehicles
             </p>
             <p className="mt-1 text-[14px] text-muted-foreground leading-relaxed">
-              One shared live map for your group, real-time convoy gap monitoring, and push-to-talk
-              voice coordination.
+              One shared live map for your group, real-time convoy gap monitoring, and group road
+              hazard alerts.
             </p>
 
             {/* Destination Search Form */}

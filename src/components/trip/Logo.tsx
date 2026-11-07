@@ -15,21 +15,11 @@ interface LogoProps {
 export function Logo({ className, size = 40, variant = "mark" }: LogoProps) {
   if (variant === "full") {
     return (
-      <div className={cn("flex items-center gap-3", className)}>
+      <div className={cn("flex items-center gap-2.5 select-none", className)}>
         <LogoMark size={size} />
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="font-bold tracking-tight text-[20px] text-foreground leading-none">
-              Trip Mode
-            </span>
-            <span className="rounded-full border border-border bg-secondary/80 px-2 py-0.5 text-[10px] font-mono font-medium tracking-wider text-muted-foreground uppercase">
-              Convoy
-            </span>
-          </div>
-          <span className="text-[12px] text-muted-foreground tracking-normal font-normal mt-0.5">
-            Multi-vehicle navigation
-          </span>
-        </div>
+        <span className="font-bold tracking-tight text-[20px] text-foreground leading-none">
+          Trip Mode
+        </span>
       </div>
     );
   }

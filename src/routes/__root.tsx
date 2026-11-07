@@ -13,7 +13,6 @@ import appCss from "../styles.css?url";
 import { reportAppError } from "../lib/error-reporting";
 import { NotFoundPage } from "@/components/common/NotFoundPage";
 import { AppErrorPage } from "@/components/common/AppErrorPage";
-import { OfflineBanner } from "@/components/common/OfflineBanner";
 
 function RootNotFound() {
   return (
@@ -97,8 +96,6 @@ function RootComponent() {
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
-        {/* Global Offline Banner informs drivers as soon as signal drops */}
-        <OfflineBanner />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <AnnouncementBar />
         <Outlet />

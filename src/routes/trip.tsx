@@ -1164,7 +1164,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       </div>
 
       {/* LEFT: Google Maps Speedometer & Speed Limit HUD (Skiper UI style) */}
-      <div className="pointer-events-none absolute left-3.5 bottom-24 z-20 flex flex-col items-center">
+      <div className="pointer-events-none absolute left-3.5 bottom-26 z-20 flex flex-col items-center">
         <div className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-card/95 p-3 shadow-float backdrop-blur-md transition-transform hover:scale-105">
           <div className="font-mono text-[28px] font-bold tracking-tight text-foreground leading-none">
             {Math.round(
@@ -1183,9 +1183,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       </div>
 
-      {/* Floating Google Maps Recenter Pill (shown after user pans/drags map) */}
+      {/* Floating Google Maps Recenter Pill (shown after user pans/drags map) - elevated to avoid overlapping Report button */}
       {isFreeLook && (
-        <div className="banner-in pointer-events-auto absolute bottom-24 inset-x-0 z-20 flex justify-center">
+        <div className="banner-in pointer-events-auto absolute bottom-44 inset-x-0 z-20 flex justify-center">
           <button
             type="button"
             onClick={handleRecenter}
@@ -1353,7 +1353,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       </div>
 
       {/* Google Maps Floating "Report" Hazard Action Button (bottom right above dock, Image 2 style) */}
-      <div className="absolute right-3.5 bottom-24 z-20">
+      <div className="absolute right-3.5 bottom-26 z-20">
         <button
           type="button"
           aria-label="Report Road Hazard"

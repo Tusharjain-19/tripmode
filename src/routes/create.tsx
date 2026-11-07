@@ -6,7 +6,6 @@ import { Button, Field, Icon, Screen, Segmented } from "@/components/trip/ui";
 import {
   fetchRoutes,
   PLACES,
-  POPULAR_ROUTES,
   reversePlace,
   ROUTES,
   searchPlaces,
@@ -229,13 +228,6 @@ function CreateInner({ session }: { session: Session }) {
     } else {
       void finish();
     }
-  };
-
-  const selectPopularRoute = (pr: (typeof POPULAR_ROUTES)[number]) => {
-    setOrigin(pr.origin);
-    setDest(pr.dest);
-    setName(pr.name.replace(" → ", " to "));
-    setRouteErr(null);
   };
 
   const activeSelectedRoute = routes[routeIndex] ?? routes[0];

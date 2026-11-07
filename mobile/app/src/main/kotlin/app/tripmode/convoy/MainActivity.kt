@@ -109,6 +109,7 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(0xFF000000.toInt()) // Pure black OLED default
+            fitsSystemWindows = true
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

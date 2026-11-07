@@ -2,22 +2,26 @@ import { useEffect, useState, useCallback } from "react";
 
 /**
  * Reactive hook to track online/offline connectivity status
- * with optional active ping verification.
+ * with reliable active ping verification.
  */
 export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState<boolean>(() => {
-    return typeof navigator !== "undefined" ? navigator.onLine : true;
-  });
+  // Always default to online on startup to prevent false-positive offline banners
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isChecking, setIsChecking] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Synchronize with real browser status once DOM has mounted
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setIsOnline(false);
+      setWasOffline(true);
+    }
+
     const handleOnline = () => {
       setIsOnline(true);
-      // Keep wasOffline true briefly so banner can show "Back Online"
-      const t = setTimeout(() => setWasOffline(false), 3500);
+      const t = setTimeout(() => setWasOffline(false), 3000);
       return () => clearTimeout(t);
     };
 
@@ -39,29 +43,39 @@ export function useNetworkStatus() {
     if (typeof window === "undefined") return true;
     setIsChecking(true);
     try {
-      // Ping lightweight asset with cache-busting to test true internet connectivity
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(`/favicon.ico?_ping=${Date.now()}`, {
-        method: "HEAD",
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      // High-reliability global connectivity endpoint (returns HTTP 204 immediately worldwide)
+      await fetch("https://connectivitycheck.gstatic.com/generate_204", {
+        mode: "no-cors",
         cache: "no-store",
         signal: controller.signal,
       });
+
       clearTimeout(timeoutId);
-      const online = res.ok || res.status === 404; // Even 404 proves server was reached
-      setIsOnline(online);
-      if (online && wasOffline) {
-        setTimeout(() => setWasOffline(false), 3000);
-      }
-      return online;
+      setIsOnline(true);
+      setWasOffline(false);
+      return true;
     } catch {
-      setIsOnline(false);
-      setWasOffline(true);
-      return false;
+      // Secondary fallback to origin
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        await fetch("/", { method: "HEAD", signal: controller.signal });
+        clearTimeout(timeoutId);
+        setIsOnline(true);
+        setWasOffline(false);
+        return true;
+      } catch {
+        setIsOnline(false);
+        setWasOffline(true);
+        return false;
+      }
     } finally {
       setIsChecking(false);
     }
-  }, [wasOffline]);
+  }, []);
 
   return { isOnline, isChecking, wasOffline, checkConnection };
 }

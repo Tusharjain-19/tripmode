@@ -61,49 +61,6 @@ export const PLACES: Place[] = [
   { name: "Manali", detail: "Himachal Pradesh, India", lngLat: [77.1892, 32.2432] },
 ];
 
-export const POPULAR_ROUTES = [
-  {
-    name: "Jaipur → Udaipur",
-    origin: PLACES[0]!,
-    dest: PLACES[1]!,
-    via: "via Ajmer & Bhilwara (NH48)",
-    km: 402,
-    hours: "5 h 01 min",
-  },
-  {
-    name: "Delhi → Agra",
-    origin: PLACES[2]!,
-    dest: PLACES[3]!,
-    via: "via Yamuna Expressway",
-    km: 233,
-    hours: "3 h 40 min",
-  },
-  {
-    name: "Mumbai → Pune",
-    origin: PLACES[4]!,
-    dest: PLACES[5]!,
-    via: "via Mumbai-Pune Expressway",
-    km: 148,
-    hours: "2 h 55 min",
-  },
-  {
-    name: "Bengaluru → Mysuru",
-    origin: PLACES[6]!,
-    dest: PLACES[7]!,
-    via: "via Bengaluru-Mysuru Expressway",
-    km: 143,
-    hours: "2 h 30 min",
-  },
-  {
-    name: "Delhi → Chandigarh",
-    origin: PLACES[2]!,
-    dest: PLACES[8]!,
-    via: "via Grand Trunk Road (NH44)",
-    km: 245,
-    hours: "4 h 15 min",
-  },
-] as const;
-
 export type RawRoute = {
   name: string;
   via: string;

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { setRoutes, type RawRoute } from "./geo";
+import { fetchRoutes, setRoutes, type RawRoute } from "./geo";
 import { tripStore, type Me, type TripConfig, type VehicleColor } from "./trip-store";
 
 export type Member = {
@@ -129,7 +129,26 @@ export async function loadTrip(id: string) {
     rememberTrip(null);
     return null;
   }
-  setRoutes(data.routes as unknown as RawRoute[]);
+  const rawRoutes = (data.routes as unknown as RawRoute[]) || [];
+  setRoutes(rawRoutes);
+
+  // If routes only have straight-line fallback (<= 2 coords), enrich with real highway geometry in background
+  if (
+    rawRoutes.length > 0 &&
+    rawRoutes[0]?.coords &&
+    rawRoutes[0].coords.length <= 2 &&
+    rawRoutes[0].coords[0] &&
+    rawRoutes[0].coords[1]
+  ) {
+    const from = rawRoutes[0].coords[0] as [number, number];
+    const to = rawRoutes[0].coords[rawRoutes[0].coords.length - 1] as [number, number];
+    void fetchRoutes(from, to).then((enriched) => {
+      if (enriched.length > 0 && enriched[0]!.coords.length > 2) {
+        setRoutes(enriched);
+        void supabase.from("trips").update({ routes: enriched as never }).eq("id", id);
+      }
+    });
+  }
   const trip: TripConfig = {
     id: data.id,
     hostId: data.host_id,

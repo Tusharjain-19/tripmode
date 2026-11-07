@@ -57,7 +57,7 @@ function Lobby({ session }: { session: Session }) {
   const nav = useNavigate();
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [qrSvg, setQrSvg] = useState<string>("");
   const members = useMembers(trip?.id);
   const mine = members.find((m) => m.userId === uid);
   const others = members.filter((m) => m.userId !== uid && m.approved);
@@ -152,22 +152,22 @@ function Lobby({ session }: { session: Session }) {
       : `/join/${trip.inviteCode}`;
 
   useEffect(() => {
-    if (qrOpen && link) {
-      QRCode.toDataURL(link, {
-        width: 240,
-        margin: 1.5,
+    if (link) {
+      QRCode.toString(link, {
+        type: "svg",
+        margin: 1,
         color: {
           dark: "#0F261E",
           light: "#FFFFFF",
         },
       })
-        .then(setQrDataUrl)
+        .then(setQrSvg)
         .catch(() => undefined);
     }
-  }, [qrOpen, link]);
+  }, [link]);
 
   const share = async () => {
-    const shareMessage = `Join my convoy on Trip Mode!\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}`;
+    const shareMessage = `Join our live convoy on Trip Mode!\n\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Room Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}\n\nOr open Trip Mode and enter room code: ${trip.inviteCode}`;
 
     // 1. Android Native App Bridge (Opens native Android Share Sheet: WhatsApp, Telegram, etc.)
     const androidBridge = (
@@ -409,7 +409,7 @@ function Lobby({ session }: { session: Session }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 justify-end">
+                <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 justify-between sm:justify-end">
                   <button
                     type="button"
                     onClick={() => {
@@ -418,11 +418,11 @@ function Lobby({ session }: { session: Session }) {
                       setCustomColor(mine?.color ?? me.color);
                       setCustomizing(true);
                     }}
-                    className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-xs"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-xs whitespace-nowrap"
                     title="Change vehicle type (car/bike) and color"
                   >
                     <Icon name="palette" className="text-[16px] text-primary" />
-                    <span>Change</span>
+                    <span>Change Vehicle</span>
                   </button>
 
                   <button
@@ -434,7 +434,7 @@ function Lobby({ session }: { session: Session }) {
                     }}
                     aria-pressed={mine?.ready ?? me.ready}
                     className={cn(
-                      "min-h-9 rounded-full px-3.5 text-[12px] font-semibold transition-all shadow-xs cursor-pointer",
+                      "min-h-9 shrink-0 rounded-full px-3.5 text-[12px] font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap",
                       (mine?.ready ?? me.ready)
                         ? "bg-leading text-white shadow-leading/20"
                         : "bg-secondary text-muted-foreground hover:bg-secondary/80",
@@ -676,12 +676,11 @@ function Lobby({ session }: { session: Session }) {
             <p className="text-[13px] text-muted-foreground">
               Point your phone camera to join {trip.name} immediately.
             </p>
-            <div className="my-5 flex items-center justify-center p-4 bg-white rounded-2xl border border-border shadow-inner mx-auto w-fit min-h-[190px] min-w-[190px]">
-              {qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt="Convoy QR Code"
-                  className="h-44 w-44 object-contain rounded-lg"
+            <div className="my-5 flex items-center justify-center p-3 bg-white rounded-2xl border border-border shadow-inner mx-auto w-fit min-h-[190px] min-w-[190px]">
+              {qrSvg ? (
+                <div
+                  className="h-44 w-44 [&>svg]:w-full [&>svg]:h-full [&>svg]:rounded-lg"
+                  dangerouslySetInnerHTML={{ __html: qrSvg }}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground py-10">

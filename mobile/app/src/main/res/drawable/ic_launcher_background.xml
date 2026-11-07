@@ -6,19 +6,14 @@
     android:viewportHeight="108">
     <!-- Deep Pine Instrumental Background -->
     <path
-        android:fillColor="#1B5A47"
+        android:fillColor="#143D30"
         android:pathData="M0,0h108v108h-108z" />
 
-    <!-- Subtle Cartographic Instrument Rings -->
+    <!-- Subtle Centerline Guide Track -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#1AF7F5F0"
-        android:strokeWidth="1"
-        android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
-
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#10F7F5F0"
-        android:strokeWidth="0.8"
-        android:pathData="M54,54m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" />
+        android:strokeColor="#18F7F5F0"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,14L54,94" />
 </vector>

@@ -1,29 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
   <!-- Precision Instrument Rounded Squircle Background -->
-  <rect width="120" height="120" rx="32" fill="#1B5A47" />
+  <rect width="120" height="120" rx="28" fill="#143D30" />
+  <rect x="1" y="1" width="118" height="118" rx="27" stroke="#F7F5F0" stroke-opacity="0.1" stroke-width="1.5" />
 
-  <!-- Subtle Instrument Calibration Ring -->
-  <circle cx="60" cy="60" r="44" stroke="#F7F5F0" stroke-width="1.5" stroke-opacity="0.22" stroke-dasharray="3 3" />
+  <!-- Subtle Speed & Alignment Centerline -->
+  <line x1="60" y1="16" x2="60" y2="104" stroke="#F7F5F0" stroke-opacity="0.15" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6" />
 
-  <!-- Cardinal Alignment Ticks -->
-  <line x1="60" y1="12" x2="60" y2="18" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.45" stroke-linecap="round" />
-  <line x1="60" y1="102" x2="60" y2="108" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
-  <line x1="12" y1="60" x2="18" y2="60" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
-  <line x1="102" y1="60" x2="108" y2="60" stroke="#F7F5F0" stroke-width="2" stroke-opacity="0.25" stroke-linecap="round" />
+  <!-- Lead Convoy Vanguard (Vehicle 1 - Pure Warm White) -->
+  <path d="M 60 22 L 86 58 L 60 50 L 34 58 Z" fill="#F7F5F0" />
+  <circle cx="60" cy="40" r="3" fill="#143D30" />
 
-  <!-- Convoy Route Polyline (Route Corridor) -->
-  <path d="M 40 88 C 40 68, 52 56, 60 44" stroke="#F7F5F0" stroke-width="4" stroke-linecap="round" stroke-opacity="0.35" />
-  <path d="M 60 44 C 64 38, 66 32, 66 26" stroke="#F7F5F0" stroke-width="4" stroke-linecap="round" stroke-opacity="0.85" />
+  <!-- Escort Convoy Vehicle (Vehicle 2 - Okabe-Ito Sky Blue) -->
+  <path d="M 60 56 L 79 80 L 60 73 L 41 80 Z" fill="#56B4E9" />
+  <circle cx="60" cy="67" r="2.5" fill="#143D30" />
 
-  <!-- Trailing Convoy Vehicle B (Amber Chip) -->
-  <circle cx="40" cy="88" r="6" fill="#E69F00" stroke="#16201B" stroke-width="2" />
-
-  <!-- Trailing Convoy Vehicle A (Sky Blue Chip) -->
-  <circle cx="56" cy="54" r="7" fill="#56B4E9" stroke="#16201B" stroke-width="2" />
-
-  <!-- Lead Vehicle (Precision Directional Wedge / Heading Arrow) -->
-  <path d="M 66 18 L 78 40 L 66 35 L 54 40 Z" fill="#F7F5F0" stroke="#16201B" stroke-width="1.5" stroke-linejoin="round" />
-
-  <!-- Lead Vehicle Core Node -->
-  <circle cx="66" cy="30" r="2.5" fill="#1B5A47" />
+  <!-- Sweep Convoy Vehicle (Vehicle 3 - Okabe-Ito Warm Amber) -->
+  <path d="M 60 78 L 72 96 L 60 91 L 48 96 Z" fill="#E69F00" />
 </svg>

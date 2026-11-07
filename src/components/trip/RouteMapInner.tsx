@@ -95,7 +95,6 @@ export default function RouteMapInner({
   const markers = useRef<Map<string, { m: Marker; from: LngLat; to: LngLat; start: number }>>(
     new Map(),
   );
-  const destMarker = useRef<Marker | null>(null);
   const turnMarker = useRef<Marker | null>(null);
   const clickRef = useRef(onVehicleClick);
   clickRef.current = onVehicleClick;
@@ -206,8 +205,6 @@ export default function RouteMapInner({
       currentMarkers.clear();
       currentPlaces.forEach((p) => p.remove());
       placeMarkers.current = [];
-      destMarker.current?.remove();
-      destMarker.current = null;
       turnMarker.current?.remove();
       turnMarker.current = null;
       ready.current = false;
@@ -257,34 +254,11 @@ export default function RouteMapInner({
     whenReady(apply);
   }, [selected, showAlternates, travelledM, activeRouteCoords]);
 
-  // Destination & Turn Maneuver Markers
+  // Turn Maneuver Marker Highlight
   useEffect(() => {
     const m = map.current;
     if (!m) return;
     whenReady(() => {
-      // Destination marker
-      const destTarget =
-        destinationLngLat ??
-        (activeRouteCoords && activeRouteCoords.length
-          ? activeRouteCoords[activeRouteCoords.length - 1]
-          : undefined);
-      if (destTarget) {
-        if (!destMarker.current) {
-          const el = document.createElement("div");
-          el.className =
-            "flex h-9 w-9 items-center justify-center rounded-full bg-alert text-primary-foreground shadow-float ring-2 ring-card animate-bounce";
-          el.innerHTML = `<span class="ms text-[20px]">location_on</span>`;
-          destMarker.current = new maplibregl.Marker({ element: el })
-            .setLngLat(destTarget)
-            .addTo(m);
-        } else {
-          destMarker.current.setLngLat(destTarget);
-        }
-      } else if (destMarker.current) {
-        destMarker.current.remove();
-        destMarker.current = null;
-      }
-
       // Next maneuver point highlight
       if (nextManeuverLngLat) {
         if (!turnMarker.current) {
@@ -307,7 +281,7 @@ export default function RouteMapInner({
         turnMarker.current = null;
       }
     });
-  }, [destinationLngLat, activeRouteCoords, nextManeuverLngLat]);
+  }, [nextManeuverLngLat]);
 
   // Map style switch
   const firstStyle = useRef(true);

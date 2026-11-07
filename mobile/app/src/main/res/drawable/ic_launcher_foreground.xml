@@ -5,74 +5,28 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Subtle Calibration Reticle Ring -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#30F7F5F0"
-        android:strokeWidth="1.2"
-        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
-
-    <!-- Cardinal Alignment Ticks -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#60F7F5F0"
-        android:strokeWidth="1.5"
-        android:pathData="M54,20L54,24" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#40F7F5F0"
-        android:strokeWidth="1.5"
-        android:pathData="M54,84L54,88" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#40F7F5F0"
-        android:strokeWidth="1.5"
-        android:pathData="M20,54L24,54" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#40F7F5F0"
-        android:strokeWidth="1.5"
-        android:pathData="M84,54L88,54" />
-
-    <!-- Convoy Route Polyline (Route Corridor) -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#50F7F5F0"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round"
-        android:pathData="M40,74 C40,60 48,51 54,43" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#D9F7F5F0"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round"
-        android:pathData="M54,43 C57,39 58,34 58,30" />
-
-    <!-- Trailing Convoy Vehicle B (Amber Chip) -->
-    <path
-        android:fillColor="#E69F00"
-        android:strokeColor="#16201B"
-        android:strokeWidth="1.5"
-        android:pathData="M40,74m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
-
-    <!-- Trailing Convoy Vehicle A (Sky Blue Chip) -->
-    <path
-        android:fillColor="#56B4E9"
-        android:strokeColor="#16201B"
-        android:strokeWidth="1.5"
-        android:pathData="M51,50m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
-
-    <!-- Lead Vehicle (Directional Heading Wedge) -->
+    <!-- Lead Convoy Vanguard (Vehicle 1 - Pure Warm White) -->
     <path
         android:fillColor="#F7F5F0"
-        android:strokeColor="#16201B"
-        android:strokeWidth="1.2"
-        android:strokeLineJoin="round"
-        android:pathData="M58,24 L68,40 L58,36 L48,40 Z" />
+        android:pathData="M54,25 L75,54 L54,48 L33,54 Z" />
 
-    <!-- Lead Vehicle Center Dot -->
+    <!-- Lead Vehicle Instrument Node -->
     <path
-        android:fillColor="#1B5A47"
-        android:pathData="M58,32m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+        android:fillColor="#143D30"
+        android:pathData="M54,40m-2.2,0a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
 
+    <!-- Escort Convoy Vehicle (Vehicle 2 - Sky Blue) -->
+    <path
+        android:fillColor="#56B4E9"
+        android:pathData="M54,52 L69,71 L54,66 L39,71 Z" />
+
+    <!-- Escort Vehicle Instrument Node -->
+    <path
+        android:fillColor="#143D30"
+        android:pathData="M54,61m-1.8,0a1.8,1.8 0,1 1,3.6 0a1.8,1.8 0,1 1,-3.6 0" />
+
+    <!-- Sweep Convoy Vehicle (Vehicle 3 - Warm Amber) -->
+    <path
+        android:fillColor="#E69F00"
+        android:pathData="M54,70 L64,84 L54,80 L44,84 Z" />
 </vector>

@@ -10,7 +10,7 @@ interface LogoProps {
 /**
  * Trip Mode Official Emblem
  * Inspired by cartography, aviation instrumentation, and collaborative convoy movement.
- * Built with precision geometry: gauge ring, route polyline, lead navigation wedge, and convoy nodes.
+ * Built with precision geometry: deep pine squircle, centerline guide, and 3 nested convoy chevrons.
  */
 export function Logo({ className, size = 40, variant = "mark" }: LogoProps) {
   if (variant === "full") {
@@ -19,7 +19,7 @@ export function Logo({ className, size = 40, variant = "mark" }: LogoProps) {
         <LogoMark size={size} />
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="font-semibold tracking-tight text-[20px] text-foreground leading-none">
+            <span className="font-bold tracking-tight text-[20px] text-foreground leading-none">
               Trip Mode
             </span>
             <span className="rounded-full border border-border bg-secondary/80 px-2 py-0.5 text-[10px] font-mono font-medium tracking-wider text-muted-foreground uppercase">
@@ -56,94 +56,41 @@ export function LogoMark({
       role="img"
     >
       {/* Precision Instrument Rounded Squircle Background */}
-      <rect width="120" height="120" rx="32" className="fill-primary" />
-
-      {/* Subtle Instrument Calibration Ring (Aviation & Cartography) */}
-      <circle
-        cx="60"
-        cy="60"
-        r="44"
+      <rect width="120" height="120" rx="28" fill="#143D30" />
+      <rect
+        x="1"
+        y="1"
+        width="118"
+        height="118"
+        rx="27"
         stroke="#F7F5F0"
+        strokeOpacity="0.1"
         strokeWidth="1.5"
-        strokeOpacity="0.18"
-        strokeDasharray="3 3"
       />
 
-      {/* Cardinal Alignment Ticks */}
+      {/* Subtle Speed & Alignment Centerline */}
       <line
         x1="60"
-        y1="12"
+        y1="16"
         x2="60"
-        y2="18"
+        y2="104"
         stroke="#F7F5F0"
+        strokeOpacity="0.15"
         strokeWidth="2"
-        strokeOpacity="0.4"
         strokeLinecap="round"
-      />
-      <line
-        x1="60"
-        y1="102"
-        x2="60"
-        y2="108"
-        stroke="#F7F5F0"
-        strokeWidth="2"
-        strokeOpacity="0.25"
-        strokeLinecap="round"
-      />
-      <line
-        x1="12"
-        y1="60"
-        x2="18"
-        y2="60"
-        stroke="#F7F5F0"
-        strokeWidth="2"
-        strokeOpacity="0.25"
-        strokeLinecap="round"
-      />
-      <line
-        x1="102"
-        y1="60"
-        x2="108"
-        y2="60"
-        stroke="#F7F5F0"
-        strokeWidth="2"
-        strokeOpacity="0.25"
-        strokeLinecap="round"
+        strokeDasharray="4 6"
       />
 
-      {/* Convoy Route Polyline (Route Corridor) */}
-      <path
-        d="M 40 88 C 40 68, 52 56, 60 44"
-        stroke="#F7F5F0"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeOpacity="0.35"
-      />
-      <path
-        d="M 60 44 C 64 38, 66 32, 66 26"
-        stroke="#F7F5F0"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeOpacity="0.85"
-      />
+      {/* Lead Convoy Vanguard (Vehicle 1 - Pure Warm White) */}
+      <path d="M 60 22 L 86 58 L 60 50 L 34 58 Z" fill="#F7F5F0" />
+      <circle cx="60" cy="40" r="3" fill="#143D30" />
 
-      {/* Trailing Convoy Vehicle B (Amber Chip) */}
-      <circle cx="40" cy="88" r="6" fill="#E69F00" stroke="#16201B" strokeWidth="2" />
+      {/* Escort Convoy Vehicle (Vehicle 2 - Okabe-Ito Sky Blue) */}
+      <path d="M 60 56 L 79 80 L 60 73 L 41 80 Z" fill="#56B4E9" />
+      <circle cx="60" cy="67" r="2.5" fill="#143D30" />
 
-      {/* Trailing Convoy Vehicle A (Sky Blue Chip) */}
-      <circle cx="56" cy="54" r="7" fill="#56B4E9" stroke="#16201B" strokeWidth="2" />
-
-      {/* Lead Vehicle (Precision Directional Wedge / Heading Arrow) */}
-      <path
-        d="M 66 18 L 78 40 L 66 35 L 54 40 Z"
-        fill="#F7F5F0"
-        stroke="#16201B"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-
-      {/* Lead Vehicle Core Node */}
-      <circle cx="66" cy="30" r="2.5" fill="#1B5A47" />
+      {/* Sweep Convoy Vehicle (Vehicle 3 - Okabe-Ito Warm Amber) */}
+      <path d="M 60 78 L 72 96 L 60 91 L 48 96 Z" fill="#E69F00" />
     </svg>
   );
 }

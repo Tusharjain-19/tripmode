@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvoyRail } from "@/components/trip/ConvoyRail";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
-import { formatKm, gapsToLeader, statusMessage, type MemberStatus } from "@/lib/convoy";
+import { formatKm, gapsToLeader, pointAt, statusMessage, type MemberStatus } from "@/lib/convoy";
 import {
   metersPerUnit,
   ROUTES,
@@ -712,7 +712,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
   const findNearby = async (cat: PlaceCategory) => {
     const f = geo.fix;
-    const center: [number, number] = f ? [f.lng, f.lat] : (route.coords[0] ?? [78, 22]);
+    const center: [number, number] = f
+      ? [f.lng, f.lat]
+      : toLngLat(pointAt(route.line, meV.progressM).p);
     setNearbyCat(cat);
     setNearbyOpen(true);
     setNearbyState("loading");
@@ -720,7 +722,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       const places = await searchNearby(center, cat);
       setNearby(places);
       setNearbyState("idle");
-      if (places.length > 0 && !selectedPlace) {
+      if (places.length > 0) {
         setSelectedPlace(places[0]!);
       }
     } catch {

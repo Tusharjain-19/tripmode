@@ -54,13 +54,14 @@ class MainActivity : Activity() {
         // 3. Request runtime permissions for GPS location, Push-to-Talk audio, and Notifications
         checkConvoyPermissions()
 
-        // 4. Build Root Layout
+        // 4. Build Root Layout with System Window Insets to prevent status bar overlap
         val rootLayout = FrameLayout(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(0xFF16201B.toInt()) // Trip Mode Dark Surface default
+            fitsSystemWindows = true
+            setBackgroundColor(0xFF000000.toInt()) // Pure black OLED default
         }
 
         progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {

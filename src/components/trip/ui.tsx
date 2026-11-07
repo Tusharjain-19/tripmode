@@ -139,7 +139,7 @@ export function Screen({
       {/* Top Safe Area / Status Bar Buffer - prevents wifi, battery, clock, and notch overlap on mobile devices */}
       {!hideBuffer && (
         <div
-          className="w-full h-7 sm:h-0 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
+          className="w-full h-11 sm:h-3 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
           aria-hidden="true"
         />
       )}

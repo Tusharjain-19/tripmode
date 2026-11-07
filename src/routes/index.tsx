@@ -129,11 +129,23 @@ function Home() {
   return (
     <Screen maxWidth="max-w-7xl" className="px-3 sm:px-6 lg:px-8">
       {/* Top Application Header */}
-      <header className="flex h-14 sm:h-18 items-center justify-between border-b border-border/60 pb-1">
-        <Logo variant="full" size={38} />
+      <header className="flex h-16 sm:h-20 items-center justify-between border-b border-border/60 pb-2">
+        <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
+          <Logo variant="full" size={42} />
+        </Link>
 
         {/* Header Right Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setJoinModal(true)}
+            className="flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-border bg-card text-[13px] font-semibold text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer shadow-xs"
+            title="Join with convoy code"
+          >
+            <Icon name="pin" className="text-[17px] text-primary" />
+            <span className="hidden sm:inline">Join with Code</span>
+          </button>
+
           {/* Night Driving / Theme Toggle */}
           <button
             type="button"
@@ -144,24 +156,12 @@ function Home() {
           >
             <Icon name={isDark ? "light_mode" : "dark_mode"} className="text-[19px]" />
           </button>
-
-          <Link
-            to="/create"
-            className={btn({
-              variant: "primary",
-              className:
-                "hidden sm:inline-flex h-10 px-4 text-[14px] font-medium rounded-full shadow-sm",
-            })}
-          >
-            <Icon name="add_road" className="text-[18px]" />
-            <span>Start Convoy</span>
-          </Link>
         </div>
       </header>
 
       {/* Active Trip Banner if user has an active convoy in progress */}
       {trip && (
-        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-[16px] border border-leading/40 bg-leading/10 p-4 shadow-sm animate-in fade-in duration-200">
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-[18px] border border-leading/40 bg-leading/10 p-4 shadow-sm animate-in fade-in duration-200">
           <div className="flex items-center gap-3.5">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-leading text-white shadow-xs">
               <Icon name="route" className="text-[22px]" />
@@ -178,7 +178,7 @@ function Home() {
             to="/trip"
             className={btn({
               variant: "primary",
-              className: "h-10 px-5 text-[14px] w-full sm:w-auto",
+              className: "h-10 px-5 text-[14px] w-full sm:w-auto shadow-sm",
             })}
           >
             <Icon name="play_arrow" className="text-[18px]" />
@@ -192,46 +192,71 @@ function Home() {
         {/* Left Column: Dispatch & Actions (Col 1 to 5) */}
         <div className="lg:col-span-5 space-y-6">
           {/* Dispatch & Search Card */}
-          <div className="rounded-[18px] border border-border bg-card p-4 sm:p-5 shadow-float">
-            <h2 className="text-[13px] font-semibold tracking-wider text-tertiary uppercase">
-              Convoy Dispatch
-            </h2>
-            <p className="mt-1 text-[20px] font-semibold tracking-tight text-foreground">
-              Travel together in separate vehicles
-            </p>
-            <p className="mt-1 text-[14px] text-muted-foreground leading-relaxed">
-              One shared live map for your group, real-time convoy gap monitoring, and group road
-              hazard alerts.
-            </p>
+          <div className="rounded-[22px] border border-border bg-card p-4 sm:p-6 shadow-float space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold tracking-wider text-primary uppercase">
+                <span className="h-2 w-2 rounded-full bg-leading animate-pulse" />
+                Live Convoy Dispatch
+              </span>
+            </div>
+
+            <div>
+              <h2 className="text-[22px] sm:text-[24px] font-bold tracking-tight text-foreground leading-tight">
+                Travel together in separate vehicles
+              </h2>
+              <p className="mt-1.5 text-[14px] text-muted-foreground leading-relaxed">
+                One shared live map for your group, real-time convoy gap monitoring, and group road
+                hazard alerts.
+              </p>
+            </div>
 
             {/* Destination Search Form */}
-            <form onSubmit={handleSearchSubmit} className="relative mt-4">
-              <div className="flex h-13 w-full items-center gap-3 rounded-[12px] border border-border bg-secondary/80 px-4 transition-all focus-within:border-primary focus-within:bg-secondary">
-                <Icon name="search" className="text-primary text-[22px]" />
+            <form onSubmit={handleSearchSubmit} className="relative pt-1">
+              <div className="flex h-14 w-full items-center gap-3 rounded-2xl border border-border/80 bg-secondary/70 px-4 transition-all focus-within:border-primary focus-within:bg-secondary focus-within:ring-2 focus-within:ring-primary/20 shadow-xs">
+                <Icon name="search" className="text-primary text-[22px] shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Where to? Search destination..."
-                  className="flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
+                  className="flex-1 bg-transparent text-[15px] sm:text-[16px] text-foreground outline-none placeholder:text-muted-foreground font-medium"
                 />
                 <button
                   type="submit"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs transition-transform active:scale-95 cursor-pointer"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform active:scale-95 cursor-pointer shrink-0"
                   title="Plan convoy route"
                 >
-                  <Icon name="arrow_forward" className="text-[18px]" />
+                  <Icon name="arrow_forward" className="text-[19px]" />
                 </button>
+              </div>
+
+              {/* Popular Destination Quick Tap Chips */}
+              <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[12px]">
+                <span className="text-muted-foreground font-medium shrink-0">Popular:</span>
+                {["Jaipur", "Udaipur", "Agra", "Delhi", "Goa"].map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(city);
+                      nav({ to: "/create", search: { dest: city } });
+                    }}
+                    className="shrink-0 rounded-full border border-border/80 bg-secondary/50 px-2.5 py-0.5 text-foreground hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    {city}
+                  </button>
+                ))}
               </div>
             </form>
 
             {/* Primary Action Buttons */}
-            <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/create"
                 className={btn({
                   variant: "primary",
-                  className: "flex-1 h-12 text-[15px] rounded-[10px]",
+                  className:
+                    "flex-1 h-13 text-[15px] font-semibold rounded-xl shadow-md transition-all hover:shadow-lg",
                 })}
               >
                 <Icon name="add_road" className="text-[20px]" />
@@ -242,7 +267,8 @@ function Home() {
                 onClick={() => setJoinModal(true)}
                 className={btn({
                   variant: "secondary",
-                  className: "flex-1 h-12 text-[15px] rounded-[10px] cursor-pointer",
+                  className:
+                    "flex-1 h-13 text-[15px] font-semibold rounded-xl cursor-pointer hover:bg-secondary",
                 })}
               >
                 <Icon name="pin" className="text-[20px] text-muted-foreground" />

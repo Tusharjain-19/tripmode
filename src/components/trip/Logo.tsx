@@ -15,9 +15,9 @@ interface LogoProps {
 export function Logo({ className, size = 40, variant = "mark" }: LogoProps) {
   if (variant === "full") {
     return (
-      <div className={cn("flex items-center gap-2.5 select-none", className)}>
+      <div className={cn("inline-flex items-center gap-2.5 select-none shrink-0", className)}>
         <LogoMark size={size} />
-        <span className="font-bold tracking-tight text-[20px] text-foreground leading-none">
+        <span className="font-bold tracking-tight text-[22px] sm:text-[24px] text-foreground leading-none whitespace-nowrap">
           Trip Mode
         </span>
       </div>

@@ -226,6 +226,22 @@ const INDIAN_ACRONYMS: Record<string, string> = {
   ecity: "Electronic City",
 };
 
+type PhotonFeature = {
+  properties: {
+    name?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    district?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+  };
+  geometry: {
+    coordinates: [number, number]; // [lon, lat]
+  };
+};
+
 export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Place[]> {
   const clean = q.trim();
   if (!clean) return [];
@@ -236,41 +252,61 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Pla
     expanded = expanded.replace(new RegExp(`\\b${abbr}\\b`, "gi"), full);
   }
 
-  const queries = [expanded];
-  if (expanded.toLowerCase() !== clean.toLowerCase()) {
-    queries.push(clean);
-  }
+  const places: Place[] = [];
+  const seen = new Set<string>();
 
-  const remoteHits: Place[] = [];
-  const seenNames = new Set<string>();
+  // Hybrid parallel query:
+  // 1. Nominatim (OpenStreetMap India filtered)
+  // 2. Photon (Komoot fast autocomplete with India geographic center bias lat=20.59, lon=78.96)
+  const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=in&q=${encodeURIComponent(expanded)}`;
+  const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(expanded)}&limit=6&lat=20.5937&lon=78.9629`;
 
-  for (const queryStr of queries) {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&countrycodes=in&q=${encodeURIComponent(queryStr)}`;
-      const res = await fetch(url, { signal: signal ?? null, headers: { "Accept-Language": "en" } });
-      if (res.ok) {
-        const hits = (await res.json()) as NominatimHit[];
-        for (const h of hits) {
-          const s = short(h);
-          const key = `${s.name.toLowerCase()}|${Number(h.lon).toFixed(3)}|${Number(h.lat).toFixed(3)}`;
-          if (!seenNames.has(key)) {
-            seenNames.add(key);
-            remoteHits.push({
-              name: s.name,
-              detail: s.detail,
-              lngLat: [Number(h.lon), Number(h.lat)],
-            });
-          }
-        }
-        if (remoteHits.length > 0) break;
+  const [nomRes, phoRes] = await Promise.allSettled([
+    fetch(nominatimUrl, {
+      signal: signal ?? null,
+      headers: { "Accept-Language": "en", "User-Agent": "TripModeConvoy/1.0" },
+    }).then((r) => (r.ok ? (r.json() as Promise<NominatimHit[]>) : [])),
+    fetch(photonUrl, { signal: signal ?? null }).then((r) =>
+      r.ok ? (r.json() as Promise<{ features?: PhotonFeature[] }>) : { features: [] },
+    ),
+  ]);
+
+  // Process Nominatim results
+  if (nomRes.status === "fulfilled" && Array.isArray(nomRes.value)) {
+    for (const h of nomRes.value) {
+      const s = short(h);
+      const lon = Number(h.lon);
+      const lat = Number(h.lat);
+      const key = `${s.name.toLowerCase()}|${lon.toFixed(2)}|${lat.toFixed(2)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        places.push({ name: s.name, detail: s.detail, lngLat: [lon, lat] });
       }
-    } catch {
-      // Try next query or fallback
     }
   }
 
-  if (remoteHits.length > 0) {
-    return remoteHits;
+  // Process Photon results (biased to India bounding box lng 68-98, lat 6-38)
+  if (phoRes.status === "fulfilled" && phoRes.value?.features) {
+    for (const f of phoRes.value.features) {
+      const p = f.properties ?? {};
+      const coords = f.geometry?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const [lon, lat] = coords;
+      if (lon < 68 || lon > 98 || lat < 6 || lat > 38) continue;
+
+      const name = p.name || p.city || p.town || p.village || p.district;
+      if (!name) continue;
+      const detail = [p.district || p.city || p.town, p.state].filter(Boolean).join(", ");
+      const key = `${name.toLowerCase()}|${lon.toFixed(2)}|${lat.toFixed(2)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        places.push({ name, detail, lngLat: [lon, lat] });
+      }
+    }
+  }
+
+  if (places.length > 0) {
+    return places;
   }
 
   // Fallback to local popular places matching the query

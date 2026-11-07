@@ -122,12 +122,20 @@ export function PlacePicker({
       if (results.length > 0) {
         choose(results[0]!);
       } else if (q.trim()) {
-        const match = PLACES.find((p) => p.name.toLowerCase() === q.trim().toLowerCase());
-        if (match) {
-          choose(match);
-        } else {
-          choose({ name: q.trim(), detail: "Selected place", lngLat: PLACES[0]!.lngLat });
-        }
+        const clean = q.trim();
+        setBusy(true);
+        searchPlaces(clean)
+          .then((hits) => {
+            if (hits.length > 0) {
+              choose(hits[0]!);
+            } else {
+              const match = PLACES.find((p) => p.name.toLowerCase() === clean.toLowerCase());
+              if (match) {
+                choose(match);
+              }
+            }
+          })
+          .finally(() => setBusy(false));
       }
     } else if (e.key === "Escape") {
       setOpen(false);
@@ -160,36 +168,14 @@ export function PlacePicker({
         </span>
       </label>
 
-      {/* Quick City Presets */}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mr-1">
-          Quick:
-        </span>
-        {QUICK_CITIES.map((city) => (
-          <button
-            key={city.name}
-            type="button"
-            onClick={() => choose(city)}
-            className={cn(
-              "rounded-full border px-2.5 py-0.5 text-[12px] font-medium transition-colors cursor-pointer",
-              value?.name === city.name
-                ? "border-primary bg-primary text-primary-foreground font-semibold"
-                : "border-border bg-card hover:bg-secondary text-foreground",
-            )}
-          >
-            {city.name}
-          </button>
-        ))}
-      </div>
-
       <div className="mt-2 flex gap-2">
         {allowMyLocation && (
           <button
             type="button"
             onClick={useMine}
-            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-medium hover:bg-secondary cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-medium hover:bg-secondary cursor-pointer text-foreground"
           >
-            <Icon name="my_location" className="text-[16px] text-primary" /> My location
+            <Icon name="my_location" className="text-[16px] text-primary" /> My current location
           </button>
         )}
         <button
@@ -199,7 +185,7 @@ export function PlacePicker({
             setMapPlace(value);
             setMapOpen(true);
           }}
-          className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-medium hover:bg-secondary cursor-pointer"
+          className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-medium hover:bg-secondary cursor-pointer text-foreground"
         >
           <Icon name="map" className="text-[16px] text-primary" /> Pick on map
         </button>

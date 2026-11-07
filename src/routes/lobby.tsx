@@ -75,6 +75,28 @@ function Lobby({ session }: { session: Session }) {
   );
   const takenColors = others.map((o) => o.color);
 
+  const link =
+    typeof window !== "undefined" && trip?.inviteCode
+      ? `${window.location.origin}/join/${trip.inviteCode}`
+      : trip?.inviteCode
+        ? `/join/${trip.inviteCode}`
+        : "";
+
+  useEffect(() => {
+    if (link) {
+      QRCode.toString(link, {
+        type: "svg",
+        margin: 1,
+        color: {
+          dark: "#0F261E",
+          light: "#FFFFFF",
+        },
+      })
+        .then(setQrSvg)
+        .catch(() => undefined);
+    }
+  }, [link]);
+
   if (!trip)
     return (
       <Screen title="No active trip" back="/" maxWidth="max-w-md">
@@ -145,26 +167,6 @@ function Lobby({ session }: { session: Session }) {
         </div>
       </Screen>
     );
-
-  const link =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/join/${trip.inviteCode}`
-      : `/join/${trip.inviteCode}`;
-
-  useEffect(() => {
-    if (link) {
-      QRCode.toString(link, {
-        type: "svg",
-        margin: 1,
-        color: {
-          dark: "#0F261E",
-          light: "#FFFFFF",
-        },
-      })
-        .then(setQrSvg)
-        .catch(() => undefined);
-    }
-  }, [link]);
 
   const share = async () => {
     const shareMessage = `Join our live convoy on Trip Mode!\n\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Room Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}\n\nOr open Trip Mode and enter room code: ${trip.inviteCode}`;

@@ -48,6 +48,7 @@ export type RouteMapProps = {
   onVehicleClick?: (id: string) => void;
   onBearingChange?: (bearing: number) => void;
   onUserPan?: () => void;
+  zoomAction?: { dir: "in" | "out"; ts: number } | undefined;
   interactive?: boolean;
   className?: string;
 };

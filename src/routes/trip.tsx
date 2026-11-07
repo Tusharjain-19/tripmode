@@ -195,6 +195,7 @@ function mkVehicle(m: Member, isMe: boolean): SimVehicle {
     color: m.color,
     role: m.role,
     isMe,
+    vehicleType: m.vehicleType ?? "car",
     progressM: 0,
     speedKmh: 0,
     offsetM: 0,
@@ -204,39 +205,6 @@ function mkVehicle(m: Member, isMe: boolean): SimVehicle {
     arrivedAtS: null,
     stops: 0,
   };
-}
-
-function playEarcon(type: "start" | "end") {
-  try {
-    if (typeof window === "undefined") return;
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const now = ctx.currentTime;
-    if (type === "start") {
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else {
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    }
-  } catch {
-    // AudioContext blocked or unavailable
-  }
 }
 
 function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine: Member }) {
@@ -254,10 +222,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const positions = usePositions(trip.id);
   const vehicles = useMemo(
     () => [
-      { ...meState, letter: mine.letter, name: mine.vehicleLabel, color: mine.color },
+      {
+        ...meState,
+        letter: mine.letter,
+        name: mine.vehicleLabel,
+        color: mine.color,
+        vehicleType: mine.vehicleType ?? me.vehicleType ?? "car",
+      },
       ...Object.values(others),
     ],
-    [meState, others, mine],
+    [meState, others, mine, me.vehicleType],
   );
   const [now, setNow] = useState(() => Date.now());
   const [camera, setCamera] = useState<Camera>({ mode: "follow" });
@@ -267,7 +241,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [quickOpen, setQuickOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [audioMode, setAudioMode] = useState<"all" | "alerts" | "mute">("all");
-  const [talking, setTalking] = useState(false);
+  const [zoomAction, setZoomAction] = useState<{ dir: "in" | "out"; ts: number } | undefined>();
+  const [railOpen, setRailOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [exitConfirm, setExitConfirm] = useState(false);
   const chatOpenRef = useRef(false);
@@ -361,37 +336,119 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   }, [geo.fix, route.line]);
   usePublishPosition(trip.id, uid, geo.publishedFix);
 
-  // Other members' live positions
+  // Other members' live positions & companion convoy
   useEffect(() => {
     setOthers((prev) => {
       const next: Record<string, SimVehicle> = {};
-      for (const m of members) {
-        if (m.userId === uid) continue;
-        const p = positions[m.userId];
-        if (!p) continue;
-        const base = {
-          ...(prev[m.userId] ?? mkVehicle(m, false)),
-          letter: m.letter,
-          name: m.vehicleLabel,
-          driver: m.displayName,
-          color: m.color,
-          role: m.role,
-        };
-        next[m.userId] =
-          p.at === base.lastUpdateReal
-            ? base
-            : applyFix(
-                base,
-                route.line,
-                toMeters([p.lng, p.lat]),
-                p.speedMs,
-                base.lastUpdateReal ? Math.max(0, (p.at - base.lastUpdateReal) / 1000) : 0,
-                p.at,
-              );
+      const realOtherMembers = members.filter((m) => m.userId !== uid);
+
+      if (realOtherMembers.length > 0) {
+        // Real connected members in the trip
+        realOtherMembers.forEach((m, idx) => {
+          const p = positions[m.userId];
+          const base: SimVehicle = {
+            ...(prev[m.userId] ?? mkVehicle(m, false)),
+            letter: m.letter,
+            name: m.vehicleLabel,
+            driver: m.displayName,
+            color: m.color,
+            role: m.role,
+            vehicleType: m.vehicleType ?? (idx % 2 === 1 ? "bike" : "car"),
+          };
+          if (!p) {
+            // Position not published yet by other device: place on route near me so they are visible
+            const fallbackProgress = Math.max(0, meState.progressM - (idx + 1) * 600);
+            next[m.userId] = {
+              ...base,
+              progressM: base.progressM || fallbackProgress,
+              speedKmh: 0,
+            };
+          } else {
+            next[m.userId] =
+              p.at === base.lastUpdateReal
+                ? base
+                : applyFix(
+                    base,
+                    route.line,
+                    toMeters([p.lng, p.lat]),
+                    p.speedMs,
+                    base.lastUpdateReal ? Math.max(0, (p.at - base.lastUpdateReal) / 1000) : 0,
+                    p.at,
+                  );
+          }
+        });
+      } else {
+        // No other real members connected yet: provide simulated companion convoy vehicles (Car + Bike)
+        // so the user can see other vehicles driving with them, test convoy gaps, map markers, and rail!
+        const companions: Array<{
+          id: string;
+          name: string;
+          driver: string;
+          color: VehicleColor;
+          vehicleType: "car" | "bike";
+          offsetProgressM: number;
+          speedKmh: number;
+        }> = [
+          {
+            id: "sim-scout",
+            name: "Scout Car",
+            driver: "Alex (Scout)",
+            color: (mine.color === "v2" ? "v3" : "v2") as VehicleColor,
+            vehicleType: "car",
+            offsetProgressM: 850,
+            speedKmh: Math.max(45, meState.speedKmh || 65),
+          },
+          {
+            id: "sim-sweep",
+            name: "Sweep Bike",
+            driver: "Sam (Rider)",
+            color: (mine.color === "v4" ? "v5" : "v4") as VehicleColor,
+            vehicleType: "bike",
+            offsetProgressM: -620,
+            speedKmh: Math.max(40, meState.speedKmh || 60),
+          },
+        ];
+
+        companions.forEach((c) => {
+          const prevV = prev[c.id];
+          const targetProgress = Math.min(
+            routeM,
+            Math.max(0, meState.progressM + c.offsetProgressM),
+          );
+          next[c.id] = {
+            id: c.id,
+            letter: c.vehicleType === "bike" ? "B" : "C",
+            name: c.name,
+            driver: c.driver,
+            color: c.color,
+            role: "driver",
+            isMe: false,
+            vehicleType: c.vehicleType,
+            progressM: prevV
+              ? Math.min(routeM, prevV.progressM + (c.speedKmh / 3.6) * 1.2)
+              : targetProgress,
+            speedKmh: c.speedKmh,
+            offsetM: 0,
+            lastUpdateReal: Date.now(),
+            stoppedForS: 0,
+            offRouteForS: 0,
+            arrivedAtS: null,
+            stops: 0,
+          };
+        });
       }
       return next;
     });
-  }, [members, positions, uid, route.line]);
+  }, [
+    members,
+    positions,
+    uid,
+    route.line,
+    routeM,
+    meState.progressM,
+    meState.speedKmh,
+    mine.color,
+  ]);
 
   const gaps: Record<string, number> = useMemo(
     () => gapsToLeader(vehicles.map((v) => ({ id: v.id, progressM: v.progressM }))),
@@ -901,6 +958,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         }}
         onBearingChange={setBearing}
         onUserPan={handleUserPan}
+        zoomAction={zoomAction}
         mapStyle={mapStyle}
         places={nearby.map((p) => ({
           id: p.id,
@@ -932,7 +990,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                     : "none",
             isMe: v.isMe,
             simulated: !v.realP,
-            vehicleType: members.find((m) => m.userId === v.id)?.vehicleType,
+            vehicleType:
+              v.vehicleType ?? members.find((m) => m.userId === v.id)?.vehicleType ?? "car",
             name: v.isMe ? "You" : v.driver,
             staleLabel: stale
               ? `last seen ${Math.round((now - v.lastUpdateReal) / 1000)} s ago`
@@ -942,177 +1001,160 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         })}
       />
 
-      {/* TOP: Google Maps Navigation Header */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2 p-3 z-30">
+      {/* TOP: Google Maps Navigation Header (Image 2 style) */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2.5 p-3 z-30">
         {/* Navigation Turn-by-Turn Card (Emerald Pine Header) */}
         {nextStep && toNextM !== null ? (
           <div
             onClick={() => setItineraryOpen(true)}
-            className="pointer-events-auto w-full max-w-md overflow-hidden rounded-[20px] bg-primary text-primary-foreground shadow-float border border-primary/20 cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
-            title="Tap to view full route itinerary and steps"
+            className="pointer-events-auto w-full max-w-md overflow-hidden rounded-[24px] bg-[#0F5132] text-white shadow-float border border-emerald-900/40 cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
+            title="Tap to view full route itinerary and turn steps"
           >
-            <div className="flex items-center gap-3 p-3.5">
-              <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-xs">
-                <Icon name={maneuverIcon(nextStep)} className="text-[38px] text-white" />
+            <div className="flex items-center gap-3.5 p-4">
+              {/* Turn Maneuver Icon */}
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow-inner">
+                <Icon name={maneuverIcon(nextStep)} className="text-[40px] text-white" />
               </span>
+
+              {/* Distance & Turn Name */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
-                  <div className="font-mono text-[24px] font-bold tracking-tight leading-none text-white">
+                  <div className="font-mono text-[28px] sm:text-[30px] font-bold tracking-tight leading-none text-white">
                     {formatDistance(toNextM)}
                   </div>
                   {rerouting && (
-                    <span className="animate-pulse text-[11px] font-medium text-white/80">
+                    <span className="animate-pulse text-[11px] font-medium text-emerald-200">
                       Rerouting...
                     </span>
                   )}
                 </div>
-                <div className="truncate text-[16px] font-medium text-white/95 mt-1 leading-snug">
+                <div className="truncate text-[17px] font-semibold text-white/95 mt-1 leading-snug">
                   {instruction(nextStep)}
                 </div>
               </div>
+
+              {/* Action Stack (Audio, Reroute, Sharing badge) */}
               <div
                 className="flex flex-col items-end gap-1.5 shrink-0"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => void triggerReroute("Manual recalculation...")}
-                    disabled={rerouting}
-                    aria-label="Reroute"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-95 cursor-pointer disabled:opacity-50"
-                    title="Recalculate route"
+                    onClick={cycleAudio}
+                    aria-label="Toggle voice mode"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all cursor-pointer shadow-xs"
+                    title={`Voice: ${audioMode}`}
                   >
                     <Icon
-                      name="alt_route"
-                      className={cn("text-[18px]", rerouting && "animate-spin")}
+                      name={
+                        audioMode === "all"
+                          ? "volume_up"
+                          : audioMode === "alerts"
+                            ? "notifications_active"
+                            : "volume_off"
+                      }
+                      className="text-[20px]"
                     />
                   </button>
                   <button
                     type="button"
-                    onClick={speakNow}
-                    aria-label="Repeat voice guidance"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-95 cursor-pointer"
-                    title="Repeat instruction"
+                    onClick={() => void triggerReroute("Manual recalculation...")}
+                    disabled={rerouting}
+                    aria-label="Recalculate route"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+                    title="Recalculate route"
                   >
-                    <Icon name="volume_up" className="text-[18px]" />
+                    <Icon
+                      name="alt_route"
+                      className={cn("text-[20px]", rerouting && "animate-spin")}
+                    />
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={cycleAudio}
-                  aria-label="Toggle voice mode"
-                  className="flex h-6 px-2 items-center justify-center rounded-full bg-white/15 text-[10px] font-semibold uppercase tracking-wider text-white cursor-pointer"
-                  title={`Voice mode: ${audioMode}`}
+
+                {/* Micro Sharing Status Tag */}
+                <div
+                  onClick={geo.togglePause}
+                  className="flex items-center gap-1.5 rounded-full bg-black/25 px-2.5 py-0.5 text-[11px] font-medium text-emerald-100 hover:bg-black/35 transition-colors cursor-pointer"
+                  title={
+                    geo.isPaused
+                      ? "Location sharing paused - Tap to resume"
+                      : "Location live - Tap to pause"
+                  }
                 >
-                  {audioMode === "all" ? "Voice" : audioMode === "alerts" ? "Alerts" : "Mute"}
-                </button>
+                  <span
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      geo.isPaused
+                        ? "bg-amber-400"
+                        : geo.isSharing
+                          ? "bg-emerald-400 animate-pulse"
+                          : "bg-white/50",
+                    )}
+                  />
+                  <span>{geo.isPaused ? "Paused" : "Live"}</span>
+                </div>
               </div>
             </div>
 
             {/* Next Step Preview Sub-bar */}
             {secondStep && (
-              <div className="flex items-center justify-between border-t border-white/15 bg-black/10 px-4 py-1.5 text-[13px] text-white/85">
+              <div className="flex items-center justify-between border-t border-white/15 bg-black/20 px-4 py-2 text-[13px] text-white/90">
                 <div className="flex items-center gap-2 truncate">
-                  <span className="opacity-75">Then:</span>
-                  <Icon name={maneuverIcon(secondStep)} className="text-[16px]" />
-                  <span className="truncate">{instruction(secondStep)}</span>
+                  <span className="font-medium text-emerald-200/80">Then:</span>
+                  <Icon name={maneuverIcon(secondStep)} className="text-[17px] text-emerald-200" />
+                  <span className="truncate font-medium">{instruction(secondStep)}</span>
                 </div>
-                <span className="text-[11px] opacity-75 shrink-0 ml-2">Tap for steps</span>
+                <span className="text-[11px] text-emerald-200/70 shrink-0 ml-2">Tap for steps</span>
               </div>
             )}
           </div>
         ) : (
           /* Route info when turn guidance is resolving */
-          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between rounded-[20px] border border-border bg-card/95 px-4 py-2.5 shadow-float backdrop-blur-xs">
-            <div className="flex items-center gap-2.5">
+          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between rounded-[24px] border border-border/80 bg-card/95 px-4 py-3 shadow-float backdrop-blur-md">
+            <div className="flex items-center gap-3">
               <span
                 className={cn(
-                  "h-2.5 w-2.5 rounded-full animate-pulse",
+                  "h-3 w-3 rounded-full animate-pulse",
                   geo.state === "granted" ? "bg-leading" : "bg-caution",
                 )}
               />
               <div>
-                <div className="font-semibold text-[14px] leading-tight truncate max-w-[200px]">
+                <div className="font-semibold text-[15px] leading-tight text-foreground truncate max-w-[220px]">
                   {trip.name}
                 </div>
-                <div className="text-[12px] text-muted-foreground">
-                  {geo.state === "granted" ? "GPS Locked • Live Convoy" : "Connecting GPS..."}
+                <div className="text-[12px] text-muted-foreground mt-0.5">
+                  {geo.state === "granted" ? "GPS Connected • Live Convoy" : "Connecting GPS..."}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 font-mono">
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-[13px] font-bold">
-                {Math.round(meV.speedKmh)} km/h
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleLanguage}
+                className="flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-bold text-foreground hover:bg-secondary/80 transition-colors cursor-pointer"
+              >
+                <Icon name="translate" className="text-[14px]" />
+                <span>{lang.toUpperCase()}</span>
+              </button>
             </div>
           </div>
         )}
 
-        {/* Persistent In-App "Sharing location" Indicator & "Pause sharing" Toggle (frontend.md §5 & security.md) */}
-        <div className="pointer-events-auto flex w-full max-w-md items-center justify-between rounded-full border border-border bg-card/95 px-3 py-1.5 shadow-float backdrop-blur-xs text-[12px]">
-          <div className="flex items-center gap-2 truncate">
-            <span
-              className={cn(
-                "h-2.5 w-2.5 shrink-0 rounded-full",
-                geo.isSharing
-                  ? "bg-leading animate-pulse"
-                  : geo.isPaused
-                    ? "bg-caution"
-                    : "bg-muted",
-              )}
-            />
-            <span className="font-medium text-foreground truncate">
-              {geo.isPaused
-                ? t("locationPaused")
-                : geo.isSharing
-                  ? t("sharingLocation")
-                  : t("connectingGps")}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <button
-              onClick={geo.togglePause}
-              disabled={geo.state !== "granted"}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer",
-                geo.isPaused
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-secondary text-foreground hover:bg-secondary/80",
-              )}
-              title={geo.isPaused ? t("resumeSharing") : t("pauseSharing")}
-            >
-              {geo.isPaused ? t("resumeSharing") : t("pauseSharing")}
-            </button>
-
-            {/* Language toggle: EN / HI */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-bold text-foreground hover:bg-secondary transition-colors cursor-pointer"
-              title="Toggle English / हिंदी"
-            >
-              <Icon name="translate" className="text-[14px]" />
-              <span>{lang.toUpperCase()}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Google Maps POI Quick Filters Along Route */}
-        <div className="pointer-events-auto flex w-full max-w-md gap-1.5 overflow-x-auto pb-1 text-[13px] font-medium no-scrollbar">
+        {/* Sleek Horizontal Corridor Quick Filter Chips (Glassmorphic) */}
+        <div className="pointer-events-auto flex w-full max-w-md gap-2 overflow-x-auto pb-1 text-[13px] font-medium no-scrollbar">
           {CATEGORIES.map((c) => (
             <button
               key={c.id}
               onClick={() => void findNearby(c.id)}
               aria-pressed={nearbyCat === c.id}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-sm backdrop-blur-xs transition-colors",
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 shadow-sm transition-all cursor-pointer backdrop-blur-md border text-[12px] font-semibold",
                 nearbyCat === c.id
-                  ? "border-primary bg-primary text-primary-foreground font-semibold"
-                  : "border-border bg-card/95 text-foreground hover:bg-secondary",
+                  ? "border-primary bg-primary text-primary-foreground shadow-md scale-105"
+                  : "border-border/70 bg-card/90 text-foreground hover:bg-secondary/90 shadow-xs",
               )}
             >
-              <Icon name={c.icon} className="text-[17px]" />
+              <Icon name={c.icon} className="text-[16px]" />
               <span>{c.label}</span>
             </button>
           ))}
@@ -1308,6 +1350,34 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           <Icon name="layers" className="text-[22px]" />
         </button>
 
+        {/* Google Maps Floating Zoom Controls (+ / -) */}
+        <div className="flex flex-col rounded-full bg-card shadow-float border border-border/80 overflow-hidden divide-y divide-border/60">
+          <button
+            type="button"
+            aria-label="Zoom in"
+            onClick={() => setZoomAction({ dir: "in", ts: Date.now() })}
+            className={cn(
+              "flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer",
+              ctl,
+            )}
+            title="Zoom in"
+          >
+            <Icon name="add" className="text-[22px]" />
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom out"
+            onClick={() => setZoomAction({ dir: "out", ts: Date.now() })}
+            className={cn(
+              "flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer",
+              ctl,
+            )}
+            title="Zoom out"
+          >
+            <Icon name="remove" className="text-[22px]" />
+          </button>
+        </div>
+
         {/* Emergency SOS Long-press */}
         <button
           type="button"
@@ -1316,7 +1386,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           onPointerUp={sosRelease}
           onPointerLeave={sosRelease}
           className={cn(
-            "relative mt-2 flex items-center justify-center rounded-full bg-card text-alert shadow-float border border-alert/30 select-none",
+            "relative mt-1 flex items-center justify-center rounded-full bg-card text-alert shadow-float border border-alert/30 select-none cursor-pointer",
             ctl,
           )}
           title="Hold 1.2s for Convoy SOS"
@@ -1334,7 +1404,23 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               style={{ transitionDuration: sos === "holding" ? "1200ms" : "1ms" }}
             />
           </svg>
-          <span className="text-[12px] font-bold tracking-tight">SOS</span>
+          <span className="font-mono text-[13px] font-bold">SOS</span>
+        </button>
+      </div>
+
+      {/* Google Maps Floating "Report" Hazard Action Button (bottom right above dock, Image 2 style) */}
+      <div className="absolute right-3.5 bottom-28 z-20">
+        <button
+          type="button"
+          aria-label="Report Road Hazard"
+          onClick={() => setQuickOpen(true)}
+          className="flex items-center gap-2 rounded-full bg-[#1b241e]/90 text-white border border-white/20 px-3.5 py-2 shadow-float hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-md"
+          title="Broadcast road hazard or convoy alert"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
+            <Icon name="warning" className="text-[18px]" />
+          </span>
+          <span className="text-[13px] font-semibold tracking-wide pr-1">Report</span>
         </button>
       </div>
 
@@ -1804,77 +1890,60 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         )}
       </section>
 
-      {/* BOTTOM: Google Maps Driving Dock */}
-      <footer className="absolute inset-x-0 bottom-0 z-20 mx-auto flex h-[92px] max-w-xl items-center justify-between border-t border-border bg-card px-5 shadow-float">
-        {/* Left: Google Maps ETA Readout */}
-        <div
-          className="min-w-0 flex-1 cursor-pointer"
-          onClick={() => setSnap((s) => (s === 0 ? 1 : 0))}
+      {/* BOTTOM: Google Maps Driving Navigation Dock (Image 2 style) */}
+      <footer className="absolute inset-x-0 bottom-0 z-20 mx-auto flex h-[88px] max-w-xl items-center justify-between border-t border-border/80 bg-card/95 backdrop-blur-md px-4 shadow-float">
+        {/* Left: Google Maps Circular Exit Button */}
+        <button
+          type="button"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-destructive/15 hover:text-destructive active:scale-95 transition-all cursor-pointer shadow-xs border border-border/60"
+          onClick={() => setExitConfirm(true)}
+          aria-label="Exit Navigation"
+          title="Exit navigation"
         >
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[22px] font-bold text-leading leading-none">
+          <Icon name="close" className="text-[24px] font-bold" />
+        </button>
+
+        {/* Center: Large Google Maps ETA Readout */}
+        <div
+          className="min-w-0 flex-1 px-4 cursor-pointer text-center"
+          onClick={() => setRailOpen((o) => !o)}
+          title="Tap to view Convoy Rail and vehicle gaps"
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span className="font-mono text-[24px] sm:text-[26px] font-bold text-leading leading-tight tracking-tight">
               {estHours > 0 ? `${estHours} hr ${estMins} min` : `${estMins} min`}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-2 text-[13px] font-mono text-muted-foreground">
+          <div className="mt-0.5 flex items-center justify-center gap-2 text-[13px] font-mono text-muted-foreground">
             <span>{remainingKm} km</span>
             <span>•</span>
             <span>{etaTimeStr}</span>
           </div>
         </div>
 
-        {/* Center: Push-To-Talk Walkie-Talkie Button (frontend.md §8) */}
-        <div className="flex items-center justify-center px-2">
-          <button
-            aria-label={t("pttHold")}
-            aria-pressed={talking}
-            onPointerDown={() => {
-              setTalking(true);
-              playEarcon("start");
-              navigator.vibrate?.(40);
-            }}
-            onPointerUp={() => {
-              if (talking) playEarcon("end");
-              setTalking(false);
-              navigator.vibrate?.(30);
-            }}
-            onPointerLeave={() => {
-              if (talking) playEarcon("end");
-              setTalking(false);
-            }}
-            className={cn(
-              "relative -mt-6 flex h-16 w-16 touch-none select-none items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform duration-[120ms] cursor-pointer",
-              talking ? "scale-95 bg-primary-pressed ring-4 ring-primary/30" : "hover:scale-105",
-            )}
-            title={t("pttHold")}
-          >
-            {talking &&
-              [0, 400, 800].map((d) => (
-                <span
-                  key={d}
-                  className="ptt-ring absolute inset-0 rounded-full border-2 border-primary"
-                  style={{ animationDelay: `${d}ms` }}
-                />
-              ))}
-            <Icon name={talking ? "mic" : "mic_none"} className="text-[32px]" />
-          </button>
-        </div>
-
-        {/* Right: Quick Alerts & Red Exit Button */}
+        {/* Right: Convoy Rail Toggle & Group Chat */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-secondary/80 transition-colors cursor-pointer"
-            onClick={() => setQuickOpen(true)}
-            aria-label="Broadcast Quick Alert"
-            title="Quick Alerts"
+            className={cn(
+              "relative flex h-12 w-12 items-center justify-center rounded-full transition-all cursor-pointer border shadow-xs",
+              railOpen
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-secondary text-foreground border-border/60 hover:bg-secondary/80",
+            )}
+            onClick={() => setRailOpen((o) => !o)}
+            aria-label="Toggle Convoy Rail"
+            title="Convoy Rail & Vehicles"
           >
-            <Icon name="campaign" className="text-[24px]" />
+            <Icon name="timeline" className="text-[22px]" />
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-white px-1 text-[10px] font-bold">
+              {vehicles.length}
+            </span>
           </button>
 
           <button
             type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-secondary/80 transition-colors cursor-pointer"
+            className="relative flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-secondary/80 active:scale-95 transition-all cursor-pointer border border-border/60 shadow-xs"
             onClick={() => {
               setChatOpen(true);
               setUnread(0);
@@ -1889,28 +1958,108 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               </span>
             )}
           </button>
-
-          {/* Google Maps Red Circular Exit Button */}
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
-            onClick={() => setExitConfirm(true)}
-            aria-label="Exit Navigation"
-            title="Exit navigation"
-          >
-            <Icon name="close" className="text-[22px] font-bold" />
-          </button>
         </div>
       </footer>
 
-      {/* Active Speaker Identity Chip on Map (frontend.md §8) */}
-      {talking && (
-        <div className="banner-in pointer-events-none absolute bottom-28 inset-x-0 z-30 flex justify-center">
-          <div className="flex items-center gap-2.5 rounded-full bg-primary px-4 py-2 text-primary-foreground shadow-float text-[13px] font-medium border border-white/20 animate-pulse">
-            <VehicleChip letter={mine.letter} color={mine.color} size={24} />
-            <span className="font-semibold">{mine.displayName}</span>
-            <span className="text-[12px] opacity-90">• {t("pttTransmitting")}</span>
-            <Icon name="graphic_eq" className="text-[18px]" />
+      {/* Convoy Rail Slide-up Drawer */}
+      {railOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-end bg-black/40 backdrop-blur-xs"
+          onClick={() => setRailOpen(false)}
+        >
+          <div
+            className="screen-in mx-auto w-full max-w-xl rounded-t-[28px] border-t border-border bg-card p-5 pb-8 shadow-float space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Icon name="timeline" className="text-primary text-[22px]" />
+                <h3 className="text-[17px] font-semibold text-foreground">
+                  Convoy Vehicles & Timeline
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRailOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary text-muted-foreground cursor-pointer"
+              >
+                <Icon name="close" className="text-[20px]" />
+              </button>
+            </div>
+
+            {/* Signature Convoy Rail */}
+            <div className="py-2">
+              <ConvoyRail
+                members={vehicles.map((v) => ({
+                  id: v.id,
+                  letter: v.letter,
+                  color: v.color,
+                  progressM: v.progressM,
+                  status: statuses[v.id] ?? "following",
+                  isMe: v.isMe,
+                  name: v.name,
+                  vehicleType: v.vehicleType ?? "car",
+                }))}
+                routeM={routeM}
+                thresholdM={thresholdM}
+                onFocus={(id) => {
+                  setCamera({ mode: "focus", id });
+                  setRailOpen(false);
+                }}
+                origin={trip.origin}
+                destination={trip.destination}
+              />
+            </div>
+
+            {/* Vehicle Roster List */}
+            <div className="space-y-2">
+              <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Active Convoy Members ({vehicles.length})
+              </div>
+              <ul className="divide-y divide-border rounded-[18px] border border-border bg-secondary/30 overflow-hidden">
+                {sortedMembers.map((v) => (
+                  <li key={v.id}>
+                    <button
+                      type="button"
+                      className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-secondary/60 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setCamera({ mode: "focus", id: v.id });
+                        setRailOpen(false);
+                      }}
+                    >
+                      <VehicleChip
+                        letter={v.letter}
+                        color={v.color}
+                        vehicleType={v.vehicleType}
+                        size={36}
+                        ring={v.isMe ? "me" : "none"}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-[14px] text-foreground truncate">
+                            {v.name}
+                          </span>
+                          {v.isMe && (
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-1.5 py-0.5 rounded-full">
+                              You
+                            </span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            • {v.vehicleType === "bike" ? "Bike" : "Car"}
+                          </span>
+                        </div>
+                        <div className="text-[12px] text-muted-foreground truncate">
+                          {v.driver} • <StatusText s={statuses[v.id] ?? "following"} />
+                        </div>
+                      </div>
+                      <span className="font-mono text-[13px] font-semibold text-foreground shrink-0">
+                        {v.speedKmh > 0 ? `${Math.round(v.speedKmh)} km/h` : "Idle"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       )}

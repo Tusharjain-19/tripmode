@@ -22,9 +22,15 @@ export function JoinSteps({
   const [step, setStep] = useState<"vehicle" | "consent">("vehicle");
   const [displayName, setDisplayName] = useState(me.displayName || "Driver");
   const [vehicleLabel, setVehicleLabel] = useState(me.vehicleLabel || "My car");
-  const [color, setColor] = useState<VehicleColor>(me.color);
+  const [color, setColor] = useState<VehicleColor>(() => {
+    if (takenColors.includes(me.color)) {
+      const avail = VEHICLE_COLORS.find((c) => !takenColors.includes(c));
+      return avail ?? me.color;
+    }
+    return me.color;
+  });
   const [role, setRole] = useState<Role>(me.role);
-  const [vehicleType, setVehicleType] = useState<"car" | "bike">(me.vehicleType);
+  const [vehicleType, setVehicleType] = useState<"car" | "bike">(me.vehicleType || "car");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -81,7 +87,14 @@ export function JoinSteps({
           onChange={(e) => setVehicleLabel(e.target.value)}
         />
         <div>
-          <div className="mb-2 text-[14px] font-medium">Vehicle color</div>
+          <div className="mb-2 flex items-center justify-between text-[14px]">
+            <span className="font-medium">Vehicle color</span>
+            {takenColors.length > 0 && (
+              <span className="text-[12px] text-muted-foreground flex items-center gap-1">
+                <Icon name="lock" className="text-[14px]" /> Taken colors reserved
+              </span>
+            )}
+          </div>
           <div role="radiogroup" aria-label="Vehicle color" className="grid grid-cols-8 gap-2">
             {VEHICLE_COLORS.map((c, i) => {
               const taken = takenColors.includes(c);
@@ -91,20 +104,28 @@ export function JoinSteps({
                   type="button"
                   role="radio"
                   aria-checked={color === c}
-                  aria-label={`Color ${i + 1}${taken ? ", taken" : ""}`}
+                  aria-label={`Color ${i + 1}${taken ? ", already taken by another vehicle" : ""}`}
                   disabled={taken}
                   onClick={() => setColor(c)}
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded-[8px] disabled:opacity-25 cursor-pointer",
+                    "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs",
                     vehicleBg(c),
-                    color === c && "outline-2 outline-offset-2 outline-foreground",
+                    taken && "opacity-25 cursor-not-allowed grayscale ring-1 ring-border",
+                    color === c &&
+                      "outline-2 outline-offset-2 outline-foreground scale-105 shadow-sm",
                   )}
+                  title={taken ? "Taken by another member" : `Color ${i + 1}`}
                 >
                   {color === c && <Icon name="check" className="text-[20px]" />}
+                  {taken && <Icon name="lock" className="text-[14px] text-white absolute" />}
                 </button>
               );
             })}
           </div>
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
+            Each vehicle in the convoy has a unique color so members can instantly spot each other
+            on the map.
+          </p>
         </div>
         <div>
           <div className="mb-2 text-[14px] font-medium">You are the</div>
@@ -130,8 +151,13 @@ export function JoinSteps({
   return (
     <div className="screen-in space-y-5">
       <div className="flex items-center gap-3">
-        <VehicleChip letter="A" color={color} size={40} ring="me" />
-        <h2 className="text-[22px] font-semibold">Share your location for this trip?</h2>
+        <VehicleChip letter="A" color={color} vehicleType={vehicleType} size={44} ring="me" />
+        <div>
+          <h2 className="text-[22px] font-semibold leading-tight">Share your location?</h2>
+          <span className="text-[13px] text-muted-foreground font-medium">
+            {vehicleLabel} • {vehicleType === "bike" ? "Two-wheeler" : "Car"}
+          </span>
+        </div>
       </div>
       <ul className="space-y-3 rounded-[14px] border border-border bg-card p-4 text-[16px]">
         {[

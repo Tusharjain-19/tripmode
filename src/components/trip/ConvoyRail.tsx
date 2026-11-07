@@ -12,6 +12,7 @@ export type RailMember = {
   status: MemberStatus;
   isMe: boolean;
   name: string;
+  vehicleType?: "car" | "bike";
 };
 
 const CHIP = 28;
@@ -80,15 +81,21 @@ export function ConvoyRail({
             <button
               key={m.id}
               onClick={() => onFocus(m.id)}
-              className="rail-chip absolute -translate-x-1/2 group transition-transform active:scale-95"
+              className="rail-chip absolute -translate-x-1/2 group transition-transform active:scale-95 cursor-pointer"
               style={{
                 left: xOf(m.progressM),
                 top: chipZone - ((rows[m.id] ?? 0) + 1) * (CHIP + 4),
               }}
-              aria-label={`${m.name}, vehicle ${m.letter}, ${m.status}. Focus on map`}
-              title={`${m.name} (${m.letter}) - ${m.status}`}
+              aria-label={`${m.name}, vehicle ${m.vehicleType ?? "car"}, ${m.status}. Focus on map`}
+              title={`${m.name} (${m.vehicleType === "bike" ? "Bike" : "Car"}) - ${m.status}`}
             >
-              <VehicleChip letter={m.letter} color={m.color} size={CHIP} ring={ring} />
+              <VehicleChip
+                letter={m.letter}
+                color={m.color}
+                vehicleType={m.vehicleType}
+                size={CHIP}
+                ring={ring}
+              />
             </button>
           );
         })}

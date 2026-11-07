@@ -8,10 +8,12 @@ export function Icon({
   name,
   className,
   label,
+  style,
 }: {
   name: string;
-  className?: string;
-  label?: string;
+  className?: string | undefined;
+  label?: string | undefined;
+  style?: React.CSSProperties | undefined;
 }) {
   return (
     <span
@@ -19,6 +21,7 @@ export function Icon({
       aria-hidden={label ? undefined : true}
       aria-label={label}
       role={label ? "img" : undefined}
+      style={style}
     >
       {name}
     </span>
@@ -77,30 +80,39 @@ export const vehicleFill: Record<VehicleColor, string> = {
 export function VehicleChip({
   letter,
   color,
+  vehicleType = "car",
   size = 32,
   ring,
   className,
 }: {
-  letter: string;
+  letter?: string | undefined;
   color: VehicleColor;
-  size?: number;
-  ring?: "none" | "caution" | "alert" | "stale" | "me";
-  className?: string;
+  vehicleType?: "car" | "bike" | undefined;
+  size?: number | undefined;
+  ring?: "none" | "caution" | "alert" | "stale" | "me" | undefined;
+  className?: string | undefined;
 }) {
+  const iconSize = Math.max(14, Math.round(size * 0.58));
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-[8px] font-semibold",
+        "inline-flex shrink-0 items-center justify-center rounded-[10px] font-semibold transition-transform shadow-xs",
         vehicleBg(color),
         ring === "caution" && "outline-2 outline-dashed outline-offset-2 outline-caution",
         ring === "alert" && "outline-2 outline-solid outline-offset-2 outline-alert",
-        ring === "stale" && "outline-2 outline-dashed outline-offset-2 outline-tertiary grayscale",
-        ring === "me" && "outline-2 outline-solid outline-offset-2 outline-foreground",
+        ring === "stale" &&
+          "outline-2 outline-dashed outline-offset-2 outline-tertiary grayscale opacity-70",
+        ring === "me" && "outline-2 outline-solid outline-offset-2 outline-foreground shadow-sm",
         className,
       )}
-      style={{ width: size, height: size, fontSize: size * 0.45 }}
+      style={{ width: size, height: size }}
+      title={letter ? `Vehicle ${letter} (${vehicleType})` : `${vehicleType}`}
     >
-      {letter}
+      <Icon
+        name={vehicleType === "bike" ? "two_wheeler" : "directions_car"}
+        className="leading-none"
+        style={{ fontSize: `${iconSize}px` }}
+      />
     </span>
   );
 }

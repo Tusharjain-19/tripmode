@@ -85,6 +85,7 @@ export default function RouteMapInner({
   places = [],
   onPlaceClick,
   onUserPan,
+  zoomAction,
 }: RouteMapProps) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
@@ -318,6 +319,18 @@ export default function RouteMapInner({
     map.current?.setStyle(STYLES[mapStyle]);
   }, [mapStyle]);
 
+  // Handle external zoom controls (Google Maps + / - buttons)
+  useEffect(() => {
+    if (!zoomAction) return;
+    const m = map.current;
+    if (!m) return;
+    if (zoomAction.dir === "in") {
+      m.zoomIn({ duration: 300 });
+    } else {
+      m.zoomOut({ duration: 300 });
+    }
+  }, [zoomAction]);
+
   // Nearby place pins
   useEffect(() => {
     const m = map.current;
@@ -369,18 +382,20 @@ export default function RouteMapInner({
       }
       const node = entry.m.getElement();
       node.setAttribute("aria-label", v.label);
-      node.className = "relative flex flex-col items-center";
+      node.className = "relative flex flex-col items-center group cursor-pointer";
+      const isBike = v.vehicleType === "bike";
+      const vehicleIcon = isBike ? "two_wheeler" : "directions_car";
       node.innerHTML = `
-        ${v.isMe ? `<span class="absolute -inset-2.5 rounded-full bg-primary/20 animate-ping pointer-events-none"></span>` : ""}
-        <span class="relative flex h-9 w-9 items-center justify-center rounded-[10px] text-[16px] font-semibold ${vehicleBg(v.color)} ${v.isMe ? "ring-2 ring-primary ring-offset-2 ring-offset-card shadow-float" : (RING[v.ring] ?? "")}">
-          ${v.vehicleType === "bike" ? `<span class="ms text-[20px]">two_wheeler</span>` : v.letter}
-          <span class="absolute left-1/2 top-1/2 h-0 w-0" style="transform: rotate(${v.screenAngle}deg)">
-            <span class="absolute block h-0 w-0 border-y-[5px] border-l-[7px] border-y-transparent ${v.wedgeClass}" style="left:20px; top:-5px"></span>
+        ${v.isMe ? `<span class="absolute -inset-3 rounded-full bg-primary/25 animate-ping pointer-events-none"></span>` : ""}
+        <span class="relative flex h-10 w-10 items-center justify-center rounded-[12px] text-[18px] font-semibold ${vehicleBg(v.color)} ${v.isMe ? "ring-2 ring-primary ring-offset-2 ring-offset-card shadow-float" : (RING[v.ring] ?? "shadow-md")} transition-transform duration-150">
+          <span class="ms text-[22px] leading-none">${vehicleIcon}</span>
+          <span class="absolute left-1/2 top-1/2 h-0 w-0 pointer-events-none" style="transform: rotate(${v.screenAngle}deg)">
+            <span class="absolute block h-0 w-0 border-y-[6px] border-l-[9px] border-y-transparent ${v.wedgeClass}" style="left:21px; top:-6px"></span>
           </span>
         </span>
-        ${v.simulated ? `<span class="mt-1 rounded-[4px] bg-card px-1 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground shadow-float">Locating</span>` : ""}
-        ${v.name ? `<span class="mt-0.5 max-w-24 truncate whitespace-nowrap rounded-[4px] bg-card px-1.5 text-[11px] font-medium shadow-float">${esc(v.name)}</span>` : ""}
-        ${v.staleLabel ? `<span class="mt-0.5 whitespace-nowrap rounded-[4px] bg-card px-1 text-[11px] text-muted-foreground">${v.staleLabel}</span>` : ""}`;
+        ${v.name ? `<span class="mt-1 max-w-28 truncate whitespace-nowrap rounded-md bg-card/95 backdrop-blur-xs px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-float border border-border/70">${esc(v.name)}</span>` : ""}
+        ${v.simulated ? `<span class="mt-0.5 rounded-[4px] bg-secondary px-1 text-[9px] font-medium uppercase tracking-[0.06em] text-muted-foreground shadow-xs">Convoy</span>` : ""}
+        ${v.staleLabel ? `<span class="mt-0.5 whitespace-nowrap rounded-[4px] bg-card px-1.5 text-[10px] text-muted-foreground">${v.staleLabel}</span>` : ""}`;
     }
     markers.current.forEach((entry, id) => {
       if (!seen.has(id)) {

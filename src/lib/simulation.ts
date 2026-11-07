@@ -29,6 +29,7 @@ export type SimVehicle = {
   offRouteForS: number;
   arrivedAtS: number | null;
   stops: number;
+  vehicleType?: "car" | "bike";
   /** Real GPS position in local meters, when known. */
   realP?: Point;
   realHeading?: number;

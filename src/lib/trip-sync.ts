@@ -1,6 +1,7 @@
 // Backend sync for trips: create/join/load, live members, live positions and messages.
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { setRoutes, type RawRoute } from "./geo";
 import { tripStore, type Me, type TripConfig, type VehicleColor } from "./trip-store";
 
@@ -154,8 +155,27 @@ export async function updateTripRemote(
   await supabase.from("trips").update(p).eq("id", id);
 }
 
-export async function updateMemberRemote(tripId: string, userId: string, p: { ready?: boolean }) {
-  await supabase.from("trip_members").update(p).eq("trip_id", tripId).eq("user_id", userId);
+export async function updateMemberRemote(
+  tripId: string,
+  userId: string,
+  p: {
+    ready?: boolean;
+    vehicle_type?: "car" | "bike";
+    vehicle_label?: string;
+    display_name?: string;
+    color?: VehicleColor;
+    role?: "driver" | "passenger";
+  },
+) {
+  const updates: Database["public"]["Tables"]["trip_members"]["Update"] = {};
+  if (typeof p.ready === "boolean") updates.ready = p.ready;
+  if (p.vehicle_type) updates.vehicle_type = p.vehicle_type;
+  if (p.vehicle_label !== undefined) updates.vehicle_label = p.vehicle_label;
+  if (p.display_name !== undefined) updates.display_name = p.display_name;
+  if (p.color !== undefined) updates.color = p.color;
+  if (p.role !== undefined) updates.role = p.role;
+  if (Object.keys(updates).length === 0) return;
+  await supabase.from("trip_members").update(updates).eq("trip_id", tripId).eq("user_id", userId);
 }
 
 export async function setMemberApproval(tripId: string, userId: string, approved: boolean) {

@@ -2,9 +2,18 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { JoinSteps } from "@/components/trip/JoinSteps";
 import { RouteMap } from "@/components/trip/RouteMap";
-import { btn, Button, Icon, Screen, VehicleChip } from "@/components/trip/ui";
+import {
+  btn,
+  Button,
+  Field,
+  Icon,
+  Screen,
+  Segmented,
+  VehicleChip,
+  vehicleBg,
+} from "@/components/trip/ui";
 import { ROUTES } from "@/lib/geo";
-import { tripStore, useTrip } from "@/lib/trip-store";
+import { tripStore, useTrip, VEHICLE_COLORS, type VehicleColor } from "@/lib/trip-store";
 import { RequireAuth } from "@/components/trip/RequireAuth";
 import {
   joinTripRemote,
@@ -52,6 +61,17 @@ function Lobby({ session }: { session: Session }) {
   const others = members.filter((m) => m.userId !== uid && m.approved);
   const pending = members.filter((m) => m.userId !== uid && !m.approved);
   const isHost = trip?.hostId === uid;
+  const [customizing, setCustomizing] = useState(false);
+  const [customType, setCustomType] = useState<"car" | "bike">(
+    () => mine?.vehicleType ?? me.vehicleType ?? "car",
+  );
+  const [customLabel, setCustomLabel] = useState(
+    () => mine?.vehicleLabel ?? me.vehicleLabel ?? "My car",
+  );
+  const [customColor, setCustomColor] = useState<VehicleColor>(
+    () => mine?.color ?? me.color ?? "v1",
+  );
+  const takenColors = others.map((o) => o.color);
 
   if (!trip)
     return (
@@ -314,42 +334,68 @@ function Lobby({ session }: { session: Session }) {
 
             <ul className="divide-y divide-border rounded-[20px] border border-border bg-card shadow-sm overflow-hidden">
               {/* Current User */}
-              <li className="flex min-h-16 items-center gap-3 px-4 py-2.5 bg-primary/5">
+              <li className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-3 bg-primary/5">
                 <VehicleChip
                   letter={mine?.letter ?? "A"}
                   color={mine?.color ?? me.color}
+                  vehicleType={mine?.vehicleType ?? me.vehicleType}
                   ring="me"
-                  size={36}
+                  size={40}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-[15px] text-foreground">
-                    {me.vehicleLabel}{" "}
-                    <span className="text-[12px] font-medium text-primary">
-                      (You{isHost ? " • Host" : ""})
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-[15px] text-foreground truncate">
+                      {mine?.vehicleLabel ?? me.vehicleLabel}
+                    </span>
+                    <span className="text-[11px] font-semibold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
+                      You{isHost ? " • Host" : ""}
                     </span>
                   </div>
-                  <div className="text-[13px] text-muted-foreground">
-                    {me.displayName} • {me.role === "driver" ? "Driver" : "Passenger"} •{" "}
-                    {me.vehicleType === "bike" ? "Bike" : "Car"}
+                  <div className="text-[13px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                    <span>{me.displayName}</span>
+                    <span>•</span>
+                    <span className="font-medium text-foreground">
+                      {(mine?.vehicleType ?? me.vehicleType) === "bike"
+                        ? "Two-wheeler (Bike)"
+                        : "Car"}
+                    </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const r = !(mine?.ready ?? me.ready);
-                    tripStore.updateMe({ ready: r });
-                    if (trip.id) void updateMemberRemote(trip.id, uid, { ready: r });
-                  }}
-                  aria-pressed={mine?.ready ?? me.ready}
-                  className={cn(
-                    "min-h-10 rounded-full px-4 text-[13px] font-semibold transition-all shadow-xs cursor-pointer",
-                    (mine?.ready ?? me.ready)
-                      ? "bg-leading text-white shadow-leading/20"
-                      : "bg-secondary text-muted-foreground hover:bg-secondary/80",
-                  )}
-                >
-                  {(mine?.ready ?? me.ready) ? "Ready ✓" : "Tap when ready"}
-                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomType(mine?.vehicleType ?? me.vehicleType);
+                      setCustomLabel(mine?.vehicleLabel ?? me.vehicleLabel);
+                      setCustomColor(mine?.color ?? me.color);
+                      setCustomizing(true);
+                    }}
+                    className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-xs"
+                    title="Change vehicle type (car/bike) and color"
+                  >
+                    <Icon name="palette" className="text-[16px] text-primary" />
+                    <span>Change</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const r = !(mine?.ready ?? me.ready);
+                      tripStore.updateMe({ ready: r });
+                      if (trip.id) void updateMemberRemote(trip.id, uid, { ready: r });
+                    }}
+                    aria-pressed={mine?.ready ?? me.ready}
+                    className={cn(
+                      "min-h-9 rounded-full px-3.5 text-[12px] font-semibold transition-all shadow-xs cursor-pointer",
+                      (mine?.ready ?? me.ready)
+                        ? "bg-leading text-white shadow-leading/20"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80",
+                    )}
+                  >
+                    {(mine?.ready ?? me.ready) ? "Ready ✓" : "Tap when ready"}
+                  </button>
+                </div>
               </li>
 
               {/* Other Members */}
@@ -358,7 +404,12 @@ function Lobby({ session }: { session: Session }) {
                   key={o.userId}
                   className="flex min-h-16 items-center gap-3 px-4 py-2.5 hover:bg-secondary/20"
                 >
-                  <VehicleChip letter={o.letter} color={o.color} size={36} />
+                  <VehicleChip
+                    letter={o.letter}
+                    color={o.color}
+                    vehicleType={o.vehicleType}
+                    size={36}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-[15px] text-foreground">
                       {o.vehicleLabel}{" "}
@@ -384,6 +435,143 @@ function Lobby({ session }: { session: Session }) {
                 </li>
               ))}
             </ul>
+
+            {/* Inline Customizer Modal for Car/Bike and Color */}
+            {customizing && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+                <div className="w-full max-w-md rounded-[24px] border border-border bg-card p-6 shadow-float">
+                  <div className="flex items-center justify-between pb-3 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Icon name="tune" className="text-primary text-[22px]" />
+                      <h3 className="text-[18px] font-semibold text-foreground">
+                        Customize Your Vehicle
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomizing(false)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary text-muted-foreground cursor-pointer"
+                    >
+                      <Icon name="close" className="text-[20px]" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <div className="mb-2 text-[14px] font-medium text-foreground">
+                        Vehicle Type
+                      </div>
+                      <Segmented
+                        label="Vehicle Type"
+                        value={customType}
+                        onChange={(v) => {
+                          setCustomType(v);
+                          if (customLabel === "My car" || customLabel === "My bike") {
+                            setCustomLabel(v === "bike" ? "My bike" : "My car");
+                          }
+                        }}
+                        options={[
+                          { value: "car", label: "Car" },
+                          { value: "bike", label: "Bike" },
+                        ]}
+                      />
+                    </div>
+
+                    <Field
+                      label="Vehicle Label"
+                      value={customLabel}
+                      maxLength={24}
+                      onChange={(e) => setCustomLabel(e.target.value)}
+                      placeholder={customType === "bike" ? "e.g. Royal Enfield" : "e.g. Honda City"}
+                    />
+
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-[14px]">
+                        <span className="font-medium text-foreground">Convoy Color</span>
+                        <span className="text-[12px] text-muted-foreground flex items-center gap-1">
+                          <Icon name="lock" className="text-[14px]" /> Taken colors locked
+                        </span>
+                      </div>
+                      <div
+                        role="radiogroup"
+                        aria-label="Vehicle color"
+                        className="grid grid-cols-8 gap-2"
+                      >
+                        {VEHICLE_COLORS.map((c, i) => {
+                          const isTaken =
+                            takenColors.includes(c) && c !== (mine?.color ?? me.color);
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              role="radio"
+                              aria-checked={customColor === c}
+                              aria-label={`Color ${i + 1}${isTaken ? ", taken by another member" : ""}`}
+                              disabled={isTaken}
+                              onClick={() => setCustomColor(c)}
+                              className={cn(
+                                "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs",
+                                vehicleBg(c),
+                                isTaken &&
+                                  "opacity-25 cursor-not-allowed grayscale ring-1 ring-border",
+                                customColor === c &&
+                                  "outline-2 outline-offset-2 outline-foreground scale-105 shadow-sm",
+                              )}
+                              title={
+                                isTaken
+                                  ? "Already chosen by another convoy member"
+                                  : `Color ${i + 1}`
+                              }
+                            >
+                              {customColor === c && <Icon name="check" className="text-[20px]" />}
+                              {isTaken && (
+                                <Icon name="lock" className="text-[14px] text-white absolute" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-1.5 text-[12px] text-muted-foreground">
+                        Each vehicle in the convoy has a unique color so everyone is distinct on the
+                        live map.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="flex-1 cursor-pointer"
+                      onClick={() => setCustomizing(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 cursor-pointer"
+                      onClick={() => {
+                        const finalLabel =
+                          customLabel.trim() || (customType === "bike" ? "My bike" : "My car");
+                        tripStore.updateMe({
+                          vehicleType: customType,
+                          vehicleLabel: finalLabel,
+                          color: customColor,
+                        });
+                        if (trip.id) {
+                          void updateMemberRemote(trip.id, uid, {
+                            vehicle_type: customType,
+                            vehicle_label: finalLabel,
+                            color: customColor,
+                          });
+                        }
+                        setCustomizing(false);
+                      }}
+                    >
+                      Save Vehicle
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Departure Action Bar */}

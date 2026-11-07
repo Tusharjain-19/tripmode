@@ -426,14 +426,14 @@ function Home() {
 
             <div className="rounded-[16px] border border-border bg-card p-4 shadow-sm">
               <div className="flex items-center gap-2.5 text-primary">
-                <Icon name="mic" className="text-[22px]" />
+                <Icon name="warning" className="text-[22px]" />
                 <h4 className="font-semibold text-[15px] text-foreground">
-                  Push-To-Talk Walkie Talkie
+                  Instant Road Hazard Alerts
                 </h4>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                Hold-to-speak voice audio for drivers. Zero typing distraction on the road, with
-                earcon tone cues on connect.
+                One-tap driving safety signals (fuel, food, slow down, hazards). Zero typing
+                distraction on the road with audible vehicle cues.
               </p>
             </div>
 

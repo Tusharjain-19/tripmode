@@ -24,12 +24,16 @@ import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ProgressBar
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
 import androidx.core.app.NotificationCompat
 
 class MainActivity : Activity() {
@@ -41,6 +45,50 @@ class MainActivity : Activity() {
     private val PERMISSION_REQUEST_CODE = 1001
     private val NOTIFICATION_PERMISSION_CODE = 1002
     private val CHANNEL_ID = "trip_mode_convoy_alerts"
+    private var isOfflineState = false
+
+    private val offlineHtml = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+          <title>Offline - Trip Mode</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+            body { background-color: #000000; color: #f5f5f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
+            .icon-wrapper { width: 88px; height: 88px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; border: 1px solid rgba(239, 68, 68, 0.3); }
+            .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: #1a1a1a; border: 1px solid #333; font-size: 11px; font-weight: 600; color: #a3a3a3; letter-spacing: 0.05em; margin-bottom: 16px; }
+            .dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
+            h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; color: #ffffff; }
+            p { font-size: 14px; color: #a3a3a3; max-width: 320px; line-height: 1.5; margin-bottom: 28px; }
+            .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; max-width: 280px; height: 48px; border-radius: 24px; background: #1b5a47; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(27, 90, 71, 0.3); }
+            .btn:active { transform: scale(0.97); }
+            .tips { margin-top: 32px; background: #141414; border: 1px solid #262626; border-radius: 16px; padding: 16px; max-width: 320px; text-align: left; }
+            .tips-title { font-size: 11px; font-weight: 700; color: #737373; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+            .tip-item { font-size: 12px; color: #d4d4d4; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+            .tip-item:last-child { margin-bottom: 0; }
+          </style>
+        </head>
+        <body>
+          <div class="icon-wrapper">
+            <svg style="width:44px;height:44px;fill:#ef4444" viewBox="0 0 24 24"><path d="M23.64 7c-.45-.34-4.93-4-11.64-4-1.5 0-2.8.2-3.95.52l1.63 1.63C10.5 5.06 11.38 5 12 5c5.44 0 9.25 2.87 9.68 3.22L12 19.98 9.3 16.63l-1.42 1.42 3.42 4.25c.38.48 1.02.7 1.6.7s1.22-.22 1.6-.7L23.64 7zM3.41 1.86L2 3.27l2.06 2.06C2.26 6.2 1.05 7.15.36 7.7l11.63 14.54.01-.01.01.01 2.76-3.45 4.54 4.54 1.41-1.41L3.41 1.86z"/></svg>
+          </div>
+          <div class="badge"><span class="dot"></span>NO INTERNET</div>
+          <h1>You're Offline</h1>
+          <p>Live convoy map, vehicle tracking, and alerts will automatically resume once your signal returns.</p>
+          <button class="btn" onclick="window.location.reload()">
+            <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Reconnect Convoy
+          </button>
+          <div class="tips">
+            <div class="tips-title">Driver Diagnostics</div>
+            <div class="tip-item">• GPS hardware speedometer continues locally</div>
+            <div class="tip-item">• Reconnects automatically on cellular signal</div>
+          </div>
+        </body>
+        </html>
+    """.trimIndent()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,9 +149,32 @@ class MainActivity : Activity() {
 
         setupWebView()
 
-        // 5. Handle initial deep link intent if app was opened via link
+        // 5. Monitor network connectivity to automatically recover when signal returns
+        registerNetworkMonitor()
+
+        // 6. Handle initial deep link intent if app was opened via link
         val initialUrl = resolveIntentUrl(intent) ?: defaultBaseUrl
         webView.loadUrl(initialUrl)
+    }
+
+    private fun registerNetworkMonitor() {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        try {
+            val builder = NetworkRequest.Builder()
+            connectivityManager.registerNetworkCallback(builder.build(), object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    runOnUiThread {
+                        if (isOfflineState) {
+                            isOfflineState = false
+                            val targetUrl = resolveIntentUrl(intent) ?: defaultBaseUrl
+                            webView.loadUrl(targetUrl)
+                        }
+                    }
+                }
+            })
+        } catch (_: Exception) {
+            // Graceful fallback
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -214,6 +285,18 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    isOfflineState = true
+                    view?.loadDataWithBaseURL(null, offlineHtml, "text/html", "UTF-8", null)
+                }
             }
         }
     }

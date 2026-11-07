@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as LobbyRouteImport } from './routes/lobby'
+import { Route as OfflineRouteImport } from './routes/offline'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as TripRouteImport } from './routes/trip'
@@ -36,6 +37,11 @@ const CreateRoute = CreateRouteImport.update({
 const LobbyRoute = LobbyRouteImport.update({
   id: '/lobby',
   path: '/lobby',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfflineRoute = OfflineRouteImport.update({
+  id: '/offline',
+  path: '/offline',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/create': typeof CreateRoute
   '/lobby': typeof LobbyRoute
+  '/offline': typeof OfflineRoute
   '/reset-password': typeof ResetPasswordRoute
   '/summary': typeof SummaryRoute
   '/trip': typeof TripRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/create': typeof CreateRoute
   '/lobby': typeof LobbyRoute
+  '/offline': typeof OfflineRoute
   '/reset-password': typeof ResetPasswordRoute
   '/summary': typeof SummaryRoute
   '/trip': typeof TripRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/create': typeof CreateRoute
   '/lobby': typeof LobbyRoute
+  '/offline': typeof OfflineRoute
   '/reset-password': typeof ResetPasswordRoute
   '/summary': typeof SummaryRoute
   '/trip': typeof TripRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/create'
     | '/lobby'
+    | '/offline'
     | '/reset-password'
     | '/summary'
     | '/trip'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/create'
     | '/lobby'
+    | '/offline'
     | '/reset-password'
     | '/summary'
     | '/trip'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/create'
     | '/lobby'
+    | '/offline'
     | '/reset-password'
     | '/summary'
     | '/trip'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   CreateRoute: typeof CreateRoute
   LobbyRoute: typeof LobbyRoute
+  OfflineRoute: typeof OfflineRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SummaryRoute: typeof SummaryRoute
   TripRoute: typeof TripRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/lobby'
       fullPath: '/lobby'
       preLoaderRoute: typeof LobbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offline': {
+      id: '/offline'
+      path: '/offline'
+      fullPath: '/offline'
+      preLoaderRoute: typeof OfflineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   CreateRoute: CreateRoute,
   LobbyRoute: LobbyRoute,
+  OfflineRoute: OfflineRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SummaryRoute: SummaryRoute,
   TripRoute: TripRoute,

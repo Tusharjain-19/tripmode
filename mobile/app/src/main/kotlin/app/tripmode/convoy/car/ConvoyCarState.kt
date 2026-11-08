@@ -71,3 +71,4 @@ object ConvoyCarState {
         onStateChanged?.invoke()
     }
 }
+

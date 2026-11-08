@@ -251,9 +251,26 @@ class MainActivity : Activity() {
             }
 
             override fun onPermissionRequest(request: PermissionRequest?) {
-                // Grant microphone permission for in-app Push-to-Talk
+                // Grant microphone and camera permission for in-app Push-to-Talk and QR scanner
                 runOnUiThread {
-                    request?.grant(request.resources)
+                    val resources = request?.resources ?: return@runOnUiThread
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        val needPerms = mutableListOf<String>()
+                        if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE) &&
+                            checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            needPerms.add(Manifest.permission.CAMERA)
+                        }
+                        if (resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE) &&
+                            checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            needPerms.add(Manifest.permission.RECORD_AUDIO)
+                        }
+                        if (needPerms.isNotEmpty()) {
+                            requestPermissions(needPerms.toTypedArray(), PERMISSION_REQUEST_CODE)
+                        }
+                    }
+                    request.grant(resources)
                 }
             }
         }
@@ -379,15 +396,15 @@ class MainActivity : Activity() {
             val permissionsList = mutableListOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA
+                Manifest.permission.CAMERA,
+                Manifest.permission.RECORD_AUDIO
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 permissionsList.add(Manifest.permission.POST_NOTIFICATIONS)
             }
-            val needRequest = permissionsList.any { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
-            if (needRequest) {
-                requestPermissions(permissionsList.toTypedArray(), PERMISSION_REQUEST_CODE)
+            val ungranted = permissionsList.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+            if (ungranted.isNotEmpty()) {
+                requestPermissions(ungranted.toTypedArray(), PERMISSION_REQUEST_CODE)
             }
         }
     }
@@ -491,6 +508,17 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun clearCarSos() {
             app.tripmode.convoy.car.ConvoyCarState.clearSos()
+        }
+
+        @JavascriptInterface
+        fun requestCameraPermission() {
+            runOnUiThread {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        requestPermissions(arrayOf(Manifest.permission.CAMERA), PERMISSION_REQUEST_CODE)
+                    }
+                }
+            }
         }
     }
 }

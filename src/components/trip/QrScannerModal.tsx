@@ -60,6 +60,15 @@ export function QrScannerModal({ open, onClose, onScan }: Props) {
     setErrorMsg(null);
     setHasPermission(null);
 
+    // If running in native Android app container, trigger native permission prompt
+    try {
+      (
+        window as unknown as { AndroidBridge?: { requestCameraPermission?: () => void } }
+      ).AndroidBridge?.requestCameraPermission?.();
+    } catch {
+      // ignore
+    }
+
     try {
       if (!navigator?.mediaDevices?.getUserMedia) {
         throw new Error("Camera API is not supported on this device/browser.");

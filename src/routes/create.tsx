@@ -199,8 +199,8 @@ function CreateInner({ session }: { session: Session }) {
       });
 
       lastCreatedTime.current = now;
-      tripStore.updateMe({ consentAt: null, ready: false });
-      await createTripRemote(t, raw, session.user.id);
+      tripStore.updateMe({ consentAt: now, ready: false });
+      await createTripRemote(t, raw, session.user.id, tripStore.get().me);
       nav({ to: "/lobby" });
     } catch (e) {
       setRouteErr(

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { JoinSteps } from "@/components/trip/JoinSteps";
 import { ShareCardModal } from "@/components/trip/ShareCardModal";
@@ -26,7 +26,9 @@ import {
   updateTripRemote,
   useMembers,
   useRestoreTrip,
+  type Member,
 } from "@/lib/trip-sync";
+import { soundFx } from "@/lib/sound";
 import type { Session } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
 
@@ -65,15 +67,45 @@ function Lobby({ session }: { session: Session }) {
   const others = members.filter((m) => m.userId !== uid && m.approved);
   const pending = members.filter((m) => m.userId !== uid && !m.approved);
   const isHost = trip?.hostId === uid;
+
+  // Sound chime when a new member joins the pending approval queue
+  const prevPendingCount = useRef(pending.length);
+  useEffect(() => {
+    if (isHost && pending.length > prevPendingCount.current) {
+      soundFx.alertChime();
+    }
+    prevPendingCount.current = pending.length;
+  }, [pending.length, isHost]);
+
+  // Host self-heal: auto-enroll host into trip_members if missing
+  useEffect(() => {
+    if (trip && isHost && !mine) {
+      void joinTripRemote(trip.inviteCode, me).catch(() => undefined);
+    }
+  }, [trip, isHost, mine, me]);
+
+  // Effective vehicle record for current user (with host fallback)
+  const effectiveMine: Member = mine ?? {
+    userId: uid,
+    letter: "A",
+    displayName: me.displayName || "Host",
+    vehicleLabel: me.vehicleLabel || "Lead Vehicle",
+    vehicleType: me.vehicleType || "car",
+    color: me.color || "v1",
+    role: "driver",
+    ready: me.ready,
+    approved: true,
+  };
+
   const [customizing, setCustomizing] = useState(false);
   const [customType, setCustomType] = useState<"car" | "bike">(
-    () => mine?.vehicleType ?? me.vehicleType ?? "car",
+    () => effectiveMine.vehicleType ?? "car",
   );
   const [customLabel, setCustomLabel] = useState(
-    () => mine?.vehicleLabel ?? me.vehicleLabel ?? "My car",
+    () => effectiveMine.vehicleLabel ?? "My car",
   );
   const [customColor, setCustomColor] = useState<VehicleColor>(
-    () => mine?.color ?? me.color ?? "v1",
+    () => effectiveMine.color ?? "v1",
   );
   const takenColors = others.map((o) => o.color);
 
@@ -115,7 +147,8 @@ function Lobby({ session }: { session: Session }) {
       </Screen>
     );
 
-  if (!mine) {
+  // Non-host visitors must select vehicle and give explicit per-trip location consent
+  if (!mine && !isHost) {
     if (!me.consentAt) {
       return (
         <Screen title={trip.name} back="/" maxWidth="max-w-lg">
@@ -142,7 +175,8 @@ function Lobby({ session }: { session: Session }) {
     );
   }
 
-  if (mine && !mine.approved)
+  // Non-host members waiting for host approval
+  if (mine && !mine.approved && !isHost)
     return (
       <Screen title={trip.name} back="/" maxWidth="max-w-lg">
         <div className="flex flex-col items-center justify-center p-6 text-center">
@@ -210,7 +244,7 @@ function Lobby({ session }: { session: Session }) {
   };
 
   const activeRoute = ROUTES[trip.routeIndex] ?? ROUTES[0];
-  const allReady = (mine?.ready ?? me.ready) && others.length > 0 && others.every((o) => o.ready);
+  const allReady = (effectiveMine.ready ?? me.ready) && others.length > 0 && others.every((o) => o.ready);
 
   return (
     <Screen
@@ -226,6 +260,66 @@ function Lobby({ session }: { session: Session }) {
         </div>
       }
     >
+      {/* Convoy Hero Header: Room Code & Immediate WhatsApp/Share Trigger */}
+      <div className="mb-6 rounded-[22px] border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[20px] sm:text-[22px] font-bold tracking-wider text-primary bg-card px-3.5 py-1 rounded-xl border border-primary/20 shadow-xs">
+                {trip.inviteCode}
+              </span>
+              <button
+                type="button"
+                onClick={share}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-card text-[12px] font-semibold text-foreground hover:bg-secondary cursor-pointer shadow-xs active:scale-95 transition-all"
+                title="Copy invite link"
+              >
+                <Icon name={copied ? "check" : "content_copy"} className="text-[15px] text-primary" />
+                <span>{copied ? "Copied!" : "Copy Link"}</span>
+              </button>
+            </div>
+            <p className="mt-2 text-[13px] text-muted-foreground">
+              Share this code or tap WhatsApp below. Friends can enter this code in the app or open the link directly.
+            </p>
+          </div>
+
+          {/* Quick Share Buttons */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+            <a
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                `Join our live convoy on Trip Mode!\n\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Room Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}\n\nOr open Trip Mode and enter room code: ${trip.inviteCode}`,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-[#25D366] text-white font-semibold text-[13px] hover:bg-[#20ba59] active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            >
+              <Icon name="chat" className="text-[18px]" />
+              <span>Share on WhatsApp</span>
+            </a>
+
+            <Button
+              size="md"
+              onClick={share}
+              className="flex-1 sm:flex-initial h-11 px-4 cursor-pointer whitespace-nowrap"
+            >
+              <Icon name="share" className="text-[18px]" />
+              <span>Share Link</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setShareCardOpen(true)}
+              className="h-11 px-3.5 cursor-pointer whitespace-nowrap"
+              title="QR Code & Social Card Poster"
+            >
+              <Icon name="qr_code_2" className="text-[18px]" />
+              <span>QR Poster</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Responsive Cockpit Layout: 12-Column Grid on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Left Column: Route Overview & Share Card (Col 1 to 6) */}
@@ -333,47 +427,70 @@ function Lobby({ session }: { session: Session }) {
 
         {/* Right Column: Approvals, Roster & Depart (Col 7 to 12) */}
         <div className="lg:col-span-6 space-y-5">
-          {/* Pending Approval Section */}
-          {isHost && pending.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="overline text-caution font-semibold">
-                  Waiting for your approval ({pending.length})
-                </h2>
+          {/* Pending Approval Section for Host */}
+          {isHost && (
+            <section className="rounded-[20px] border border-caution/50 bg-caution/5 p-4 sm:p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={cn("flex h-2.5 w-2.5 rounded-full bg-caution", pending.length > 0 && "animate-ping")} />
+                  <h2 className="text-[15px] sm:text-[16px] font-semibold text-foreground">
+                    Waiting for your approval ({pending.length})
+                  </h2>
+                </div>
+                {pending.length > 0 && (
+                  <span className="text-[11px] font-bold text-caution bg-caution/15 px-2.5 py-0.5 rounded-full">
+                    Action Required
+                  </span>
+                )}
               </div>
-              <ul className="divide-y divide-border rounded-[18px] border border-caution/60 bg-caution/5 overflow-hidden">
-                {pending.map((o) => (
-                  <li
-                    key={o.userId}
-                    className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-2.5"
-                  >
-                    <VehicleChip letter={o.letter} color={o.color} />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-[15px]">{o.displayName}</div>
-                      <div className="text-[13px] text-muted-foreground">
-                        {o.vehicleLabel} • {o.vehicleType === "bike" ? "Two-wheeler" : "Car"}
+
+              {pending.length === 0 ? (
+                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border/70 text-[13px] text-muted-foreground shadow-2xs">
+                  <Icon name="group_add" className="text-[22px] text-primary shrink-0" />
+                  <span>Friends joining with convoy code <strong className="font-mono text-foreground">{trip.inviteCode}</strong> will appear here for one-tap approval.</span>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/60 rounded-[16px] border border-border bg-card overflow-hidden shadow-xs">
+                  {pending.map((o) => (
+                    <li
+                      key={o.userId}
+                      className="flex min-h-16 flex-wrap items-center justify-between gap-3 p-3.5 hover:bg-secondary/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <VehicleChip letter={o.letter} color={o.color} size={38} />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[15px] text-foreground truncate">
+                            {o.displayName}
+                          </div>
+                          <div className="text-[13px] text-muted-foreground flex items-center gap-1.5">
+                            <span className="font-medium text-foreground">{o.vehicleLabel}</span>
+                            <span>•</span>
+                            <span className="capitalize">{o.vehicleType === "bike" ? "Two-wheeler" : "Car"}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Button
-                        size="md"
-                        className="h-9 px-3 text-[13px] cursor-pointer"
-                        onClick={() => void setMemberApproval(trip.id!, o.userId, true)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="quiet"
-                        size="md"
-                        className="h-9 px-3 text-[13px] cursor-pointer"
-                        onClick={() => void removeMemberRemote(trip.id!, o.userId)}
-                      >
-                        Decline
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                        <Button
+                          variant="quiet"
+                          size="md"
+                          className="h-9 px-3 text-[13px] text-alert hover:bg-alert/10 cursor-pointer"
+                          onClick={() => void removeMemberRemote(trip.id!, o.userId)}
+                        >
+                          Decline
+                        </Button>
+                        <Button
+                          size="md"
+                          className="h-9 px-4 text-[13px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
+                          onClick={() => void setMemberApproval(trip.id!, o.userId, true)}
+                        >
+                          <Icon name="check" className="text-[16px]" />
+                          Approve
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 
@@ -395,16 +512,16 @@ function Lobby({ session }: { session: Session }) {
               <li className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-primary/5">
                 <div className="flex items-center gap-3.5 min-w-0">
                   <VehicleChip
-                    letter={mine?.letter ?? "A"}
-                    color={mine?.color ?? me.color}
-                    vehicleType={mine?.vehicleType ?? me.vehicleType}
+                    letter={effectiveMine.letter ?? "A"}
+                    color={effectiveMine.color ?? me.color}
+                    vehicleType={effectiveMine.vehicleType ?? me.vehicleType}
                     ring="me"
                     size={42}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-[15px] text-foreground truncate">
-                        {mine?.vehicleLabel ?? me.vehicleLabel}
+                        {effectiveMine.vehicleLabel ?? me.vehicleLabel}
                       </span>
                       <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
                         You{isHost ? " • Host" : ""}
@@ -414,7 +531,7 @@ function Lobby({ session }: { session: Session }) {
                       <span>{me.displayName}</span>
                       <span>•</span>
                       <span className="font-medium text-foreground">
-                        {(mine?.vehicleType ?? me.vehicleType) === "bike"
+                        {(effectiveMine.vehicleType ?? me.vehicleType) === "bike"
                           ? "Two-wheeler (Bike)"
                           : "Car"}
                       </span>
@@ -426,9 +543,9 @@ function Lobby({ session }: { session: Session }) {
                   <button
                     type="button"
                     onClick={() => {
-                      setCustomType(mine?.vehicleType ?? me.vehicleType);
-                      setCustomLabel(mine?.vehicleLabel ?? me.vehicleLabel);
-                      setCustomColor(mine?.color ?? me.color);
+                      setCustomType(effectiveMine.vehicleType ?? me.vehicleType);
+                      setCustomLabel(effectiveMine.vehicleLabel ?? me.vehicleLabel);
+                      setCustomColor(effectiveMine.color ?? me.color);
                       setCustomizing(true);
                     }}
                     className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-xs whitespace-nowrap"
@@ -441,19 +558,19 @@ function Lobby({ session }: { session: Session }) {
                   <button
                     type="button"
                     onClick={() => {
-                      const r = !(mine?.ready ?? me.ready);
+                      const r = !(effectiveMine.ready ?? me.ready);
                       tripStore.updateMe({ ready: r });
                       if (trip.id) void updateMemberRemote(trip.id, uid, { ready: r });
                     }}
-                    aria-pressed={mine?.ready ?? me.ready}
+                    aria-pressed={effectiveMine.ready ?? me.ready}
                     className={cn(
                       "min-h-9 shrink-0 rounded-full px-3.5 text-[12px] font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap",
-                      (mine?.ready ?? me.ready)
+                      (effectiveMine.ready ?? me.ready)
                         ? "bg-leading text-white shadow-leading/20"
                         : "bg-secondary text-muted-foreground hover:bg-secondary/80",
                     )}
                   >
-                    {(mine?.ready ?? me.ready) ? "Ready ✓" : "Tap when ready"}
+                    {(effectiveMine.ready ?? me.ready) ? "Ready ✓" : "Tap when ready"}
                   </button>
                 </div>
               </li>

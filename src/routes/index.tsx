@@ -139,11 +139,11 @@ function Home() {
           <button
             type="button"
             onClick={() => setJoinModal(true)}
-            className="flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-border bg-card text-[13px] font-semibold text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-3.5 rounded-full border border-border bg-card text-[12px] sm:text-[13px] font-semibold text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer shadow-xs"
             title="Join with convoy code"
           >
             <Icon name="pin" className="text-[17px] text-primary" />
-            <span className="hidden sm:inline">Join with Code</span>
+            <span>Join with Code</span>
           </button>
 
           {/* Night Driving / Theme Toggle */}

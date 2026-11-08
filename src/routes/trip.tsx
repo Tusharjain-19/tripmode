@@ -1,6 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvoyRail } from "@/components/trip/ConvoyRail";
+import { OledHud } from "@/components/trip/OledHud";
+import { soundFx } from "@/lib/sound";
+import { usePushToTalk, playVoiceClip } from "@/lib/voice-ptt";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
 import { formatKm, gapsToLeader, pointAt, statusMessage, type MemberStatus } from "@/lib/convoy";
@@ -243,6 +246,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [audioMode, setAudioMode] = useState<"all" | "alerts" | "mute">("all");
   const [zoomAction, setZoomAction] = useState<{ dir: "in" | "out"; ts: number } | undefined>();
   const [railOpen, setRailOpen] = useState(false);
+  const [oledHudOpen, setOledHudOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [exitConfirm, setExitConfirm] = useState(false);
   const chatOpenRef = useRef(false);
@@ -278,8 +282,23 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       })();
     const who = from?.driver ?? "A member";
     if (m.kind === "chat") {
-      if (!chatOpenRef.current) setUnread((u) => u + 1);
+      if (m.body.startsWith("ptt::")) {
+        // Voice PTT transmission
+        const base64 = m.body.slice(5);
+        soundFx.pttCloseChime();
+        playVoiceClip(base64);
+        showBanner({
+          kind: "quick",
+          text: `Voice transmission from ${who}`,
+          tone: "info",
+          from,
+          ackable: true,
+        });
+      } else {
+        if (!chatOpenRef.current) setUnread((u) => u + 1);
+      }
     } else if (m.kind === "quick") {
+      soundFx.alertChime();
       showBanner({
         kind: "quick",
         text: `${who}: ${m.body}`,
@@ -292,6 +311,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         speechSynthesis.speak(new SpeechSynthesisUtterance(`${who} says: ${m.body}`));
       }
     } else {
+      soundFx.alertChime();
       showBanner({ kind: "sos", text: `SOS from ${who}. ${m.body}`, tone: "alert", from });
       navigator.vibrate?.([200, 100, 200]);
       if (typeof speechSynthesis !== "undefined") {
@@ -563,6 +583,13 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     return next;
   };
 
+  const ptt = usePushToTalk({
+    onSendClip: async (base64Audio) => {
+      showBanner({ kind: "sent", text: "Transmitted voice clip to convoy", tone: "info" });
+      await sendMessage(trip.id!, uid, "chat", `ptt::${base64Audio}`);
+    },
+  });
+
   const sendQuick = (label: string) => {
     if (Date.now() - lastQuickSent.current < 5000) {
       showBanner({
@@ -810,6 +837,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       band === "now"
         ? instruction(nextStep)
         : `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`;
+    soundFx.navChime();
     speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   }, [nextStep, toNextM, stepIdx, audioMode]);
 
@@ -1294,6 +1322,20 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           <Icon name="layers" className="text-[22px]" />
         </button>
 
+        {/* OLED Battery Saver Mode Toggle */}
+        <button
+          type="button"
+          aria-label="OLED Battery Saver HUD"
+          onClick={() => setOledHudOpen(true)}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer text-amber-500",
+            ctl,
+          )}
+          title="OLED Battery Saver HUD"
+        >
+          <Icon name="battery_saver" className="text-[22px]" />
+        </button>
+
         {/* Google Maps Floating Zoom Controls (+ / -) */}
         <div className="flex flex-col rounded-full bg-card shadow-float border border-border/80 overflow-hidden divide-y divide-border/60">
           <button
@@ -1349,6 +1391,35 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             />
           </svg>
           <span className="font-mono text-[13px] font-bold">SOS</span>
+        </button>
+      </div>
+
+      {/* Floating Push-to-Talk (PTT) Walkie-Talkie Button (bottom center above dock) */}
+      <div className="absolute inset-x-0 bottom-26 z-20 flex justify-center pointer-events-none">
+        <button
+          type="button"
+          aria-label="Push-to-Talk Walkie Talkie"
+          onPointerDown={() => void ptt.startTalking()}
+          onPointerUp={ptt.stopTalking}
+          onPointerLeave={ptt.stopTalking}
+          className={cn(
+            "pointer-events-auto flex items-center gap-2.5 rounded-full px-5 py-2.5 shadow-float transition-all select-none cursor-pointer border backdrop-blur-md active:scale-95",
+            ptt.isRecording
+              ? "bg-alert text-white border-alert/80 ring-4 ring-alert/30 scale-105"
+              : "bg-[#143d30]/95 text-white border-white/20 hover:bg-[#143d30]",
+          )}
+          title="Press & hold to transmit live voice to convoy"
+        >
+          <span
+            className={cn(
+              "flex h-3 w-3 rounded-full",
+              ptt.isRecording ? "bg-white animate-ping" : "bg-emerald-400",
+            )}
+          />
+          <Icon name="mic" className="text-[20px]" />
+          <span className="text-[13px] font-semibold tracking-wide">
+            {ptt.isRecording ? `Transmitting (${ptt.recordingSeconds}s)...` : "Hold to Talk (PTT)"}
+          </span>
         </button>
       </div>
 
@@ -2051,6 +2122,25 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             </div>
           </div>
         </div>
+      )}
+
+      {/* OLED Battery Saver Mode Overlay */}
+      {oledHudOpen && (
+        <OledHud
+          speedKmh={
+            geo.fix?.speedMs != null && geo.fix.speedMs >= 0
+              ? geo.fix.speedMs * 3.6
+              : meV.speedKmh
+          }
+          speedLimit={80}
+          nextInstruction={nextStep ? instruction(nextStep) : undefined}
+          nextManeuverIcon={nextStep ? maneuverIcon(nextStep) : undefined}
+          distanceToNextM={toNextM}
+          leaderGapKm={sortedMembers[0] && sortedMembers[0].id !== meV.id ? gaps[meV.id] ?? null : null}
+          etaMinutes={estMinutes}
+          convoyMembersCount={vehicles.length}
+          onExit={() => setOledHudOpen(false)}
+        />
       )}
 
       {/* Exit Navigation Confirmation Dialog */}

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { JoinSteps } from "@/components/trip/JoinSteps";
+import { ShareCardModal } from "@/components/trip/ShareCardModal";
 import { RouteMap } from "@/components/trip/RouteMap";
 import {
   btn,
@@ -57,6 +58,7 @@ function Lobby({ session }: { session: Session }) {
   const nav = useNavigate();
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>("");
   const members = useMembers(trip?.id);
   const mine = members.find((m) => m.userId === uid);
@@ -289,6 +291,15 @@ function Lobby({ session }: { session: Session }) {
               >
                 <Icon name={copied ? "check" : "share"} />
                 {copied ? "Link Copied!" : "Share Link"}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShareCardOpen(true)}
+                className="cursor-pointer bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 hover:bg-[#25D366]/20"
+                title="WhatsApp & Social Card Poster"
+              >
+                <Icon name="chat" />
+                WhatsApp Card
               </Button>
               <Button
                 variant="secondary"
@@ -699,6 +710,18 @@ function Lobby({ session }: { session: Session }) {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* WhatsApp & Social Card Poster Modal */}
+      {shareCardOpen && (
+        <ShareCardModal
+          tripName={trip.name}
+          destination={trip.destination}
+          inviteCode={trip.inviteCode}
+          memberCount={members.length}
+          qrSvg={qrSvg}
+          onClose={() => setShareCardOpen(false)}
+        />
       )}
     </Screen>
   );

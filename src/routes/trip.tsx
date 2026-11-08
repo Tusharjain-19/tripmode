@@ -6,6 +6,8 @@ import { NavSettingsModal } from "@/components/trip/NavSettingsModal";
 import { SosSenderModal } from "@/components/trip/SosSenderModal";
 import { SosReceiverModal, type ActiveSosAlert } from "@/components/trip/SosReceiverModal";
 import { VehicleDetailModal } from "@/components/trip/VehicleDetailModal";
+import { QrScannerModal } from "@/components/trip/QrScannerModal";
+import { ShareCardModal } from "@/components/trip/ShareCardModal";
 import { soundFx } from "@/lib/sound";
 import { usePushToTalk, playVoiceClip } from "@/lib/voice-ptt";
 import {
@@ -296,6 +298,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   };
   const [customDest, setCustomDest] = useState<CustomDestination | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<SimVehicle | null>(null);
+  const [resetNorthKey, setResetNorthKey] = useState(0);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
+
+  const handleResetNorth = useCallback(() => {
+    navigator.vibrate?.(30);
+    setBearing(0);
+    setResetNorthKey((k) => k + 1);
+    setCamera({ mode: "north" });
+  }, []);
 
   const lastAlert = useRef<Record<string, number>>({});
   const prevStatus = useRef<Record<string, MemberStatus>>({});
@@ -1073,6 +1085,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           if (found) setSelectedPlace(found);
         }}
         onBearingChange={setBearing}
+        resetNorthKey={resetNorthKey}
         onUserPan={handleUserPan}
         zoomAction={zoomAction}
         mapStyle={mapStyle}
@@ -1483,34 +1496,44 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       )}
 
-      {/* RIGHT: Focused Driving Action Stack */}
-      <div className="absolute right-3.5 top-36 z-20 flex flex-col gap-2.5">
-        {/* Dynamic Compass: Rotates with bearing; tap to reset north */}
+      {/* Dynamic Navigation Compass Rose (Positioned distinctly on top-left below turn guidance) */}
+      <div className="absolute left-3.5 top-[calc(max(env(safe-area-inset-top),16px)+148px)] z-20">
         <button
           type="button"
-          aria-label="Compass: Reset North"
-          onClick={() => {
-            setCamera({ mode: "north" });
-            setTimeout(() => setCamera({ mode: "follow" }), 600);
-          }}
+          aria-label="Compass: Tap to point North"
+          onClick={handleResetNorth}
           className={cn(
-            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer",
+            "flex flex-col items-center justify-center rounded-2xl bg-card/95 shadow-float border border-border/80 transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md p-2",
             ctl,
           )}
-          title={`Orientation: ${Math.round(bearing)}°`}
+          title={`Heading: ${Math.round(bearing)}° • Tap to point North`}
         >
           <div
-            style={{ transform: `rotate(${-bearing}deg)`, transition: "transform 200ms ease-out" }}
-            className="flex flex-col items-center justify-center"
+            style={{
+              transform: `rotate(${-bearing}deg)`,
+              transition: "transform 150ms ease-out",
+            }}
+            className="relative flex h-7 w-7 items-center justify-center"
           >
-            <span className="block h-3 w-1 bg-alert rounded-t-sm" />
-            <span className="block h-3 w-1 bg-muted-foreground rounded-b-sm" />
+            <svg viewBox="0 0 24 24" className="h-full w-full pointer-events-none">
+              {/* North Pointer (Red) */}
+              <polygon points="12,2 8,12 12,10" className="fill-alert" />
+              <polygon points="12,2 16,12 12,10" className="fill-alert opacity-85" />
+              {/* South Pointer (Muted) */}
+              <polygon points="12,22 8,12 12,14" className="fill-muted-foreground/60" />
+              <polygon points="12,22 16,12 12,14" className="fill-muted-foreground" />
+              {/* Center Dot */}
+              <circle cx="12" cy="12" r="1.5" className="fill-foreground" />
+            </svg>
           </div>
-          <span className="text-[9px] font-mono font-bold text-muted-foreground -mt-0.5">
+          <span className="text-[10px] font-mono font-bold text-foreground leading-none mt-1">
             {getCardinalDirection(bearing)}
           </span>
         </button>
+      </div>
 
+      {/* RIGHT: Focused Driving Action Stack */}
+      <div className="absolute right-3.5 top-36 z-20 flex flex-col gap-2.5">
         {/* Recenter on Me / Fit Convoy Toggle */}
         <button
           type="button"
@@ -2040,6 +2063,38 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               />
             </div>
 
+            {/* Convoy Invite & QR Code Sharing Card */}
+            {trip.inviteCode && (
+              <div className="flex items-center justify-between rounded-2xl border border-border bg-secondary/35 p-3.5 shadow-xs">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Convoy Code
+                  </div>
+                  <div className="font-mono text-[17px] font-bold text-foreground">
+                    {trip.inviteCode}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShareCardOpen(true)}
+                    className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:bg-secondary active:scale-95 transition-all shadow-xs cursor-pointer"
+                  >
+                    <Icon name="qr_code_2" className="text-[17px] text-primary" />
+                    Show QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQrScannerOpen(true)}
+                    className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-[12px] font-semibold text-primary-foreground hover:bg-primary-pressed active:scale-95 transition-all shadow-xs cursor-pointer"
+                  >
+                    <Icon name="qr_code_scanner" className="text-[17px]" />
+                    Scan QR
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Vehicle Roster List */}
             <div className="space-y-2">
               <div className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -2374,6 +2429,27 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         }}
         onClose={() => setSelectedVehicle(null)}
       />
+
+      {/* Camera QR Code Scanner Modal */}
+      <QrScannerModal
+        open={qrScannerOpen}
+        onClose={() => setQrScannerOpen(false)}
+        onScan={(scannedCode) => {
+          setQrScannerOpen(false);
+          nav({ to: "/join/$code", params: { code: scannedCode } });
+        }}
+      />
+
+      {/* Share Convoy Invite & QR Code Modal */}
+      {shareCardOpen && trip.inviteCode && (
+        <ShareCardModal
+          tripName={trip.name}
+          destination={trip.destination || "Destination"}
+          inviteCode={trip.inviteCode}
+          memberCount={vehicles.length}
+          onClose={() => setShareCardOpen(false)}
+        />
+      )}
     </div>
   );
 }

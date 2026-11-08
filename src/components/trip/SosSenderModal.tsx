@@ -161,3 +161,4 @@ export function SosSenderModal({ open, payload, onClose, onResolve }: Props) {
     </div>
   );
 }
+

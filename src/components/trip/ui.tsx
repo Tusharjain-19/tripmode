@@ -136,10 +136,10 @@ export function Screen({
 }) {
   return (
     <div className="min-h-screen bg-background transition-colors duration-200">
-      {/* Top Safe Area / Status Bar Buffer - prevents wifi, battery, clock, and notch overlap on mobile devices */}
+      {/* Top Safe Area / Status Bar Buffer - streamlined to prevent excess white space */}
       {!hideBuffer && (
         <div
-          className="w-full h-11 sm:h-3 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
+          className="w-full h-2 sm:h-2 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
           aria-hidden="true"
         />
       )}

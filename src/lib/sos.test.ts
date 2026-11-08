@@ -62,3 +62,4 @@ describe("sos module", () => {
     expect(dist).toBeLessThan(200000);
   });
 });
+

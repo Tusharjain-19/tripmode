@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import QRCode from "qrcode";
 import { Icon, Button } from "@/components/trip/ui";
 
 interface ShareCardModalProps {
   tripName: string;
   destination: string;
   inviteCode: string;
-  memberCount: number;
-  qrSvg: string;
+  memberCount?: number;
+  qrSvg?: string;
   onClose: () => void;
 }
 
@@ -14,17 +15,34 @@ export function ShareCardModal({
   tripName,
   destination,
   inviteCode,
-  memberCount,
+  memberCount = 1,
   qrSvg,
   onClose,
 }: ShareCardModalProps) {
   const [downloading, setDownloading] = useState(false);
+  const [internalQr, setInternalQr] = useState<string>(qrSvg || "");
   const cardRef = useRef<HTMLDivElement>(null);
 
   const inviteUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${inviteCode}`
       : `https://tripmode-orcin.vercel.app/join/${inviteCode}`;
+
+  useEffect(() => {
+    if (qrSvg) {
+      setInternalQr(qrSvg);
+    } else if (inviteUrl) {
+      QRCode.toString(inviteUrl, {
+        type: "svg",
+        margin: 1,
+        color: { dark: "#1b5a47", light: "#ffffff" },
+      })
+        .then(setInternalQr)
+        .catch(() => undefined);
+    }
+  }, [qrSvg, inviteUrl]);
+
+  const activeQr = qrSvg || internalQr;
 
   const shareToWhatsApp = () => {
     const text = encodeURIComponent(
@@ -74,7 +92,7 @@ export function ShareCardModal({
 
       // Draw SVG QR code
       const img = new Image();
-      const svgBlob = new Blob([qrSvg], { type: "image/svg+xml;charset=utf-8" });
+      const svgBlob = new Blob([activeQr], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
 
       await new Promise<void>((resolve) => {
@@ -162,7 +180,7 @@ export function ShareCardModal({
           <div className="my-3.5 mx-auto flex h-40 w-40 items-center justify-center rounded-2xl bg-white p-2.5 shadow-sm">
             <div
               className="h-full w-full [&>svg]:w-full [&>svg]:h-full"
-              dangerouslySetInnerHTML={{ __html: qrSvg }}
+              dangerouslySetInnerHTML={{ __html: activeQr }}
             />
           </div>
 

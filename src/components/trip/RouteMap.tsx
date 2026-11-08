@@ -47,6 +47,7 @@ export type RouteMapProps = {
   camera?: MapCamera;
   onVehicleClick?: (id: string) => void;
   onBearingChange?: (bearing: number) => void;
+  resetNorthKey?: number;
   onUserPan?: () => void;
   zoomAction?: { dir: "in" | "out"; ts: number } | undefined;
   interactive?: boolean;

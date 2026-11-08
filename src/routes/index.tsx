@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { RouteMap } from "@/components/trip/RouteMap";
 import { btn, Icon, Screen, Button } from "@/components/trip/ui";
 import { Logo } from "@/components/trip/Logo";
+import { QrScannerModal } from "@/components/trip/QrScannerModal";
 import { useTrip } from "@/lib/trip-store";
 import { ensureGuest, useSession } from "@/lib/auth";
 import { useEffect, useState } from "react";
@@ -60,6 +61,7 @@ function Home() {
 
   const [joinModal, setJoinModal] = useState(false);
   const [code, setCode] = useState("");
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [isDark, setIsDark] = useState(false);
@@ -129,7 +131,7 @@ function Home() {
   return (
     <Screen maxWidth="max-w-7xl" className="px-3 sm:px-6 lg:px-8">
       {/* Top Application Header */}
-      <header className="flex h-16 sm:h-20 items-center justify-between border-b border-border/60 pb-2">
+      <header className="flex h-13 sm:h-16 items-center justify-between border-b border-border/60 pb-1.5 pt-0.5">
         <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
           <Logo variant="full" size={42} />
         </Link>
@@ -519,18 +521,39 @@ function Home() {
                   placeholder="e.g. 7K9M2P"
                   autoFocus
                   maxLength={8}
-                  className="h-13 w-full rounded-xl border border-border bg-secondary px-4 font-mono text-[18px] font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase tracking-widest text-center shadow-xs"
+                  className="h-13 w-full rounded-xl border border-border bg-secondary pl-4 pr-16 font-mono text-[18px] font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase tracking-widest text-center shadow-xs"
                 />
-                {code && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {code && (
+                    <button
+                      type="button"
+                      onClick={() => setCode("")}
+                      className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-card text-muted-foreground cursor-pointer"
+                    >
+                      <Icon name="close" className="text-[16px]" />
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setCode("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full hover:bg-card text-muted-foreground cursor-pointer"
+                    onClick={() => setQrScannerOpen(true)}
+                    className="h-9 w-9 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition-all cursor-pointer"
+                    title="Scan QR Code with Camera"
                   >
-                    <Icon name="close" className="text-[16px]" />
+                    <Icon name="qr_code_scanner" className="text-[20px]" />
                   </button>
-                )}
+                </div>
               </div>
+
+              {/* One-tap QR Camera Scanner Button */}
+              <button
+                type="button"
+                onClick={() => setQrScannerOpen(true)}
+                className="w-full flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 text-primary text-[14px] font-semibold hover:bg-primary/10 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Icon name="photo_camera" className="text-[18px]" />
+                Scan Host QR Code
+              </button>
+
               <Button
                 type="submit"
                 className="w-full h-12 text-[15px] font-semibold cursor-pointer shadow-sm"
@@ -543,6 +566,17 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Camera QR Code Scanner Modal */}
+      <QrScannerModal
+        open={qrScannerOpen}
+        onClose={() => setQrScannerOpen(false)}
+        onScan={(scannedCode) => {
+          setCode(scannedCode);
+          setQrScannerOpen(false);
+          nav({ to: "/join/$code", params: { code: scannedCode } });
+        }}
+      />
     </Screen>
   );
 }

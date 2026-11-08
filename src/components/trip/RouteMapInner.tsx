@@ -79,6 +79,7 @@ export default function RouteMapInner({
   camera = { mode: "route" },
   onVehicleClick,
   onBearingChange,
+  resetNorthKey,
   interactive = true,
   className,
   mapStyle = "default",
@@ -127,9 +128,13 @@ export default function RouteMapInner({
     });
     map.current = m;
 
-    m.on("rotate", () => {
-      bearingRef.current?.(m.getBearing());
-    });
+    const notifyBearing = () => {
+      if (map.current) bearingRef.current?.(map.current.getBearing());
+    };
+    m.on("rotate", notifyBearing);
+    m.on("rotateend", notifyBearing);
+    m.on("move", notifyBearing);
+    m.on("moveend", notifyBearing);
 
     m.on("dragstart", () => {
       userPanRef.current?.();
@@ -406,7 +411,8 @@ export default function RouteMapInner({
     if (!m) return;
     const go = () => {
       if (camera.mode === "north") {
-        m.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+        m.easeTo({ bearing: 0, pitch: 0, duration: 400 });
+        bearingRef.current?.(0);
       } else if (camera.mode === "route") {
         const r = ROUTES[selected] ?? ROUTES[0]!;
         const b = new maplibregl.LngLatBounds(r.coords[0], r.coords[0]);
@@ -427,6 +433,13 @@ export default function RouteMapInner({
     whenReady(go);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camKey, selected]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !resetNorthKey) return;
+    m.easeTo({ bearing: 0, pitch: 0, duration: 400 });
+    bearingRef.current?.(0);
+  }, [resetNorthKey]);
   useEffect(() => {
     const m = map.current;
     if (!m || !followTarget) return;

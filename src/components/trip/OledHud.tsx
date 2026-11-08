@@ -26,6 +26,7 @@ export function OledHud({
   onExit,
 }: OledHudProps) {
   const [clock, setClock] = useState("");
+  const [mirrored, setMirrored] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -42,15 +43,35 @@ export function OledHud({
   const isOverSpeed = speedKmh > speedLimit;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-between bg-black text-white p-6 select-none font-mono tracking-wide">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-between bg-black text-white p-6 select-none font-mono tracking-wide"
+      style={{
+        transform: mirrored ? "scaleX(-1)" : "none",
+        transition: "transform 250ms ease-in-out",
+      }}
+    >
       {/* Top Bar: Minimal Status & Exit HUD */}
       <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
         <div className="flex items-center gap-3">
           <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[14px] text-neutral-400 font-medium">OLED HUD • {convoyMembersCount} IN CONVOY</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[14px] text-neutral-400">{clock}</span>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => setMirrored((m) => !m)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] active:scale-95 transition-all cursor-pointer",
+              mirrored
+                ? "bg-emerald-950 text-emerald-400 border-emerald-600 ring-2 ring-emerald-500/30"
+                : "bg-neutral-950 text-neutral-300 border-neutral-800 hover:text-white hover:border-neutral-700",
+            )}
+            title="Reflect display for windshield projection. Place phone flat on dashboard beneath windshield."
+          >
+            <Icon name="flip" className="text-[16px]" />
+            <span>{mirrored ? "Windshield: ON" : "Windshield Mirror"}</span>
+          </button>
+          <span className="text-[14px] text-neutral-400 hidden sm:inline">{clock}</span>
           <button
             type="button"
             onClick={onExit}

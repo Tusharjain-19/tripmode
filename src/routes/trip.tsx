@@ -1017,6 +1017,83 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     minute: "2-digit",
   });
 
+  // Sync real-time convoy telemetry with Android Auto Car App Service
+  useEffect(() => {
+    try {
+      const bridge = (
+        window as unknown as {
+          AndroidBridge?: {
+            updateCarState?: (
+              active: boolean,
+              id: string,
+              name: string,
+              dest: string,
+              members: number,
+              gapM: number,
+              maneuver: string,
+              distM: number,
+              etaMin: number,
+            ) => void;
+          };
+        }
+      ).AndroidBridge;
+
+      if (bridge?.updateCarState && trip) {
+        const leadGapKm =
+          sortedMembers[0] && sortedMembers[0].id !== meV.id ? gaps[meV.id] ?? null : null;
+        bridge.updateCarState(
+          true,
+          trip.id ?? "",
+          trip.name ?? "Convoy Trip",
+          customDest?.label ?? trip.destination ?? "Destination",
+          vehicles.length,
+          leadGapKm != null ? Math.round(leadGapKm * 1000) : -1,
+          nextStep ? instruction(nextStep) : "Following convoy route",
+          toNextM != null ? Math.round(toNextM) : -1,
+          estMinutes,
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, [
+    trip,
+    customDest,
+    route,
+    vehicles.length,
+    sortedMembers,
+    meV.id,
+    gaps,
+    nextStep,
+    toNextM,
+    estMinutes,
+  ]);
+
+  // Sync Emergency SOS alerts with Android Auto car display
+  useEffect(() => {
+    try {
+      const bridge = (
+        window as unknown as {
+          AndroidBridge?: {
+            triggerCarSos?: (driver: string) => void;
+            clearCarSos?: () => void;
+          };
+        }
+      ).AndroidBridge;
+
+      if (!bridge) return;
+      if (sos === "sent") {
+        bridge.triggerCarSos?.("Your Vehicle");
+      } else if (activeSosAlert) {
+        bridge.triggerCarSos?.(activeSosAlert.driver);
+      } else {
+        bridge.clearCarSos?.();
+      }
+    } catch {
+      // ignore
+    }
+  }, [sos, activeSosAlert]);
+
   return (
     <div className="fixed inset-0 overflow-hidden bg-background select-none">
       {/* Geolocation permission overlay if not granted */}
@@ -1123,8 +1200,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               v.vehicleType ?? members.find((m) => m.userId === v.id)?.vehicleType ?? "car",
             name: v.isMe ? "You" : v.driver,
             staleLabel: stale
-              ? v.lastUpdateReal > 0 && now - v.lastUpdateReal < 86400000
-                ? `last seen ${Math.max(1, Math.round((now - v.lastUpdateReal) / 1000))} s ago`
+              ? v.lastUpdateReal > 0 && now - v.lastUpdateReal < 300000
+                ? now - v.lastUpdateReal < 60000
+                  ? `${Math.max(1, Math.round((now - v.lastUpdateReal) / 1000))}s ago`
+                  : `${Math.round((now - v.lastUpdateReal) / 60000)}m ago`
                 : "offline"
               : undefined,
             label: `${v.name}, vehicle ${v.letter}, ${s}${v.realP ? "" : ", waiting for location"}`,

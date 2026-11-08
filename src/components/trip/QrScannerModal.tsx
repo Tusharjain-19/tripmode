@@ -275,3 +275,4 @@ export function QrScannerModal({ open, onClose, onScan }: Props) {
     </div>
   );
 }
+

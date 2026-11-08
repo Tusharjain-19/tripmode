@@ -54,4 +54,6 @@ kotlin {
 dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
+  implementation("androidx.car.app:app:1.4.0")
+  implementation("androidx.car.app:app-projected:1.4.0")
 }

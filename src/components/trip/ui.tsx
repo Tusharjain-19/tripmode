@@ -124,7 +124,7 @@ export function Screen({
   maxWidth = "max-w-md",
   className,
   headerRight,
-  hideBuffer = false,
+  hideBuffer = true,
 }: {
   children: ReactNode;
   title?: string;
@@ -136,13 +136,6 @@ export function Screen({
 }) {
   return (
     <div className="min-h-screen bg-background transition-colors duration-200">
-      {/* Top Safe Area / Status Bar Buffer - streamlined to prevent excess white space */}
-      {!hideBuffer && (
-        <div
-          className="w-full h-2 sm:h-2 pt-[env(safe-area-inset-top,0px)] bg-background dark:bg-black select-none pointer-events-none transition-colors duration-200"
-          aria-hidden="true"
-        />
-      )}
       <div
         className={cn(
           "screen-in mx-auto flex min-h-screen flex-col px-4 pb-8",

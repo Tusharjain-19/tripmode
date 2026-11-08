@@ -457,5 +457,40 @@ class MainActivity : Activity() {
                 vibrator?.vibrate(durationMs)
             }
         }
+
+        @JavascriptInterface
+        fun updateCarState(
+            active: Boolean,
+            id: String,
+            name: String,
+            dest: String,
+            members: Int,
+            gapM: Int,
+            maneuver: String,
+            distM: Int,
+            etaMin: Int
+        ) {
+            app.tripmode.convoy.car.ConvoyCarState.updateConvoy(
+                active = active,
+                id = id,
+                name = name,
+                dest = dest,
+                members = members,
+                gapM = if (gapM >= 0) gapM else null,
+                maneuver = maneuver.ifBlank { null },
+                distM = if (distM >= 0) distM else null,
+                etaMin = if (etaMin >= 0) etaMin else null
+            )
+        }
+
+        @JavascriptInterface
+        fun triggerCarSos(driver: String) {
+            app.tripmode.convoy.car.ConvoyCarState.triggerSos(driver)
+        }
+
+        @JavascriptInterface
+        fun clearCarSos() {
+            app.tripmode.convoy.car.ConvoyCarState.clearSos()
+        }
     }
 }

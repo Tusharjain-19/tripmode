@@ -150,6 +150,9 @@ class MainActivity : Activity() {
 
         setupWebView()
 
+        // Clear stale WebView cache on launch to ensure live production code is loaded
+        webView.clearCache(true)
+
         // 5. Monitor network connectivity to automatically recover when signal returns
         registerNetworkMonitor()
 

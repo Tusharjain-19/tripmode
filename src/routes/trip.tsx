@@ -2,8 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvoyRail } from "@/components/trip/ConvoyRail";
 import { OledHud } from "@/components/trip/OledHud";
+import { NavSettingsModal } from "@/components/trip/NavSettingsModal";
 import { soundFx } from "@/lib/sound";
 import { usePushToTalk, playVoiceClip } from "@/lib/voice-ptt";
+import {
+  speakGuidance,
+  getSelectedVoiceProfile,
+  setSelectedVoiceProfile,
+  type VoiceProfileId,
+} from "@/lib/voice-nav";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
 import { formatKm, gapsToLeader, pointAt, statusMessage, type MemberStatus } from "@/lib/convoy";
@@ -245,6 +252,13 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [chatOpen, setChatOpen] = useState(false);
   const [audioMode, setAudioMode] = useState<"all" | "alerts" | "mute">("all");
   const [zoomAction, setZoomAction] = useState<{ dir: "in" | "out"; ts: number } | undefined>();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showPtt, setShowPtt] = useState(false);
+  const [voiceProfile, setVoiceProfileState] = useState<VoiceProfileId>(() => getSelectedVoiceProfile());
+  const setVoiceProfile = useCallback((id: VoiceProfileId) => {
+    setVoiceProfileState(id);
+    setSelectedVoiceProfile(id);
+  }, []);
   const [railOpen, setRailOpen] = useState(false);
   const [oledHudOpen, setOledHudOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -307,16 +321,14 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         ackable: true,
       });
       navigator.vibrate?.(60);
-      if (audioMode !== "mute" && typeof speechSynthesis !== "undefined") {
-        speechSynthesis.speak(new SpeechSynthesisUtterance(`${who} says: ${m.body}`));
+      if (audioMode !== "mute") {
+        speakGuidance(`${who} says: ${m.body}`, voiceProfile);
       }
     } else {
       soundFx.alertChime();
       showBanner({ kind: "sos", text: `SOS from ${who}. ${m.body}`, tone: "alert", from });
       navigator.vibrate?.([200, 100, 200]);
-      if (typeof speechSynthesis !== "undefined") {
-        speechSynthesis.speak(new SpeechSynthesisUtterance(`Emergency SOS from ${who}`));
-      }
+      speakGuidance(`Emergency SOS from ${who}`, voiceProfile);
     }
   });
   const msgs: Msg[] = useMemo(
@@ -447,11 +459,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         tone: s === "arrived" ? "info" : s === "behind" || s === "stale" ? "caution" : "alert",
         from: v,
       });
-      if (audioMode !== "mute" && typeof speechSynthesis !== "undefined") {
-        speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+      if (audioMode !== "mute") {
+        speakGuidance(text, voiceProfile);
       }
     }
-  }, [statuses, gaps, vehicles, showBanner, audioMode]);
+  }, [statuses, gaps, vehicles, showBanner, audioMode, voiceProfile]);
 
   // Auto end when everyone arrives
   const allArrived = vehicles.every((v) => v.arrivedAtS !== null);
@@ -624,11 +636,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
   const readAloud = () => {
     const last = [...msgs].reverse().find((m) => m.fromId !== meV.id);
-    if (!last || typeof speechSynthesis === "undefined") return;
+    if (!last) return;
     const from = vehicles.find((v) => v.id === last.fromId);
-    speechSynthesis.speak(
-      new SpeechSynthesisUtterance(`${from?.driver ?? "Someone"} says: ${last.text}`),
-    );
+    speakGuidance(`${from?.driver ?? "Someone"} says: ${last.text}`, voiceProfile);
   };
 
   // SOS long-press then 5 second cancel window
@@ -821,13 +831,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const toNextM = nextStep && here ? haversineM(here, nextStep.location) : null;
 
   useEffect(() => {
-    if (
-      !nextStep ||
-      toNextM === null ||
-      audioMode !== "all" ||
-      typeof speechSynthesis === "undefined"
-    )
-      return;
+    if (!nextStep || toNextM === null || audioMode !== "all") return;
     const band = toNextM < 120 ? "now" : toNextM < 600 ? "soon" : null;
     if (!band) return;
     const key = `${stepIdx}:${band}`;
@@ -838,15 +842,15 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         ? instruction(nextStep)
         : `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`;
     soundFx.navChime();
-    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-  }, [nextStep, toNextM, stepIdx, audioMode]);
+    speakGuidance(text, voiceProfile);
+  }, [nextStep, toNextM, stepIdx, audioMode, voiceProfile]);
 
   const speakNow = () => {
-    if (!nextStep || typeof speechSynthesis === "undefined") return;
+    if (!nextStep) return;
     const text = toNextM
       ? `In ${formatDistance(toNextM)}, ${instruction(nextStep).toLowerCase()}`
       : instruction(nextStep);
-    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    speakGuidance(text, voiceProfile);
   };
 
   const cycleAudio = () => {
@@ -966,7 +970,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               v.vehicleType ?? members.find((m) => m.userId === v.id)?.vehicleType ?? "car",
             name: v.isMe ? "You" : v.driver,
             staleLabel: stale
-              ? `last seen ${Math.round((now - v.lastUpdateReal) / 1000)} s ago`
+              ? v.lastUpdateReal > 0 && now - v.lastUpdateReal < 86400000
+                ? `last seen ${Math.max(1, Math.round((now - v.lastUpdateReal) / 1000))} s ago`
+                : "offline"
               : undefined,
             label: `${v.name}, vehicle ${v.letter}, ${s}${v.realP ? "" : ", waiting for location"}`,
           };
@@ -1191,29 +1197,29 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         )}
       </div>
 
-      {/* LEFT: Google Maps Speedometer & Speed Limit HUD (Skiper UI style) */}
-      <div className="pointer-events-none absolute left-3.5 bottom-26 z-20 flex flex-col items-center">
-        <div className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-card/95 p-3 shadow-float backdrop-blur-md transition-transform hover:scale-105">
-          <div className="font-mono text-[28px] font-bold tracking-tight text-foreground leading-none">
+      {/* LEFT: Google Maps Speedometer HUD (Elevated cleanly above dock) */}
+      <div className="pointer-events-none absolute left-3.5 bottom-[calc(88px+max(env(safe-area-inset-bottom),12px)+14px)] z-20 flex flex-col items-center">
+        <div className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-card/95 p-2.5 shadow-float backdrop-blur-md transition-transform hover:scale-105">
+          <div className="font-mono text-[24px] font-bold tracking-tight text-foreground leading-none">
             {Math.round(
               geo.fix?.speedMs != null && geo.fix.speedMs >= 0
                 ? geo.fix.speedMs * 3.6
                 : meV.speedKmh,
             )}
           </div>
-          <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
             km/h
           </div>
           {/* Speed Limit Badge */}
-          <div className="mt-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-alert bg-card text-[10px] font-bold text-foreground shadow-xs">
+          <div className="mt-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-alert bg-card text-[9px] font-bold text-foreground shadow-xs">
             80
           </div>
         </div>
       </div>
 
-      {/* Floating Google Maps Recenter Pill (shown after user pans/drags map) - elevated to avoid overlapping Report button */}
+      {/* Floating Recenter Pill (shown after user pans/drags map) - safely elevated above bottom action buttons */}
       {isFreeLook && (
-        <div className="banner-in pointer-events-auto absolute bottom-44 inset-x-0 z-20 flex justify-center">
+        <div className="banner-in pointer-events-auto absolute bottom-[calc(88px+max(env(safe-area-inset-bottom),12px)+76px)] inset-x-0 z-20 flex justify-center">
           <button
             type="button"
             onClick={handleRecenter}
@@ -1225,70 +1231,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       )}
 
-      {/* LEFT: Glanceable Highway Corridor POI Quick Chips */}
-      <div className="absolute left-3.5 top-36 z-20 flex flex-col gap-2.5">
-        <button
-          type="button"
-          aria-label="Find Fuel along route"
-          onClick={() => void findNearby("fuel")}
-          className={cn(
-            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
-            ctl,
-            nearbyOpen && nearbyCat === "fuel" && "ring-2 ring-primary bg-primary/10 text-primary",
-          )}
-          title="Petrol pumps along highway"
-        >
-          <Icon name="local_gas_station" className="text-[20px]" />
-          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Fuel</span>
-        </button>
-
-        <button
-          type="button"
-          aria-label="Find Food along route"
-          onClick={() => void findNearby("food")}
-          className={cn(
-            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
-            ctl,
-            nearbyOpen && nearbyCat === "food" && "ring-2 ring-primary bg-primary/10 text-primary",
-          )}
-          title="Food & Dhabas along highway"
-        >
-          <Icon name="restaurant" className="text-[20px]" />
-          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Food</span>
-        </button>
-
-        <button
-          type="button"
-          aria-label="Find Rest Stop along route"
-          onClick={() => void findNearby("toilets")}
-          className={cn(
-            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
-            ctl,
-            nearbyOpen && nearbyCat === "toilets" && "ring-2 ring-primary bg-primary/10 text-primary",
-          )}
-          title="Rest stops & Toilets along highway"
-        >
-          <Icon name="wc" className="text-[20px]" />
-          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Rest</span>
-        </button>
-
-        <button
-          type="button"
-          aria-label="Find Hotels along route"
-          onClick={() => void findNearby("hotel")}
-          className={cn(
-            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
-            ctl,
-            nearbyOpen && nearbyCat === "hotel" && "ring-2 ring-primary bg-primary/10 text-primary",
-          )}
-          title="Hotels & Stays along highway"
-        >
-          <Icon name="hotel" className="text-[20px]" />
-          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Stay</span>
-        </button>
-      </div>
-
-      {/* RIGHT: Google Maps Floating Action Cluster */}
+      {/* RIGHT: Focused Driving Action Stack */}
       <div className="absolute right-3.5 top-36 z-20 flex flex-col gap-2.5">
         {/* Dynamic Compass: Rotates with bearing; tap to reset north */}
         <button
@@ -1316,116 +1259,35 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           </span>
         </button>
 
-        {/* Recenter on Me Crosshair (Google Maps style) */}
+        {/* Recenter on Me / Fit Convoy Toggle */}
         <button
           type="button"
-          aria-label="Recenter on my car"
-          onClick={() => setCamera({ mode: "follow" })}
+          aria-label="Toggle Follow / Fit Convoy"
+          onClick={() => setCamera((c) => (c.mode === "follow" ? { mode: "fit" } : { mode: "follow" }))}
           className={cn(
-            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer text-foreground",
             ctl,
             camera.mode === "follow" && "text-primary ring-2 ring-primary/40",
           )}
-          title="Recenter vehicle"
+          title={camera.mode === "follow" ? "Fit all convoy vehicles" : "Follow my vehicle"}
         >
-          <Icon name="my_location" className="text-[22px]" />
+          <Icon name={camera.mode === "follow" ? "my_location" : "groups"} className="text-[22px]" />
         </button>
 
-        {/* Fit Entire Convoy Group */}
+        {/* Driving & Navigation Settings (Map Styles, Night Drive, Voice Models, PTT Toggle) */}
         <button
           type="button"
-          aria-label="Fit whole convoy"
-          onClick={() => setCamera({ mode: "fit" })}
+          aria-label="Driving and Navigation Settings"
+          onClick={() => setSettingsOpen(true)}
           className={cn(
-            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
+            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer text-foreground hover:bg-secondary transition-all",
             ctl,
-            camera.mode === "fit" && "text-primary ring-2 ring-primary/40",
+            settingsOpen && "ring-2 ring-primary text-primary bg-primary/10",
           )}
-          title="Fit entire convoy"
+          title="Voice Models & Display Settings"
         >
-          <Icon name="groups" className="text-[22px]" />
+          <Icon name="tune" className="text-[22px]" />
         </button>
-
-        {/* Audio Guidance Mode Toggle */}
-        <button
-          type="button"
-          aria-label="Toggle voice guidance"
-          onClick={cycleAudio}
-          className={cn(
-            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
-            ctl,
-            audioMode === "mute" && "text-tertiary",
-          )}
-          title={`Audio: ${audioMode}`}
-        >
-          <Icon
-            name={
-              audioMode === "all"
-                ? "volume_up"
-                : audioMode === "alerts"
-                  ? "notifications_active"
-                  : "volume_off"
-            }
-            className="text-[22px]"
-          />
-        </button>
-
-        {/* Map Layers (Satellite, Dark, Detailed) */}
-        <button
-          type="button"
-          aria-label="Map style layers"
-          onClick={() => setStyleOpen(!styleOpen)}
-          className={cn(
-            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer",
-            ctl,
-            styleOpen && "text-primary",
-          )}
-          title="Layers"
-        >
-          <Icon name="layers" className="text-[22px]" />
-        </button>
-
-        {/* OLED Battery Saver Mode Toggle */}
-        <button
-          type="button"
-          aria-label="OLED Battery Saver HUD"
-          onClick={() => setOledHudOpen(true)}
-          className={cn(
-            "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer text-amber-500",
-            ctl,
-          )}
-          title="OLED Battery Saver HUD"
-        >
-          <Icon name="battery_saver" className="text-[22px]" />
-        </button>
-
-        {/* Google Maps Floating Zoom Controls (+ / -) */}
-        <div className="flex flex-col rounded-full bg-card shadow-float border border-border/80 overflow-hidden divide-y divide-border/60">
-          <button
-            type="button"
-            aria-label="Zoom in"
-            onClick={() => setZoomAction({ dir: "in", ts: Date.now() })}
-            className={cn(
-              "flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer",
-              ctl,
-            )}
-            title="Zoom in"
-          >
-            <Icon name="add" className="text-[22px]" />
-          </button>
-          <button
-            type="button"
-            aria-label="Zoom out"
-            onClick={() => setZoomAction({ dir: "out", ts: Date.now() })}
-            className={cn(
-              "flex items-center justify-center text-foreground hover:bg-secondary active:scale-95 transition-all cursor-pointer",
-              ctl,
-            )}
-            title="Zoom out"
-          >
-            <Icon name="remove" className="text-[22px]" />
-          </button>
-        </div>
 
         {/* Emergency SOS Long-press */}
         <button
@@ -1457,96 +1319,56 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </button>
       </div>
 
-      {/* Floating Push-to-Talk (PTT) Walkie-Talkie Button (bottom center above dock) */}
-      <div className="absolute inset-x-0 bottom-26 z-20 flex justify-center pointer-events-none">
-        <button
-          type="button"
-          aria-label="Push-to-Talk Walkie Talkie"
-          onPointerDown={() => {
-            navigator.vibrate?.([30]);
-            void ptt.startTalking();
-          }}
-          onPointerUp={() => {
-            navigator.vibrate?.([30, 40, 30]);
-            ptt.stopTalking();
-          }}
-          onPointerLeave={ptt.stopTalking}
-          className={cn(
-            "pointer-events-auto flex items-center gap-2.5 rounded-full px-5 py-2.5 shadow-float transition-all select-none cursor-pointer border backdrop-blur-md active:scale-95",
-            ptt.isRecording
-              ? "bg-alert text-white border-alert/80 ring-4 ring-alert/30 scale-105"
-              : "bg-[#143d30]/95 text-white border-white/20 hover:bg-[#143d30]",
-          )}
-          title="Press & hold to transmit live voice to convoy"
-        >
-          <span
+      {/* Optional Push-to-Talk (PTT) Button (Visible only when enabled in Settings) */}
+      {showPtt && (
+        <div className="absolute inset-x-0 bottom-[calc(88px+max(env(safe-area-inset-bottom),12px)+14px)] z-20 flex justify-center pointer-events-none">
+          <button
+            type="button"
+            aria-label="Push-to-Talk Walkie Talkie"
+            onPointerDown={() => {
+              navigator.vibrate?.([30]);
+              void ptt.startTalking();
+            }}
+            onPointerUp={() => {
+              navigator.vibrate?.([30, 40, 30]);
+              ptt.stopTalking();
+            }}
+            onPointerLeave={ptt.stopTalking}
             className={cn(
-              "flex h-3 w-3 rounded-full",
-              ptt.isRecording ? "bg-white animate-ping" : "bg-emerald-400",
+              "pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 shadow-float transition-all select-none cursor-pointer border backdrop-blur-md active:scale-95",
+              ptt.isRecording
+                ? "bg-alert text-white border-alert/80 ring-4 ring-alert/30 scale-105"
+                : "bg-[#143d30]/95 text-white border-white/20 hover:bg-[#143d30]",
             )}
-          />
-          <Icon name="mic" className="text-[20px]" />
-          <span className="text-[13px] font-semibold tracking-wide">
-            {ptt.isRecording ? `Transmitting (${ptt.recordingSeconds}s)...` : "Hold to Talk (PTT)"}
-          </span>
-        </button>
-      </div>
-
-      {/* Google Maps Floating "Report" Hazard Action Button (bottom right above dock, Image 2 style) */}
-      <div className="absolute right-3.5 bottom-26 z-20">
-        <button
-          type="button"
-          aria-label="Report Road Hazard"
-          onClick={() => setQuickOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-[#1b241e]/90 text-white border border-white/20 px-3.5 py-2 shadow-float hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-md"
-          title="Broadcast road hazard or convoy alert"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
-            <Icon name="warning" className="text-[18px]" />
-          </span>
-          <span className="text-[13px] font-semibold tracking-wide pr-1">Report</span>
-        </button>
-      </div>
-
-      {/* Map Style Selector Popover */}
-      {styleOpen && (
-        <div
-          className="absolute right-18 top-64 z-40 w-48 rounded-[18px] border border-border bg-card p-2 shadow-float"
-          role="menu"
-        >
-          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-tertiary">
-            Map Type
-          </div>
-          {(
-            [
-              ["default", "Clean (Default)", "map"],
-              ["detailed", "Detailed", "terrain"],
-              ["dark", "Night Navigation", "dark_mode"],
-              ["satellite", "Satellite Aerial", "satellite_alt"],
-            ] as const
-          ).map(([id, label, icon]) => (
-            <button
-              key={id}
-              type="button"
-              role="menuitemradio"
-              aria-checked={mapStyle === id}
-              onClick={() => {
-                setMapStyle(id);
-                setStyleOpen(false);
-              }}
+            title="Press & hold to transmit live voice to convoy"
+          >
+            <span
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] transition-colors cursor-pointer",
-                mapStyle === id
-                  ? "bg-primary text-primary-foreground font-semibold"
-                  : "hover:bg-secondary",
+                "flex h-2.5 w-2.5 rounded-full",
+                ptt.isRecording ? "bg-white animate-ping" : "bg-emerald-400",
               )}
-            >
-              <Icon name={icon} className="text-[18px]" />
-              <span>{label}</span>
-            </button>
-          ))}
+            />
+            <Icon name="mic" className="text-[18px]" />
+            <span className="text-[12px] font-semibold tracking-wide">
+              {ptt.isRecording ? `Talking (${ptt.recordingSeconds}s)...` : "Hold PTT"}
+            </span>
+          </button>
         </div>
       )}
+
+      {/* Convoy Quick Alert Action Button (Renamed from Report, elevated cleanly above dock) */}
+      <div className="absolute right-3.5 bottom-[calc(88px+max(env(safe-area-inset-bottom),12px)+14px)] z-20">
+        <button
+          type="button"
+          aria-label="Broadcast Convoy Alert"
+          onClick={() => setQuickOpen(true)}
+          className="flex items-center gap-2 rounded-full bg-amber-500 text-neutral-950 font-bold px-4 py-2.5 shadow-float hover:scale-105 active:scale-95 transition-all cursor-pointer border border-amber-600/40"
+          title="Broadcast quick alert to convoy vehicles"
+        >
+          <Icon name="campaign" className="text-[20px] text-neutral-950" />
+          <span className="text-[13px] tracking-wide">Convoy Alert</span>
+        </button>
+      </div>
 
       {/* Nearby Places Drawer */}
       {nearbyOpen && (
@@ -2235,6 +2057,32 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           </div>
         </div>
       )}
+      {/* Driving & Navigation Settings Modal */}
+      <NavSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        mapStyle={mapStyle}
+        onMapStyleChange={(s) => {
+          setMapStyle(s);
+          try {
+            localStorage.setItem("tripmode-theme", s === "dark" ? "dark" : "light");
+            if (s === "dark") {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
+          } catch {
+            /* ignore */
+          }
+        }}
+        audioMode={audioMode}
+        onAudioModeChange={setAudioMode}
+        showPtt={showPtt}
+        onShowPttChange={setShowPtt}
+        voiceProfile={voiceProfile}
+        onVoiceProfileChange={setVoiceProfile}
+        onOpenOledHud={() => setOledHudOpen(true)}
+      />
     </div>
   );
 }

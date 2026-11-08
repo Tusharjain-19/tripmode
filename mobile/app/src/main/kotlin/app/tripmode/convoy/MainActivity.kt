@@ -42,6 +42,13 @@ class MainActivity : Activity() {
     private lateinit var progressBar: ProgressBar
 
     private val defaultBaseUrl = "https://tripmode-orcin.vercel.app"
+    private val allowedHosts = setOf(
+        "tripmode-orcin.vercel.app",
+        "tripmode.app",
+        "www.tripmode.app",
+        "localhost",
+        "10.0.2.2"
+    )
     private val PERMISSION_REQUEST_CODE = 1001
     private val NOTIFICATION_PERMISSION_CODE = 1002
     private val CHANNEL_ID = "trip_mode_convoy_alerts"
@@ -205,9 +212,14 @@ class MainActivity : Activity() {
             }
         }
 
-        // Handle standard HTTPS App Links
+        // Handle standard HTTPS App Links with strict host whitelisting
         if (scheme == "https" || scheme == "http") {
-            return data.toString()
+            val host = data.host?.lowercase() ?: ""
+            return if (allowedHosts.contains(host)) {
+                data.toString()
+            } else {
+                defaultBaseUrl
+            }
         }
 
         return null
@@ -281,10 +293,10 @@ class MainActivity : Activity() {
                 request: WebResourceRequest?
             ): Boolean {
                 val url = request?.url ?: return false
-                val host = url.host ?: ""
+                val host = url.host?.lowercase() ?: ""
 
-                // Keep all Trip Mode navigation inside this native WebView
-                if (host.contains("tripmode") || host.contains("vercel.app") || host == "localhost" || host == "10.0.2.2") {
+                // Keep verified Trip Mode navigation inside this native WebView
+                if (allowedHosts.contains(host)) {
                     return false
                 }
 

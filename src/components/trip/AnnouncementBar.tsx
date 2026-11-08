@@ -102,7 +102,7 @@ export function AnnouncementBar() {
     void load();
 
     const ch = supabase
-      .channel(`notices-${Math.random().toString(36).slice(2)}`)
+      .channel("tripmode:announcements")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "announcements" },

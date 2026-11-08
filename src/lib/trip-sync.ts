@@ -268,7 +268,7 @@ export function useTripStatus(tripId: string | undefined) {
       .maybeSingle()
       .then(({ data }) => data && setStatus(data.status));
     const ch = supabase
-      .channel(`trip-${tripId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tripmode:trip:${tripId}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "trips", filter: `id=eq.${tripId}` },
@@ -311,7 +311,7 @@ export function useStops(tripId: string | undefined) {
     };
     void load();
     const ch = supabase
-      .channel(`stops-${tripId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tripmode:stops:${tripId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "trip_stops", filter: `trip_id=eq.${tripId}` },
@@ -399,7 +399,7 @@ export function useMembers(tripId: string | undefined) {
     };
     void load();
     const ch = supabase
-      .channel(`members-${tripId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tripmode:members:${tripId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "trip_members", filter: `trip_id=eq.${tripId}` },
@@ -445,7 +445,7 @@ export function usePositions(tripId: string | undefined) {
       .eq("trip_id", tripId)
       .then(({ data }) => data?.forEach(put));
     const ch = supabase
-      .channel(`positions-${tripId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tripmode:positions:${tripId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "trip_positions", filter: `trip_id=eq.${tripId}` },
@@ -571,7 +571,7 @@ export function useMessages(tripId: string | undefined, onNew?: (m: TripMessage)
       .limit(200)
       .then(({ data }) => data && setMessages(data.map(map)));
     const ch = supabase
-      .channel(`messages-${tripId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tripmode:messages:${tripId}`)
       .on(
         "postgres_changes",
         {

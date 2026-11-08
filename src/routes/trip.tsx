@@ -452,11 +452,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             vehicleType: m.vehicleType ?? "car",
           };
           if (!p) {
-            // Position not published yet by other device: place on route near me so they are visible
-            const fallbackProgress = Math.max(0, meState.progressM - (idx + 1) * 600);
+            // Position not published yet by other device: do NOT fabricate ghost highway positions
+            const { realP: _, ...restBase } = base;
             next[m.userId] = {
-              ...base,
-              progressM: base.progressM || fallbackProgress,
+              ...restBase,
+              progressM: 0,
               speedKmh: 0,
             };
           } else {
@@ -1173,8 +1173,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           lngLat: p.lngLat,
         }))}
         className="absolute inset-0 h-full w-full"
-        vehicles={vehicles.map((v): MapVehicle => {
-          const pt = points[v.id]!;
+        vehicles={vehicles
+          .filter((v) => v.isMe || Boolean(v.realP))
+          .map((v): MapVehicle => {
+            const pt = points[v.id]!;
           const { p, heading, offRoute } = pt;
           const s = statuses[v.id] ?? "following";
           const stale = s === "stale" || s === "offline";

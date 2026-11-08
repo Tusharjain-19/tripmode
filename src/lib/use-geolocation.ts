@@ -99,10 +99,14 @@ export function useGeolocation() {
         setState("granted");
         setError(null);
 
+        // Stationary deadband: GPS noise when stopped (< 0.5 m/s or ~1.8 km/h) clamped to 0
+        const rawSpeed = p.coords.speed;
+        const filteredSpeed = rawSpeed !== null && rawSpeed > 0.5 ? rawSpeed : 0;
+
         const currentFix: GeoFix = {
           lng: p.coords.longitude,
           lat: p.coords.latitude,
-          speedMs: p.coords.speed,
+          speedMs: filteredSpeed,
           heading: p.coords.heading,
           accuracyM: p.coords.accuracy,
           at: p.timestamp || Date.now(),

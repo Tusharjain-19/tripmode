@@ -125,3 +125,4 @@ class SoundSynthesizer {
 }
 
 export const soundFx = new SoundSynthesizer();
+

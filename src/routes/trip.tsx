@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvoyRail } from "@/components/trip/ConvoyRail";
 import { OledHud } from "@/components/trip/OledHud";
 import { NavSettingsModal } from "@/components/trip/NavSettingsModal";
+import { SosSenderModal } from "@/components/trip/SosSenderModal";
+import { SosReceiverModal, type ActiveSosAlert } from "@/components/trip/SosReceiverModal";
+import { VehicleDetailModal } from "@/components/trip/VehicleDetailModal";
 import { soundFx } from "@/lib/sound";
 import { usePushToTalk, playVoiceClip } from "@/lib/voice-ptt";
 import {
@@ -11,6 +14,14 @@ import {
   setSelectedVoiceProfile,
   type VoiceProfileId,
 } from "@/lib/voice-nav";
+import {
+  formatSosPacket,
+  parseSosCoords,
+  generateGoogleMapsLink,
+  generateGoogleMapsDirectionsLink,
+  haversineDistanceM,
+  type SosPayload,
+} from "@/lib/sos";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
 import { formatKm, gapsToLeader, pointAt, statusMessage, type MemberStatus } from "@/lib/convoy";
@@ -22,6 +33,7 @@ import {
   snapToRoute,
   toLngLat,
   toMeters,
+  type LngLat,
 } from "@/lib/geo";
 import { useServerFn } from "@tanstack/react-start";
 import { suggestStopsFromChat } from "@/lib/stops.functions";
@@ -270,6 +282,21 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const startedAt = useRef(Date.now());
   const [sos, setSos] = useState<"idle" | "holding" | "countdown" | "sent">("idle");
   const [sosLeft, setSosLeft] = useState(5);
+  const [senderSosPayload, setSenderSosPayload] = useState<SosPayload | null>(null);
+  const [sosSenderOpen, setSosSenderOpen] = useState(false);
+  const [activeSosAlert, setActiveSosAlert] = useState<ActiveSosAlert | null>(null);
+  const [sosReceiverOpen, setSosReceiverOpen] = useState(false);
+
+  // Custom Navigation Destination (e.g. SOS Reroute or Direct Vehicle Tracking)
+  type CustomDestination = {
+    lngLat: LngLat;
+    label: string;
+    driverName?: string;
+    isEmergency?: boolean;
+  };
+  const [customDest, setCustomDest] = useState<CustomDestination | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<SimVehicle | null>(null);
+
   const lastAlert = useRef<Record<string, number>>({});
   const prevStatus = useRef<Record<string, MemberStatus>>({});
   const longestGap = useRef(0);
@@ -326,9 +353,34 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       }
     } else {
       soundFx.alertChime();
-      showBanner({ kind: "sos", text: `SOS from ${who}. ${m.body}`, tone: "alert", from });
-      navigator.vibrate?.([200, 100, 200]);
-      speakGuidance(`Emergency SOS from ${who}`, voiceProfile);
+      const parsed = parseSosCoords(m.body);
+      const vehicleCoords = from
+        ? (from.realP ? toLngLat(from.realP) : toLngLat(pointAt(route.line, from.progressM).p))
+        : null;
+      const finalLat = parsed?.lat ?? vehicleCoords?.[1] ?? 26.9124;
+      const finalLng = parsed?.lng ?? vehicleCoords?.[0] ?? 75.7873;
+      const alertPayload: ActiveSosAlert = {
+        id: m.id,
+        userId: m.userId,
+        driver: who,
+        color: from?.color,
+        letter: from?.letter,
+        lat: finalLat,
+        lng: finalLng,
+        mapsUrl: parsed?.mapsUrl ?? generateGoogleMapsLink(finalLat, finalLng),
+        text: m.body,
+        at: m.at,
+      };
+      setActiveSosAlert(alertPayload);
+      setSosReceiverOpen(true);
+      showBanner({
+        kind: "sos",
+        text: `SOS from ${who}! Map link and GPS reroute available.`,
+        tone: "alert",
+        from,
+      });
+      navigator.vibrate?.([200, 100, 200, 100, 300]);
+      speakGuidance(`Emergency SOS from ${who}! Tap to reroute GPS.`, voiceProfile);
     }
   });
   const msgs: Msg[] = useMemo(
@@ -661,22 +713,45 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     if (sosLeft === 0) {
       setSos("sent");
       const f = geo.fix;
+      const coords: [number, number] = f
+        ? [f.lng, f.lat]
+        : toLngLat(pointAt(route.line, meV.progressM).p);
+      const packet = formatSosPacket({
+        lat: coords[1],
+        lng: coords[0],
+        driverName: meV.driver,
+        tripName: trip.name,
+      });
+      setSenderSosPayload(packet);
+      setSosSenderOpen(true);
       void sendMessage(
         trip.id!,
         uid,
         "sos",
-        f ? `Location ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}` : "Location unavailable",
+        packet.body,
       );
       showBanner({
         kind: "sos",
-        text: "SOS sent to all members with your location and vehicle.",
+        text: "Emergency SOS broadcast active with live GPS link.",
         tone: "alert",
       });
       return;
     }
     const t = setTimeout(() => setSosLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [sos, sosLeft, showBanner, geo.fix, trip.id, uid]);
+  }, [sos, sosLeft, showBanner, geo.fix, trip.id, uid, meV.driver, meV.progressM, trip.name, route.line]);
+
+  const handleResolveSos = useCallback(() => {
+    setSos("idle");
+    setSosSenderOpen(false);
+    setSenderSosPayload(null);
+    void sendMessage(trip.id!, uid, "quick", "Emergency resolved: I am safe now.");
+    showBanner({
+      kind: "sent",
+      text: "Emergency SOS broadcast ended. Convoy notified you are safe.",
+      tone: "info",
+    });
+  }, [trip.id, uid, showBanner]);
 
   // Map style
   const [mapStyle, setMapStyle] = useState<MapStyleId>("default");
@@ -719,8 +794,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     setSelectedPlace(null);
   };
 
-  // Turn-by-turn guidance from your position to the destination
-  const dest = route.coords[route.coords.length - 1]!;
+  // Turn-by-turn guidance from your position to destination or emergency target
+  const activeDest = customDest?.lngLat ?? route.coords[route.coords.length - 1]!;
   const waypoints = useMemo(
     () =>
       confirmed
@@ -741,7 +816,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const hasFix = !!geo.fix;
 
   const triggerReroute = useCallback(
-    async (msg = "Recalculating route...") => {
+    async (msg = "Recalculating route...", overrideDest?: LngLat) => {
       if (rerouting) return;
       setRerouting(true);
       showBanner({ kind: "system", text: msg, tone: "info" });
@@ -749,8 +824,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       const startPoint: [number, number] = f
         ? [f.lng, f.lat]
         : (route.coords[0] ?? [75.7873, 26.9124]);
+      const targetDest = overrideDest ?? activeDest;
+      const activeWaypoints = overrideDest || customDest ? [] : waypoints;
       try {
-        const g = await fetchGuidance(startPoint, dest, waypoints);
+        const g = await fetchGuidance(startPoint, targetDest, activeWaypoints);
         setGuide(g);
         setStepIdx(1);
       } catch {
@@ -759,8 +836,63 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         setRerouting(false);
       }
     },
-    [rerouting, geo.fix, route.coords, dest, waypoints, showBanner],
+    [rerouting, geo.fix, route.coords, activeDest, customDest, waypoints, showBanner],
   );
+
+  const handleRerouteToSos = useCallback(
+    (targetLngLat: LngLat, driverName: string) => {
+      setCustomDest({
+        lngLat: targetLngLat,
+        label: `SOS: ${driverName}`,
+        driverName,
+        isEmergency: true,
+      });
+      setSosReceiverOpen(false);
+      void triggerReroute(`Rerouting GPS navigation to ${driverName}...`, targetLngLat);
+      speakGuidance(`Rerouting GPS navigation to ${driverName}. Follow directions.`, voiceProfile);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [triggerReroute, voiceProfile],
+  );
+
+  const handleResumeOriginalRoute = useCallback(() => {
+    setCustomDest(null);
+    const originalDest = route.coords[route.coords.length - 1]!;
+    void triggerReroute("Resuming convoy route...", originalDest);
+    speakGuidance("Resuming convoy route to destination.", voiceProfile);
+  }, [triggerReroute, route.coords, voiceProfile]);
+
+  const handleNavigateToVehicle = useCallback(
+    (targetLngLat: LngLat, driverName: string) => {
+      setCustomDest({
+        lngLat: targetLngLat,
+        label: `Vehicle: ${driverName}`,
+        driverName,
+        isEmergency: false,
+      });
+      setSelectedVehicle(null);
+      void triggerReroute(`Setting GPS navigation to ${driverName}...`, targetLngLat);
+      speakGuidance(`Navigating to ${driverName}.`, voiceProfile);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [triggerReroute, voiceProfile],
+  );
+
+  const selectedVehicleCoords: [number, number] | null = useMemo(() => {
+    if (!selectedVehicle) return null;
+    if (selectedVehicle.realP) return toLngLat(selectedVehicle.realP);
+    return toLngLat(pointAt(route.line, selectedVehicle.progressM).p);
+  }, [selectedVehicle, route.line]);
+
+  const selectedVehicleDist = useMemo(() => {
+    if (!selectedVehicleCoords || !geo.fix) return undefined;
+    return haversineDistanceM([geo.fix.lng, geo.fix.lat], selectedVehicleCoords);
+  }, [selectedVehicleCoords, geo.fix]);
+
+  const sosDistanceM = useMemo(() => {
+    if (!activeSosAlert || !geo.fix) return undefined;
+    return haversineDistanceM([geo.fix.lng, geo.fix.lat], [activeSosAlert.lng, activeSosAlert.lat]);
+  }, [activeSosAlert, geo.fix]);
 
   const handleUserPan = useCallback(() => {
     setIsFreeLook(true);
@@ -798,14 +930,15 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         guide.steps[stepIdx]!.distanceM + 500;
     if (guide && !offGuide && Date.now() - lastRouteAt.current < 45000) return;
     lastRouteAt.current = Date.now();
-    fetchGuidance(startPoint, dest, waypoints)
+    const activeWaypoints = customDest ? [] : waypoints;
+    fetchGuidance(startPoint, activeDest, activeWaypoints)
       .then((g) => {
         setGuide(g);
         setStepIdx(1);
       })
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFix, geo.fix?.lng, geo.fix?.lat, dest[0], dest[1], waypoints.length]);
+  }, [hasFix, geo.fix?.lng, geo.fix?.lat, activeDest[0], activeDest[1], waypoints.length, !!customDest]);
 
   // Real-time off-route deviation check for automatic rerouting
   useEffect(() => {
@@ -923,11 +1056,18 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         showAlternates={false}
         travelledM={meV.progressM}
         activeRouteCoords={guide?.geometry ?? undefined}
-        destinationLngLat={dest}
+        destinationLngLat={activeDest}
         nextManeuverLngLat={nextStep?.location ?? null}
         selectedPlaceId={selectedPlace?.id ?? null}
         camera={camera}
-        onVehicleClick={(id) => setCamera({ mode: "focus", id })}
+        onVehicleClick={(id) => {
+          const v = vehicles.find((x) => x.id === id);
+          if (v) {
+            setSelectedVehicle(v);
+          } else {
+            setCamera({ mode: "focus", id });
+          }
+        }}
         onPlaceClick={(id) => {
           const found = nearby.find((p) => p.id === id);
           if (found) setSelectedPlace(found);
@@ -1118,6 +1258,104 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           </div>
         )}
 
+        {/* Active Emergency Reroute or Vehicle Navigation Bar */}
+        {customDest && (
+          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border-2 border-alert/80 bg-card/95 px-4 py-2.5 shadow-float backdrop-blur-md">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-alert text-alert-foreground">
+                <Icon name="navigation" className="text-[18px]" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-alert animate-ping" />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-alert">
+                    {customDest.isEmergency ? "Emergency Reroute" : "Vehicle Navigation"}
+                  </span>
+                </div>
+                <div className="truncate text-[13px] font-bold text-foreground">
+                  {customDest.label}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={generateGoogleMapsDirectionsLink(customDest.lngLat[1], customDest.lngLat[0])}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 items-center gap-1 rounded-xl border border-border bg-secondary px-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary/80 active:scale-95"
+              >
+                <Icon name="map" className="text-[15px]" />
+                Maps
+              </a>
+              <button
+                onClick={handleResumeOriginalRoute}
+                className="flex h-9 items-center gap-1 rounded-xl bg-primary px-3 text-[12px] font-semibold text-primary-foreground hover:bg-primary-pressed active:scale-95 cursor-pointer"
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SOS Alert Notification (Minimizable banner for received SOS) */}
+        {activeSosAlert && !sosReceiverOpen && (
+          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border-2 border-alert bg-alert/15 px-3.5 py-2 text-alert shadow-float backdrop-blur-md">
+            <div className="flex items-center gap-2 truncate min-w-0">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-alert opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-alert" />
+              </span>
+              <span className="truncate text-[13px] font-bold text-foreground">
+                SOS: {activeSosAlert.driver}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setSosReceiverOpen(true)}
+                className="flex h-8 items-center gap-1 rounded-lg bg-alert px-2.5 text-[11px] font-bold text-alert-foreground hover:opacity-90 active:scale-95 cursor-pointer"
+              >
+                Reroute GPS
+              </button>
+              <button
+                onClick={() => setActiveSosAlert(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-card/60 text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Dismiss SOS alert"
+              >
+                <Icon name="close" className="text-[16px]" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sender's SOS Active Notification (Minimizable banner for initiated SOS) */}
+        {sos === "sent" && !sosSenderOpen && (
+          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border-2 border-alert bg-alert/20 px-3.5 py-2 text-alert shadow-float backdrop-blur-md">
+            <div className="flex items-center gap-2 truncate min-w-0">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-alert opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-alert" />
+              </span>
+              <span className="truncate text-[13px] font-bold text-foreground">
+                Emergency SOS Broadcast Active
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setSosSenderOpen(true)}
+                className="flex h-8 items-center gap-1 rounded-lg bg-alert px-2.5 text-[11px] font-bold text-alert-foreground hover:opacity-90 active:scale-95 cursor-pointer"
+              >
+                Share Link
+              </button>
+              <button
+                onClick={handleResolveSos}
+                className="flex h-8 items-center gap-1 rounded-lg bg-secondary px-2.5 text-[11px] font-bold text-foreground hover:bg-secondary/80 active:scale-95 cursor-pointer"
+              >
+                I'm Safe
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Sleek Horizontal Corridor Quick Filter Chips (Glassmorphic) */}
         <div className="pointer-events-auto flex w-full max-w-md gap-2 overflow-x-auto pb-1 text-[13px] font-medium no-scrollbar">
           {CATEGORIES.map((c) => (
@@ -1181,17 +1419,31 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               </Button>
             )}
             {banner.kind === "sos" && (
-              <Button
-                variant="destructive"
-                size="md"
-                className="h-9 px-3 text-[13px]"
-                onClick={() => {
-                  setBanner(null);
-                  setSos("idle");
-                }}
-              >
-                Close
-              </Button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeSosAlert && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="h-9 px-3 text-[12px] bg-alert text-alert-foreground font-bold hover:opacity-90 cursor-pointer"
+                    onClick={() => {
+                      setSosReceiverOpen(true);
+                      setBanner(null);
+                    }}
+                  >
+                    Reroute GPS
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="h-9 px-2.5 text-[12px] cursor-pointer"
+                  onClick={() => {
+                    setBanner(null);
+                  }}
+                >
+                  Dismiss
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -1289,32 +1541,42 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           <Icon name="tune" className="text-[22px]" />
         </button>
 
-        {/* Emergency SOS Long-press */}
+        {/* Emergency SOS Long-press / Active Details */}
         <button
           type="button"
-          aria-label="SOS: Press and hold"
-          onPointerDown={sosStart}
-          onPointerUp={sosRelease}
-          onPointerLeave={sosRelease}
+          aria-label={sos === "sent" ? "Emergency SOS Active - Tap to view link" : "SOS: Press and hold"}
+          onClick={() => {
+            if (sos === "sent") {
+              setSosSenderOpen(true);
+            }
+          }}
+          onPointerDown={sos === "sent" ? undefined : sosStart}
+          onPointerUp={sos === "sent" ? undefined : sosRelease}
+          onPointerLeave={sos === "sent" ? undefined : sosRelease}
           className={cn(
-            "relative mt-1 flex items-center justify-center rounded-full bg-card text-alert shadow-float border border-alert/30 select-none cursor-pointer",
+            "relative mt-1 flex items-center justify-center rounded-full shadow-float border select-none cursor-pointer",
             ctl,
+            sos === "sent"
+              ? "bg-alert text-alert-foreground border-alert animate-pulse"
+              : "bg-card text-alert border-alert/30",
           )}
-          title="Hold 1.2s for Convoy SOS"
+          title={sos === "sent" ? "Emergency SOS Active - Tap to view link" : "Hold 1.2s for Convoy SOS"}
         >
-          <svg className="absolute inset-0 -rotate-90 pointer-events-none" viewBox="0 0 48 48">
-            <circle
-              cx={24}
-              cy={24}
-              r={21}
-              fill="none"
-              strokeWidth={3}
-              className="stroke-alert sos-fill"
-              strokeDasharray={132}
-              strokeDashoffset={sos === "holding" ? 0 : 132}
-              style={{ transitionDuration: sos === "holding" ? "1200ms" : "1ms" }}
-            />
-          </svg>
+          {sos !== "sent" && (
+            <svg className="absolute inset-0 -rotate-90 pointer-events-none" viewBox="0 0 48 48">
+              <circle
+                cx={24}
+                cy={24}
+                r={21}
+                fill="none"
+                strokeWidth={3}
+                className="stroke-alert sos-fill"
+                strokeDasharray={132}
+                strokeDashoffset={sos === "holding" ? 0 : 132}
+                style={{ transitionDuration: sos === "holding" ? "1200ms" : "1ms" }}
+              />
+            </svg>
+          )}
           <span className="font-mono text-[13px] font-bold">SOS</span>
         </button>
       </div>
@@ -1790,7 +2052,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                       type="button"
                       className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-secondary/60 transition-colors cursor-pointer"
                       onClick={() => {
-                        setCamera({ mode: "focus", id: v.id });
+                        setSelectedVehicle(v);
                         setRailOpen(false);
                       }}
                     >
@@ -2082,6 +2344,35 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         voiceProfile={voiceProfile}
         onVoiceProfileChange={setVoiceProfile}
         onOpenOledHud={() => setOledHudOpen(true)}
+      />
+
+      {/* Sender Emergency SOS Active Modal */}
+      <SosSenderModal
+        open={sosSenderOpen}
+        payload={senderSosPayload}
+        onClose={() => setSosSenderOpen(false)}
+        onResolve={handleResolveSos}
+      />
+
+      {/* Receiver Emergency SOS Alert Modal */}
+      <SosReceiverModal
+        alert={activeSosAlert}
+        distanceM={sosDistanceM}
+        onRerouteGps={handleRerouteToSos}
+        onDismiss={() => setSosReceiverOpen(false)}
+      />
+
+      {/* Vehicle Telemetry & Navigation Detail Modal */}
+      <VehicleDetailModal
+        vehicle={selectedVehicle}
+        currentCoords={selectedVehicleCoords}
+        distanceM={selectedVehicleDist}
+        onNavigateTo={handleNavigateToVehicle}
+        onFocusCamera={(id) => {
+          setCamera({ mode: "focus", id });
+          setSelectedVehicle(null);
+        }}
+        onClose={() => setSelectedVehicle(null)}
       />
     </div>
   );

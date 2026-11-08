@@ -130,7 +130,7 @@ export function AnnouncementBar() {
       role="status"
       aria-live="polite"
       className={cn(
-        "fixed inset-x-0 top-0 z-[60] mx-auto flex max-w-xl items-start gap-3 rounded-b-[14px] p-3 shadow-float transition-all",
+        "fixed inset-x-0 top-0 pt-[env(safe-area-inset-top,0px)] z-[60] mx-auto flex max-w-xl items-start gap-3 rounded-b-[18px] p-3 shadow-float transition-all",
         item.tone === "alert"
           ? "bg-alert text-primary-foreground"
           : item.tone === "caution"

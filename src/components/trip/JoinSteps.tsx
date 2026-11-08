@@ -80,12 +80,33 @@ export function JoinSteps({
             ]}
           />
         </div>
-        <Field
-          label="Vehicle name"
-          value={vehicleLabel}
-          maxLength={24}
-          onChange={(e) => setVehicleLabel(e.target.value)}
-        />
+        <div>
+          <Field
+            label="Vehicle name"
+            value={vehicleLabel}
+            maxLength={24}
+            onChange={(e) => setVehicleLabel(e.target.value)}
+          />
+          {/* Quick Vehicle Preset Chips */}
+          <div className="mt-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] text-muted-foreground shrink-0 uppercase tracking-wider font-semibold">
+              Presets:
+            </span>
+            {(vehicleType === "bike"
+              ? ["KTM", "Himalayan", "Classic 350", "Activa", "Electric Bike"]
+              : ["Thar", "Scorpio", "Creta", "Safari", "Swift", "EV SUV", "Sedan"]
+            ).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setVehicleLabel(preset)}
+                className="inline-flex shrink-0 items-center h-6 px-2.5 rounded-full border border-border bg-secondary hover:bg-card text-[11px] font-medium text-foreground transition-all cursor-pointer active:scale-95"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
         <div>
           <div className="mb-2 flex items-center justify-between text-[14px]">
             <span className="font-medium">Vehicle color</span>
@@ -95,7 +116,8 @@ export function JoinSteps({
               </span>
             )}
           </div>
-          <div role="radiogroup" aria-label="Vehicle color" className="grid grid-cols-8 gap-2">
+          {/* Mobile 4x2 Grid for 52dp Touch Ergonomics */}
+          <div role="radiogroup" aria-label="Vehicle color" className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-2">
             {VEHICLE_COLORS.map((c, i) => {
               const taken = takenColors.includes(c);
               return (
@@ -108,15 +130,15 @@ export function JoinSteps({
                   disabled={taken}
                   onClick={() => setColor(c)}
                   className={cn(
-                    "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs",
+                    "relative flex aspect-square min-h-[48px] items-center justify-center rounded-[12px] transition-all cursor-pointer shadow-xs active:scale-95",
                     vehicleBg(c),
                     taken && "opacity-25 cursor-not-allowed grayscale ring-1 ring-border",
                     color === c &&
-                      "outline-2 outline-offset-2 outline-foreground scale-105 shadow-sm",
+                      "outline-3 outline-offset-2 outline-primary scale-105 shadow-sm",
                   )}
                   title={taken ? "Taken by another member" : `Color ${i + 1}`}
                 >
-                  {color === c && <Icon name="check" className="text-[20px]" />}
+                  {color === c && <Icon name="check" className="text-[22px] font-bold" />}
                   {taken && <Icon name="lock" className="text-[14px] text-white absolute" />}
                 </button>
               );

@@ -49,8 +49,12 @@ export const Route = createFileRoute("/lobby")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => <RequireAuth>{(s) => <Lobby session={s} />}</RequireAuth>,
+  component: LobbyGate,
 });
+
+function LobbyGate() {
+  return <RequireAuth>{(s) => <Lobby session={s} />}</RequireAuth>;
+}
 
 function Lobby({ session }: { session: Session }) {
   const uid = session.user.id;
@@ -283,39 +287,41 @@ function Lobby({ session }: { session: Session }) {
             </p>
           </div>
 
-          {/* Quick Share Buttons */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+          {/* Quick Share Buttons - Mobile Stacked, Desktop Inline */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
                 `Join our live convoy on Trip Mode!\n\nTrip: ${trip.name}\nDestination: ${trip.destination}\nConvoy Room Code: ${trip.inviteCode}\n\nTap to join live on the map:\n${link}\n\nOr open Trip Mode and enter room code: ${trip.inviteCode}`,
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-[#25D366] text-white font-semibold text-[13px] hover:bg-[#20ba59] active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 sm:h-11 px-5 rounded-xl bg-[#25D366] text-white font-semibold text-[14px] sm:text-[13px] hover:bg-[#20ba59] active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
             >
-              <Icon name="chat" className="text-[18px]" />
+              <Icon name="chat" className="text-[20px]" />
               <span>Share on WhatsApp</span>
             </a>
 
-            <Button
-              size="md"
-              onClick={share}
-              className="flex-1 sm:flex-initial h-11 px-4 cursor-pointer whitespace-nowrap"
-            >
-              <Icon name="share" className="text-[18px]" />
-              <span>Share Link</span>
-            </Button>
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                size="md"
+                onClick={share}
+                className="w-full sm:w-auto h-11 px-4 cursor-pointer whitespace-nowrap"
+              >
+                <Icon name="share" className="text-[18px]" />
+                <span>Share Link</span>
+              </Button>
 
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setShareCardOpen(true)}
-              className="h-11 px-3.5 cursor-pointer whitespace-nowrap"
-              title="QR Code & Social Card Poster"
-            >
-              <Icon name="qr_code_2" className="text-[18px]" />
-              <span>QR Poster</span>
-            </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setShareCardOpen(true)}
+                className="w-full sm:w-auto h-11 px-3.5 cursor-pointer whitespace-nowrap"
+                title="QR Code & Social Card Poster"
+              >
+                <Icon name="qr_code_2" className="text-[18px]" />
+                <span>QR Poster</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -674,7 +680,7 @@ function Lobby({ session }: { session: Session }) {
                       <div
                         role="radiogroup"
                         aria-label="Vehicle color"
-                        className="grid grid-cols-8 gap-2"
+                        className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-2"
                       >
                         {VEHICLE_COLORS.map((c, i) => {
                           const isTaken =
@@ -689,12 +695,12 @@ function Lobby({ session }: { session: Session }) {
                               disabled={isTaken}
                               onClick={() => setCustomColor(c)}
                               className={cn(
-                                "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs",
+                                "relative flex aspect-square min-h-[48px] items-center justify-center rounded-[12px] transition-all cursor-pointer shadow-xs active:scale-95",
                                 vehicleBg(c),
                                 isTaken &&
                                   "opacity-25 cursor-not-allowed grayscale ring-1 ring-border",
                                 customColor === c &&
-                                  "outline-2 outline-offset-2 outline-foreground scale-105 shadow-sm",
+                                  "outline-3 outline-offset-2 outline-primary scale-105 shadow-sm",
                               )}
                               title={
                                 isTaken
@@ -702,7 +708,7 @@ function Lobby({ session }: { session: Session }) {
                                   : `Color ${i + 1}`
                               }
                             >
-                              {customColor === c && <Icon name="check" className="text-[20px]" />}
+                              {customColor === c && <Icon name="check" className="text-[22px] font-bold" />}
                               {isTaken && (
                                 <Icon name="lock" className="text-[14px] text-white absolute" />
                               )}
@@ -753,10 +759,10 @@ function Lobby({ session }: { session: Session }) {
             )}
           </section>
 
-          {/* Departure Action Bar */}
-          <div className="space-y-2.5 pt-2">
+          {/* Departure Action Bar - Sticky on Mobile, Inline on Desktop */}
+          <div className="sticky bottom-0 z-20 -mx-3 sm:mx-0 px-4 sm:px-0 py-3 sm:py-2 bg-background/95 backdrop-blur-md border-t sm:border-t-0 border-border/80 flex flex-col items-center gap-2 pb-[max(env(safe-area-inset-bottom),14px)] sm:pb-0 shadow-float sm:shadow-none mt-4 sm:mt-2">
             <Button
-              className="w-full text-[17px] shadow-float cursor-pointer"
+              className="w-full text-[17px] shadow-float cursor-pointer min-h-[52px]"
               size="lg"
               onClick={() => {
                 tripStore.updateMe({ ready: true });

@@ -1225,6 +1225,69 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       )}
 
+      {/* LEFT: Glanceable Highway Corridor POI Quick Chips */}
+      <div className="absolute left-3.5 top-36 z-20 flex flex-col gap-2.5">
+        <button
+          type="button"
+          aria-label="Find Fuel along route"
+          onClick={() => void findNearby("fuel")}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
+            ctl,
+            nearbyOpen && nearbyCat === "fuel" && "ring-2 ring-primary bg-primary/10 text-primary",
+          )}
+          title="Petrol pumps along highway"
+        >
+          <Icon name="local_gas_station" className="text-[20px]" />
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Fuel</span>
+        </button>
+
+        <button
+          type="button"
+          aria-label="Find Food along route"
+          onClick={() => void findNearby("food")}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
+            ctl,
+            nearbyOpen && nearbyCat === "food" && "ring-2 ring-primary bg-primary/10 text-primary",
+          )}
+          title="Food & Dhabas along highway"
+        >
+          <Icon name="restaurant" className="text-[20px]" />
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Food</span>
+        </button>
+
+        <button
+          type="button"
+          aria-label="Find Rest Stop along route"
+          onClick={() => void findNearby("toilets")}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
+            ctl,
+            nearbyOpen && nearbyCat === "toilets" && "ring-2 ring-primary bg-primary/10 text-primary",
+          )}
+          title="Rest stops & Toilets along highway"
+        >
+          <Icon name="wc" className="text-[20px]" />
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Rest</span>
+        </button>
+
+        <button
+          type="button"
+          aria-label="Find Hotels along route"
+          onClick={() => void findNearby("hotel")}
+          className={cn(
+            "flex flex-col items-center justify-center rounded-full bg-card shadow-float border border-border/80 transition-transform active:scale-95 cursor-pointer text-foreground hover:bg-secondary",
+            ctl,
+            nearbyOpen && nearbyCat === "hotel" && "ring-2 ring-primary bg-primary/10 text-primary",
+          )}
+          title="Hotels & Stays along highway"
+        >
+          <Icon name="hotel" className="text-[20px]" />
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase -mt-0.5">Stay</span>
+        </button>
+      </div>
+
       {/* RIGHT: Google Maps Floating Action Cluster */}
       <div className="absolute right-3.5 top-36 z-20 flex flex-col gap-2.5">
         {/* Dynamic Compass: Rotates with bearing; tap to reset north */}
@@ -1399,8 +1462,14 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         <button
           type="button"
           aria-label="Push-to-Talk Walkie Talkie"
-          onPointerDown={() => void ptt.startTalking()}
-          onPointerUp={ptt.stopTalking}
+          onPointerDown={() => {
+            navigator.vibrate?.([30]);
+            void ptt.startTalking();
+          }}
+          onPointerUp={() => {
+            navigator.vibrate?.([30, 40, 30]);
+            ptt.stopTalking();
+          }}
           onPointerLeave={ptt.stopTalking}
           className={cn(
             "pointer-events-auto flex items-center gap-2.5 rounded-full px-5 py-2.5 shadow-float transition-all select-none cursor-pointer border backdrop-blur-md active:scale-95",
@@ -1767,7 +1836,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       )}
 
       {/* BOTTOM: Google Maps Driving Navigation Dock (Image 2 style) */}
-      <footer className="absolute inset-x-0 bottom-0 z-30 mx-auto flex h-[88px] max-w-xl items-center justify-between border-t border-border/80 bg-card/95 backdrop-blur-md px-4 shadow-float">
+      <footer className="absolute inset-x-0 bottom-0 z-30 mx-auto flex h-[calc(88px+env(safe-area-inset-bottom,0px))] max-w-xl items-center justify-between border-t border-border/80 bg-card/95 backdrop-blur-md px-4 pb-[env(safe-area-inset-bottom,0px)] shadow-float">
         {/* Left: Google Maps Circular Exit Button */}
         <button
           type="button"

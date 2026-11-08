@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { RouteMap } from "@/components/trip/RouteMap";
-import { Button, Field, Icon, Screen, Segmented } from "@/components/trip/ui";
+import { Button, Field, Icon, Screen, Segmented, VehicleChip, vehicleBg } from "@/components/trip/ui";
 import {
   fetchRoutes,
   PLACES,
@@ -20,7 +20,7 @@ import { RequireAuth } from "@/components/trip/RequireAuth";
 import { createTripRemote } from "@/lib/trip-sync";
 import type { Session } from "@supabase/supabase-js";
 import { PlacePicker } from "@/components/trip/PlacePicker";
-import { tripStore } from "@/lib/trip-store";
+import { tripStore, VEHICLE_COLORS, type VehicleColor } from "@/lib/trip-store";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
@@ -139,6 +139,17 @@ function CreateInner({ session }: { session: Session }) {
   const [autoEnd, setAutoEnd] = useState(true);
   const [approval, setApproval] = useState(true);
 
+  // Host Vehicle Selection before creating
+  const [hostVehicleType, setHostVehicleType] = useState<"car" | "bike">(
+    () => tripStore.get().me.vehicleType || "car",
+  );
+  const [hostVehicleLabel, setHostVehicleLabel] = useState(
+    () => tripStore.get().me.vehicleLabel || "Lead Vehicle",
+  );
+  const [hostColor, setHostColor] = useState<VehicleColor>(
+    () => tripStore.get().me.color || "v1",
+  );
+
   const lastCreatedTime = useRef(0);
 
   // Auto-update name if it matches an earlier pattern
@@ -199,7 +210,13 @@ function CreateInner({ session }: { session: Session }) {
       });
 
       lastCreatedTime.current = now;
-      tripStore.updateMe({ consentAt: now, ready: false });
+      tripStore.updateMe({
+        consentAt: now,
+        ready: false,
+        vehicleType: hostVehicleType,
+        vehicleLabel: hostVehicleLabel,
+        color: hostColor,
+      });
       await createTripRemote(t, raw, session.user.id, tripStore.get().me);
       nav({ to: "/lobby" });
     } catch (e) {
@@ -243,15 +260,25 @@ function CreateInner({ session }: { session: Session }) {
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between text-[12px] sm:text-[13px] font-medium text-muted-foreground mb-2">
           {STEP_LABELS.map((label, i) => (
-            <span
+            <button
               key={label}
+              type="button"
+              disabled={i > step && (!origin || !dest)}
+              onClick={() => {
+                if (i < step) {
+                  setRouteErr(null);
+                  setStep(i);
+                } else if (i === 1 && step === 0 && origin && dest) {
+                  void loadRoutes();
+                }
+              }}
               className={cn(
-                "transition-colors",
+                "transition-colors inline-flex items-center cursor-pointer",
                 i === step
                   ? "text-primary font-semibold"
                   : i < step
-                    ? "text-foreground"
-                    : "text-tertiary",
+                    ? "text-foreground hover:text-primary"
+                    : "text-tertiary cursor-not-allowed",
               )}
             >
               <span
@@ -265,7 +292,7 @@ function CreateInner({ session }: { session: Session }) {
                 {i < step ? "✓" : i + 1}
               </span>
               <span className="hidden xs:inline">{label}</span>
-            </span>
+            </button>
           ))}
         </div>
         <ol className="flex gap-2" aria-label={`Step ${step + 1} of 3`}>
@@ -598,8 +625,66 @@ function CreateInner({ session }: { session: Session }) {
               </div>
             </div>
 
-            {/* Right Column: Security Switches & Pre-Departure Checklist */}
+            {/* Right Column: Host Vehicle, Security Switches & Pre-Departure Checklist */}
             <div className="space-y-4">
+              {/* Host Lead Vehicle Configuration Card */}
+              <div className="rounded-[18px] border border-primary/30 bg-primary/5 p-4 sm:p-5 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <VehicleChip letter="A" color={hostColor} vehicleType={hostVehicleType} size={34} />
+                    <div>
+                      <span className="font-semibold text-[15px] text-foreground block leading-tight">Your Vehicle</span>
+                      <span className="text-[11px] text-primary font-bold uppercase tracking-wider">Convoy Lead</span>
+                    </div>
+                  </div>
+                  <Segmented
+                    label="Vehicle type"
+                    value={hostVehicleType}
+                    onChange={(v) => {
+                      setHostVehicleType(v);
+                      if (hostVehicleLabel === "Lead Car" || hostVehicleLabel === "Lead Bike") {
+                        setHostVehicleLabel(v === "bike" ? "Lead Bike" : "Lead Car");
+                      }
+                    }}
+                    options={[
+                      { value: "car", label: "Car" },
+                      { value: "bike", label: "Bike" },
+                    ]}
+                  />
+                </div>
+
+                <Field
+                  label="Vehicle Label"
+                  value={hostVehicleLabel}
+                  maxLength={24}
+                  onChange={(e) => setHostVehicleLabel(e.target.value)}
+                  placeholder="e.g. Lead Safari, White Thar"
+                />
+
+                <div>
+                  <div className="mb-2 text-[12px] font-medium text-foreground">Vehicle Color Chip</div>
+                  <div role="radiogroup" aria-label="Lead vehicle color" className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                    {VEHICLE_COLORS.map((c, i) => (
+                      <button
+                        key={c}
+                        type="button"
+                        role="radio"
+                        aria-checked={hostColor === c}
+                        onClick={() => setHostColor(c)}
+                        className={cn(
+                          "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs active:scale-95",
+                          vehicleBg(c),
+                          hostColor === c && "outline-3 outline-offset-2 outline-primary scale-105 shadow-sm",
+                        )}
+                        title={`Color ${i + 1}`}
+                      >
+                        {hostColor === c && <Icon name="check" className="text-[18px] font-bold" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <label className="flex items-center justify-between gap-4 rounded-[18px] border border-border bg-card p-4 sm:p-5 shadow-sm cursor-pointer hover:bg-secondary/20 transition-colors">
                   <div className="flex items-start gap-3">
@@ -691,8 +776,8 @@ function CreateInner({ session }: { session: Session }) {
         </div>
       )}
 
-      {/* Action Footer (Responsive Aligned Bar) */}
-      <div className="mt-8 pt-6 border-t border-border/70 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+      {/* Sticky Mobile Action Footer */}
+      <div className="sticky bottom-0 z-20 -mx-3 sm:mx-0 px-4 sm:px-0 py-3 sm:py-4 bg-background/95 backdrop-blur-md border-t border-border/80 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shadow-float sm:shadow-none pb-[max(env(safe-area-inset-bottom),12px)] mt-8">
         {step > 0 ? (
           <Button
             type="button"

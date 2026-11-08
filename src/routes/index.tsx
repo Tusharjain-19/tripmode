@@ -211,14 +211,14 @@ function Home() {
             </div>
 
             {/* Destination Search Form */}
-            <form onSubmit={handleSearchSubmit} className="relative pt-1">
+            <form onSubmit={handleSearchSubmit} className="relative pt-1 space-y-2.5">
               <div className="flex h-14 w-full items-center gap-3 rounded-2xl border border-border/80 bg-secondary/70 px-4 transition-all focus-within:border-primary focus-within:bg-secondary focus-within:ring-2 focus-within:ring-primary/20 shadow-xs">
                 <Icon name="search" className="text-primary text-[22px] shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Where to? (e.g. BMSCE Bengaluru, Goa, Manali...)"
+                  placeholder="Where to? (e.g. Goa, Manali, Jaipur...)"
                   className="flex-1 bg-transparent text-[15px] sm:text-[16px] text-foreground outline-none placeholder:text-muted-foreground font-medium"
                 />
                 <button
@@ -228,6 +228,26 @@ function Home() {
                 >
                   <Icon name="arrow_forward" className="text-[19px]" />
                 </button>
+              </div>
+
+              {/* Mobile Quick Destination Chips (0 typing required) */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0 flex items-center gap-1">
+                  <Icon name="near_me" className="text-[13px] text-primary" /> Popular:
+                </span>
+                {["Goa", "Jaipur", "Manali", "Bengaluru", "Mumbai", "Udaipur"].map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(city);
+                      nav({ to: "/create", search: { dest: city } });
+                    }}
+                    className="inline-flex items-center gap-1 shrink-0 h-7 px-2.5 rounded-full border border-border bg-card hover:bg-secondary text-[12px] font-medium text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs"
+                  >
+                    <span>{city}</span>
+                  </button>
+                ))}
               </div>
             </form>
 
@@ -293,10 +313,12 @@ function Home() {
                     </div>
                     <Link
                       to="/create"
-                      className={btn({ variant: "quiet", size: "icon", className: "h-8 w-8" })}
-                      aria-label={`Start trip ${st.name}`}
+                      search={{ dest: st.destination, origin: st.origin }}
+                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-border bg-card text-[11px] font-semibold text-foreground hover:bg-secondary cursor-pointer shrink-0 shadow-2xs active:scale-95 transition-all"
+                      title={`Re-launch convoy ${st.name}`}
                     >
-                      <Icon name="chevron_right" />
+                      <Icon name="rocket_launch" className="text-[14px] text-primary" />
+                      <span>Re-launch</span>
                     </Link>
                   </li>
                 ))}
@@ -488,18 +510,33 @@ function Home() {
               Enter the invite code shared by the convoy host.
             </p>
             <form onSubmit={handleJoin} className="mt-4 space-y-3">
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g. 7k9m2p"
-                autoFocus
-                className="h-12 w-full rounded-lg border border-border bg-secondary px-4 font-mono text-[16px] outline-none focus:border-primary uppercase tracking-widest text-center"
-              />
+              <div className="relative">
+                <input
+                  value={code}
+                  onChange={(e) =>
+                    setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))
+                  }
+                  placeholder="e.g. 7K9M2P"
+                  autoFocus
+                  maxLength={8}
+                  className="h-13 w-full rounded-xl border border-border bg-secondary px-4 font-mono text-[18px] font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase tracking-widest text-center shadow-xs"
+                />
+                {code && (
+                  <button
+                    type="button"
+                    onClick={() => setCode("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full hover:bg-card text-muted-foreground cursor-pointer"
+                  >
+                    <Icon name="close" className="text-[16px]" />
+                  </button>
+                )}
+              </div>
               <Button
                 type="submit"
-                className="w-full h-12 text-[15px] cursor-pointer"
+                className="w-full h-12 text-[15px] font-semibold cursor-pointer shadow-sm"
                 disabled={!code.trim()}
               >
+                <Icon name="rocket_launch" className="text-[18px]" />
                 Preview & Join Convoy
               </Button>
             </form>

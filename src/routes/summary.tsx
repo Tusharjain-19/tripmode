@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { btn, Button, Icon, Screen, VehicleChip } from "@/components/trip/ui";
 import { tripStore, useTrip } from "@/lib/trip-store";
 
@@ -28,6 +28,21 @@ function Summary() {
   const trip = useTrip((st) => st.trip);
   const nav = useNavigate();
   const [saved, setSaved] = useState(false);
+  const [discipline, setDiscipline] = useState<{
+    score: number;
+    inFormationPercent: number;
+    strayCount: number;
+    grade: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tripmode.lastDisciplineScore");
+      if (raw) setDiscipline(JSON.parse(raw));
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleSave = () => {
     try {
@@ -118,6 +133,33 @@ function Summary() {
         ))}
       </dl>
 
+      {/* Convoy Discipline Score Card */}
+      {discipline && (
+        <div className="mt-4 rounded-[20px] border border-border bg-card p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary font-mono text-[22px] font-bold">
+              {discipline.grade}
+            </span>
+            <div>
+              <div className="font-semibold text-[16px] text-foreground">
+                Convoy Discipline: {discipline.score}%
+              </div>
+              <div className="text-[13px] text-muted-foreground">
+                {discipline.inFormationPercent}% time in formation • {discipline.strayCount === 0 ? "Zero off-route strays" : `${discipline.strayCount} strays recovered`}
+              </div>
+            </div>
+          </div>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary uppercase tracking-wider hidden sm:inline">
+            Formation Verified
+          </span>
+        </div>
+      )}
+
+      {/* Interactive Post-Trip Convoy Reel */}
+      <div className="mt-6">
+        <ConvoyReelPlayer arrivals={arrivals} distanceKm={distanceKm} />
+      </div>
+
       {/* Arrival Order List */}
       {arrivals.length > 0 && (
         <section className="mt-6">
@@ -168,5 +210,105 @@ function Summary() {
         </p>
       </div>
     </Screen>
+  );
+}
+
+function ConvoyReelPlayer({
+  arrivals,
+  distanceKm,
+}: {
+  arrivals: { name: string; color?: string }[];
+  distanceKm: number;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const raf = useRef<number | null>(null);
+
+  const startReel = () => {
+    setPlaying(true);
+    setProgress(0);
+    const start = performance.now();
+    const duration = 6000;
+
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / duration);
+      setProgress(t);
+      if (t < 1) {
+        raf.current = requestAnimationFrame(tick);
+      } else {
+        setPlaying(false);
+      }
+    };
+    raf.current = requestAnimationFrame(tick);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, []);
+
+  return (
+    <div className="rounded-[22px] border border-border bg-card p-4 sm:p-5 shadow-float space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Icon name="movie" className="text-[20px]" />
+          </span>
+          <div>
+            <h3 className="text-[15px] sm:text-[16px] font-bold text-foreground">Post-Trip Convoy Reel</h3>
+            <p className="text-[12px] text-muted-foreground">Animated route formation playback</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={startReel}
+          className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-[13px] font-semibold text-primary-foreground hover:bg-primary-pressed active:scale-95 transition-all shadow-xs cursor-pointer"
+        >
+          <Icon name={playing ? "replay" : "play_arrow"} className="text-[18px]" />
+          <span>{playing ? "Replaying..." : progress > 0 ? "Replay" : "Play Reel"}</span>
+        </button>
+      </div>
+
+      <div className="relative h-28 rounded-xl bg-secondary/50 border border-border overflow-hidden p-3 flex flex-col justify-between">
+        <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+          <span>Start (0 km)</span>
+          <span className="font-bold text-primary">{Math.round(progress * distanceKm)} km</span>
+          <span>Finish ({distanceKm} km)</span>
+        </div>
+
+        <div className="relative h-8 flex items-center">
+          <div className="absolute inset-x-0 h-2.5 rounded-full bg-border/80" />
+          <div
+            className="absolute left-0 h-2.5 rounded-full bg-primary transition-all duration-75 shadow-xs"
+            style={{ width: `${progress * 100}%` }}
+          />
+
+          {arrivals.map((a, i) => {
+            const lag = i * 0.04;
+            const p = Math.max(0, Math.min(1, progress - lag));
+            return (
+              <div
+                key={a.name || i}
+                className="absolute -top-3.5 transition-transform"
+                style={{
+                  left: `calc(${p * 92}% + 4px)`,
+                  transitionDuration: playing ? "50ms" : "300ms",
+                }}
+              >
+                <VehicleChip letter={String.fromCharCode(65 + i)} color={(a.color as never) || "v1"} size={28} />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+          <span>Toll Gate Passed</span>
+          <span>Corridor Safe Gap Maintained</span>
+          <span>All Arrived</span>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -26,7 +26,15 @@ import {
 } from "@/lib/sos";
 import { RouteMap, type MapCamera, type MapVehicle } from "@/components/trip/RouteMap";
 import { btn, Button, Icon, VehicleChip } from "@/components/trip/ui";
-import { formatKm, gapsToLeader, pointAt, statusMessage, type MemberStatus } from "@/lib/convoy";
+import {
+  calculateDisciplineScore,
+  calculateRegroupSpeed,
+  formatKm,
+  gapsToLeader,
+  pointAt,
+  statusMessage,
+  type MemberStatus,
+} from "@/lib/convoy";
 import {
   metersPerUnit,
   ROUTES,
@@ -53,7 +61,7 @@ import {
   type NavLeg,
   type NavRoute,
 } from "@/lib/nav";
-import { CATEGORIES, searchNearby, type NearbyPlace, type PlaceCategory } from "@/lib/places";
+import { CATEGORIES, findOptimalRefuelStop, searchNearby, type NearbyPlace, type PlaceCategory } from "@/lib/places";
 import type { MapStyleId } from "@/components/trip/RouteMap";
 import {
   confirmStopRemote,
@@ -425,6 +433,27 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [resetNorthKey, setResetNorthKey] = useState(0);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  type PitstopPoll = {
+    id: string;
+    placeName: string;
+    category: PlaceCategory;
+    votes: Set<string>;
+    required: number;
+  };
+  const [activePoll, setActivePoll] = useState<PitstopPoll | null>(null);
 
   const [isHeadsUp, setIsHeadsUp] = useState(false);
   const myHeading = vehicles.find((v) => v.isMe)?.realHeading ?? geo.fix?.heading ?? 0;
@@ -486,6 +515,36 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           tone: "info",
           from,
           ackable: true,
+        });
+      } else if (m.body.startsWith("propose_stop::")) {
+        const placeName = m.body.slice(14);
+        soundFx.navChime();
+        setActivePoll({
+          id: placeName,
+          placeName,
+          category: "fuel",
+          votes: new Set([m.userId]),
+          required: Math.max(2, Math.ceil(vehicles.length / 2)),
+        });
+        showBanner({
+          kind: "system",
+          text: `${who} proposed pitstop: ${placeName}`,
+          tone: "info",
+        });
+      } else if (m.body.startsWith("agreed_stop::")) {
+        const placeName = m.body.slice(13);
+        setActivePoll((curr) => {
+          if (!curr || curr.id !== placeName) return curr;
+          const updated = new Set(curr.votes);
+          updated.add(m.userId);
+          if (updated.size >= curr.required) {
+            showBanner({
+              kind: "system",
+              text: `Pitstop consensus reached: ${curr.placeName}!`,
+              tone: "info",
+            });
+          }
+          return { ...curr, votes: updated };
         });
       } else {
         if (!chatOpenRef.current) setUnread((u) => u + 1);
@@ -669,6 +728,77 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     }
   }, [statuses, gaps, vehicles, showBanner, audioMode, voiceProfile]);
 
+  // Convoy Accordion Pace Advisor (Leader pacing recommendation)
+  const isLeader = vehicles.length > 1 && vehicles[0]?.isMe;
+  const tailVehicle = vehicles.length > 1 ? vehicles[vehicles.length - 1] : null;
+  const maxGapM = Math.max(0, ...Object.values(gaps));
+  const regroupAdvice = useMemo(() => {
+    if (!isLeader || !tailVehicle) return null;
+    return calculateRegroupSpeed(
+      meV?.speedKmh ?? 0,
+      tailVehicle.speedKmh ?? 0,
+      maxGapM,
+      thresholdM,
+    );
+  }, [isLeader, tailVehicle, meV?.speedKmh, maxGapM, thresholdM]);
+
+  const lastPaceAlert = useRef(0);
+  useEffect(() => {
+    if (!regroupAdvice || !regroupAdvice.shouldSlowDown) return;
+    if (Date.now() - lastPaceAlert.current < 150000) return;
+    lastPaceAlert.current = Date.now();
+    soundFx.alertChime();
+    showBanner({
+      kind: "system",
+      text: regroupAdvice.message,
+      tone: "caution",
+    });
+    if (audioMode !== "mute") {
+      speakGuidance(regroupAdvice.message, voiceProfile);
+    }
+  }, [regroupAdvice, showBanner, audioMode, voiceProfile]);
+
+  // Automated Hard-Brake Hazard Beacon via device accelerometer
+  useEffect(() => {
+    if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
+    let lastBrakeTrigger = 0;
+    const onMotion = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const mag = Math.hypot(acc.x ?? 0, acc.y ?? 0, acc.z ?? 0);
+      if (mag > 16.5 && (meV?.speedKmh ?? 0) > 25) {
+        if (Date.now() - lastBrakeTrigger < 30000) return;
+        lastBrakeTrigger = Date.now();
+        soundFx.alertChime();
+        navigator.vibrate?.([200, 100, 200]);
+        if (trip.id && uid) {
+          void sendMessage(trip.id, uid, "quick", "Hard braking / sudden hazard ahead!");
+        }
+        showBanner({
+          kind: "system",
+          text: "Hard braking detected! Hazard beacon broadcast to convoy.",
+          tone: "alert",
+        });
+      }
+    };
+    window.addEventListener("devicemotion", onMotion, { passive: true });
+    return () => window.removeEventListener("devicemotion", onMotion);
+  }, [meV?.speedKmh, trip.id, uid, showBanner]);
+
+  // Discipline score tracking
+  const disciplineStats = useRef({ totalSamples: 0, inThresholdSamples: 0, strayCount: 0 });
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (vehicles.length <= 1) return;
+      disciplineStats.current.totalSamples += 1;
+      const allWithin = Object.values(gaps).every((g) => g <= thresholdM);
+      if (allWithin) disciplineStats.current.inThresholdSamples += 1;
+      const anyStray = Object.values(statuses).some((s) => s === "offroute");
+      if (anyStray) disciplineStats.current.strayCount += 1;
+    }, 5000);
+    return () => clearInterval(id);
+  }, [vehicles.length, gaps, thresholdM, statuses]);
+
   // Auto end when everyone arrives
   const allArrived = vehicles.every((v) => v.arrivedAtS !== null);
   const isHost = trip.hostId === uid;
@@ -688,6 +818,16 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       })),
       stops: vehicles.reduce((a, v) => a + v.stops, 0),
     });
+    try {
+      const discipline = calculateDisciplineScore(
+        disciplineStats.current.totalSamples,
+        disciplineStats.current.inThresholdSamples,
+        disciplineStats.current.strayCount,
+      );
+      localStorage.setItem("tripmode.lastDisciplineScore", JSON.stringify(discipline));
+    } catch {
+      // ignore
+    }
     nav({ to: "/summary" });
   }, [meV.progressM, vehicles, nav]);
 
@@ -930,11 +1070,35 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       setNearbyState("idle");
       if (places.length > 0) {
         setSelectedPlace(places[0]!);
+        if (cat === "fuel" || cat === "ev") {
+          const refuel = findOptimalRefuelStop(center, 120, places);
+          if (refuel.stop) {
+            showBanner({ kind: "system", text: refuel.reason, tone: "info" });
+          }
+        }
       }
     } catch {
       setNearbyState("error");
       setNearby([]);
     }
+  };
+
+  const proposePitstop = (p: NearbyPlace) => {
+    if (!trip.id) return;
+    void sendMessage(trip.id, uid, "chat", `propose_stop::${p.name}`);
+    setActivePoll({
+      id: p.name,
+      placeName: p.name,
+      category: p.category,
+      votes: new Set([uid]),
+      required: Math.max(2, Math.ceil(vehicles.length / 2)),
+    });
+    soundFx.navChime();
+    showBanner({
+      kind: "system",
+      text: `Proposed pitstop: ${p.name}. Waiting for driver votes.`,
+      tone: "info",
+    });
   };
 
   const handleAddStop = async (p: NearbyPlace) => {
@@ -1494,6 +1658,14 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           </div>
         )}
 
+        {/* Offline Highway Mode Banner */}
+        {!isOnline && (
+          <div className="banner-in pointer-events-auto flex items-center gap-2 rounded-full border border-amber-500/40 bg-card/95 px-3.5 py-1 text-[12px] font-semibold text-amber-500 shadow-float backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Offline Highway Mode • Local GPS & Cached Route Active</span>
+          </div>
+        )}
+
         {/* Active Emergency Reroute or Vehicle Navigation Bar */}
         {customDest && (
           <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border-2 border-alert/80 bg-card/95 px-4 py-2.5 shadow-float backdrop-blur-md">
@@ -1587,6 +1759,47 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 className="flex h-8 items-center gap-1 rounded-lg bg-secondary px-2.5 text-[11px] font-bold text-foreground hover:bg-secondary/80 active:scale-95 cursor-pointer"
               >
                 I'm Safe
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Group Pitstop Consensus Banner */}
+        {activePoll && (
+          <div className="banner-in pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-card/95 backdrop-blur-md p-3 shadow-float">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon name="local_gas_station" className="text-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Pitstop Proposal</div>
+                <div className="text-[13px] font-semibold text-foreground truncate">{activePoll.placeName}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {activePoll.votes.size} of {activePoll.required} drivers agreed
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = new Set(activePoll.votes);
+                  updated.add(uid);
+                  setActivePoll({ ...activePoll, votes: updated });
+                  soundFx.navChime();
+                  if (trip.id) void sendMessage(trip.id, uid, "chat", `agreed_stop::${activePoll.id}`);
+                }}
+                className="flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary-pressed active:scale-95 cursor-pointer shadow-xs"
+              >
+                <Icon name="thumb_up" className="text-[14px]" />
+                Agree
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePoll(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-secondary text-muted-foreground cursor-pointer"
+              >
+                <Icon name="close" className="text-[16px]" />
               </button>
             </div>
           </div>
@@ -2023,15 +2236,27 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               </span>{" "}
               detour
             </div>
-            <button
-              onClick={() => void handleAddStop(selectedPlace)}
-              className="inline-flex items-center gap-2 rounded-full bg-[#00897b] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition-transform hover:scale-105 active:scale-95"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
-                <Icon name="add" className="text-[14px]" />
-              </span>
-              Add stop
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => proposePitstop(selectedPlace)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary shadow-xs transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                title="Propose pitstop poll to all convoy members"
+              >
+                <Icon name="how_to_vote" className="text-[15px]" />
+                Propose
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleAddStop(selectedPlace)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#00897b] px-3.5 py-1.5 text-[12px] font-semibold text-white shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20">
+                  <Icon name="add" className="text-[13px]" />
+                </span>
+                Add stop
+              </button>
+            </div>
           </div>
         </div>
       )}

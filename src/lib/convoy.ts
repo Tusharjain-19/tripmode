@@ -153,3 +153,83 @@ export function statusMessage(name: string, status: MemberStatus, gapM: number):
       return null;
   }
 }
+
+export type RegroupPace = {
+  shouldSlowDown: boolean;
+  paceSpeedKmh: number;
+  excessGapM: number;
+  catchupMinutes: number;
+  message: string;
+};
+
+/**
+ * Calculates optimal cruising pace for lead vehicle to allow separated tail vehicles to regroup.
+ * Target regroup window: 2-5 minutes at a safe highway cruising speed.
+ */
+export function calculateRegroupSpeed(
+  leaderSpeedKmh: number,
+  tailSpeedKmh: number,
+  currentGapM: number,
+  thresholdM: number,
+): RegroupPace {
+  const excess = currentGapM - thresholdM;
+  if (excess <= 0) {
+    return {
+      shouldSlowDown: false,
+      paceSpeedKmh: Math.round(leaderSpeedKmh),
+      excessGapM: 0,
+      catchupMinutes: 0,
+      message: "Convoy in formation.",
+    };
+  }
+
+  // Desired catchup window: ~3.5 minutes (210s)
+  const targetMinutes = Math.min(6, Math.max(2, Math.round((excess / 1000) * 1.5 * 10) / 10));
+  const effectiveTailSpeed = Math.max(30, tailSpeedKmh);
+
+  // Speed delta needed in km/h: (excessKm / (targetMinutes / 60))
+  const neededSpeedDeltaKmh = (excess / 1000) / (targetMinutes / 60);
+  const targetLeaderSpeed = Math.max(35, Math.min(leaderSpeedKmh, Math.round(effectiveTailSpeed - neededSpeedDeltaKmh)));
+
+  return {
+    shouldSlowDown: currentGapM > thresholdM * 1.3 && leaderSpeedKmh > 40,
+    paceSpeedKmh: targetLeaderSpeed,
+    excessGapM: excess,
+    catchupMinutes: targetMinutes,
+    message: `Tail vehicle ${formatKm(currentGapM)} behind. Cruise at ${targetLeaderSpeed} km/h to regroup in ~${targetMinutes}m.`,
+  };
+}
+
+export type DisciplineSummary = {
+  score: number;
+  inFormationPercent: number;
+  strayCount: number;
+  grade: "A+" | "A" | "B" | "C";
+};
+
+/** Evaluates overall convoy driving discipline for post-trip recap */
+export function calculateDisciplineScore(
+  totalSamples: number,
+  samplesInThreshold: number,
+  strayCount: number,
+): DisciplineSummary {
+  if (totalSamples <= 0) {
+    return { score: 100, inFormationPercent: 100, strayCount: 0, grade: "A+" };
+  }
+  const inFormationRatio = Math.min(1, Math.max(0, samplesInThreshold / totalSamples));
+  const strayPenalty = Math.min(40, strayCount * 10);
+  const rawScore = Math.max(20, Math.round(inFormationRatio * 100 - strayPenalty));
+
+  let grade: "A+" | "A" | "B" | "C" = "A+";
+  if (rawScore >= 90) grade = "A+" ;
+  else if (rawScore >= 80) grade = "A";
+  else if (rawScore >= 65) grade = "B";
+  else grade = "C";
+
+  return {
+    score: rawScore,
+    inFormationPercent: Math.round(inFormationRatio * 100),
+    strayCount,
+    grade,
+  };
+}

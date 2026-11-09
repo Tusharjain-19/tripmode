@@ -114,6 +114,21 @@ export function usePushToTalk({
     setIsRecording(false);
   }, []);
 
+  // Hardware Volume-Down Button PTT listener (bridged from Android native container)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __triggerHardwarePtt?: (down: boolean) => void }).__triggerHardwarePtt = (down: boolean) => {
+      if (down) {
+        void startTalking();
+      } else {
+        stopTalking();
+      }
+    };
+    return () => {
+      delete (window as unknown as { __triggerHardwarePtt?: unknown }).__triggerHardwarePtt;
+    };
+  }, [startTalking, stopTalking]);
+
   return {
     isRecording,
     hasPermission,

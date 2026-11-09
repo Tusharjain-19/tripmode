@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   adjacentGaps,
+  calculateDisciplineScore,
+  calculateRegroupSpeed,
   classify,
   gapsToLeader,
   leaderId,
@@ -78,5 +80,35 @@ describe("rail collision stacking", () => {
       32,
     );
     expect(rows).toEqual({ A: 0, B: 1, C: 0 });
+  });
+});
+
+describe("convoy anti-separation accordion advisor", () => {
+  it("recommends cruising pace when tail vehicle is separated", () => {
+    const pace = calculateRegroupSpeed(90, 50, 4000, 1500);
+    expect(pace.shouldSlowDown).toBe(true);
+    expect(pace.paceSpeedKmh).toBeLessThan(90);
+    expect(pace.paceSpeedKmh).toBeGreaterThanOrEqual(35);
+    expect(pace.catchupMinutes).toBeGreaterThan(0);
+  });
+
+  it("indicates convoy in formation when within threshold", () => {
+    const pace = calculateRegroupSpeed(80, 78, 1200, 2000);
+    expect(pace.shouldSlowDown).toBe(false);
+    expect(pace.excessGapM).toBe(0);
+  });
+});
+
+describe("convoy discipline score", () => {
+  it("awards high grade when vehicles remain grouped without strays", () => {
+    const result = calculateDisciplineScore(100, 95, 0);
+    expect(result.score).toBeGreaterThanOrEqual(90);
+    expect(result.grade).toBe("A+");
+  });
+
+  it("penalizes stray events appropriately", () => {
+    const result = calculateDisciplineScore(100, 80, 2);
+    expect(result.score).toBeLessThan(75);
+    expect(result.strayCount).toBe(2);
   });
 });

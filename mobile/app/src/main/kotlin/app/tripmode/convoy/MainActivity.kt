@@ -533,4 +533,13 @@ class MainActivity : Activity() {
             }
         }
     }
+
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+            val isDown = event.action == android.view.KeyEvent.ACTION_DOWN
+            webView.evaluateJavascript("window.__triggerHardwarePtt?.($isDown);", null)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
 }

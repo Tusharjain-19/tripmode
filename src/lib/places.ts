@@ -53,6 +53,55 @@ function cleanPlaceName(raw: string, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Calculates optimal refuel/charging stop along the convoy corridor
+ * before the vehicle with lowest remaining range enters reserve (35km buffer).
+ */
+export function findOptimalRefuelStop(
+  currentPos: LngLat,
+  minVehicleRangeKm: number,
+  places: NearbyPlace[],
+): { stop: NearbyPlace | null; reason: string } {
+  const safeRangeKm = Math.max(25, minVehicleRangeKm - 35);
+  const fuelPlaces = places.filter((p) => p.category === "fuel" || p.category === "ev");
+
+  if (!fuelPlaces.length) {
+    return {
+      stop: null,
+      reason: "No fuel or EV chargers detected along immediate corridor.",
+    };
+  }
+
+  // Find stations within safe window: distance between 2km and safeRangeKm
+  const candidates = fuelPlaces
+    .map((p) => ({
+      place: p,
+      distKm: Math.round(haversineM(currentPos, p.lngLat) / 100) / 10,
+    }))
+    .filter((c) => c.distKm >= 2 && c.distKm <= safeRangeKm)
+    .sort((a, b) => b.distKm - a.distKm);
+
+  const best = candidates[0];
+  if (best) {
+    return {
+      stop: best.place,
+      reason: `Refuel at ${best.place.name} in ${best.distKm} km before lowest vehicle reaches reserve.`,
+    };
+  }
+
+  const closest = fuelPlaces
+    .map((p) => ({
+      place: p,
+      distKm: Math.round(haversineM(currentPos, p.lngLat) / 100) / 10,
+    }))
+    .sort((a, b) => a.distKm - b.distKm)[0];
+
+  return {
+    stop: closest?.place ?? null,
+    reason: closest ? `Urgent refuel: ${closest.place.name} in ${closest.distKm} km.` : "Refuel recommended soon.",
+  };
+}
+
 /** Fallback corridor points along local route bearing when offline or OSM is rate-limited */
 function generateCorridorFallbacks(center: LngLat, category: PlaceCategory): NearbyPlace[] {
   const cat = CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0]!;

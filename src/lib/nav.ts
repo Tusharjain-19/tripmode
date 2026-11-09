@@ -90,13 +90,21 @@ export async function fetchGuidance(
         }));
         const steps: NavStep[] = legs.flatMap((l) => l.steps);
 
-        return {
+        const routeResult = {
           distanceM: r.distance,
           durationS: r.duration,
           geometry: coords,
           legs,
           steps,
         };
+        try {
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("tripmode.cachedGuidance", JSON.stringify(routeResult));
+          }
+        } catch {
+          // ignore
+        }
+        return routeResult;
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
@@ -104,6 +112,18 @@ export async function fetchGuidance(
       }
       lastError = e instanceof Error ? e.message : String(e);
     }
+  }
+
+  // Fallback to offline cached route maneuvers when in cellular dead zone
+  try {
+    if (typeof localStorage !== "undefined") {
+      const cached = localStorage.getItem("tripmode.cachedGuidance");
+      if (cached) {
+        return JSON.parse(cached) as NavRoute;
+      }
+    }
+  } catch {
+    // ignore
   }
 
   throw new Error(lastError);

@@ -535,16 +535,29 @@ export function usePublishPosition(
     lastTime.current = now;
     prevFix.current = { lat: fix.lat, lng: fix.lng, at: now };
 
-    void supabase.from("trip_positions").upsert({
-      trip_id: tripId,
-      user_id: userId,
-      lng: fix.lng,
-      lat: fix.lat,
-      speed_ms: fix.speedMs,
-      heading: fix.heading,
-      accuracy_m: fix.accuracyM,
-      updated_at: new Date().toISOString(),
-    });
+    const sendFix = () => {
+      void supabase.from("trip_positions").upsert({
+        trip_id: tripId,
+        user_id: userId,
+        lng: fix.lng,
+        lat: fix.lat,
+        speed_ms: fix.speedMs,
+        heading: fix.heading,
+        accuracy_m: fix.accuracyM,
+        updated_at: new Date().toISOString(),
+      });
+    };
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const onOnline = () => {
+        sendFix();
+        window.removeEventListener("online", onOnline);
+      };
+      window.addEventListener("online", onOnline);
+      return;
+    }
+
+    sendFix();
   }, [tripId, userId, fix, everyMs]);
 }
 

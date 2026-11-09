@@ -63,14 +63,14 @@ const toMember = (r: {
   approved: boolean;
 }): Member => ({
   userId: r.user_id,
-  letter: r.letter,
-  displayName: r.display_name,
-  vehicleLabel: r.vehicle_label,
+  letter: r.letter || "A",
+  displayName: (r.display_name || "Driver").trim() || "Driver",
+  vehicleLabel: (r.vehicle_label || "Vehicle").trim() || "Vehicle",
   vehicleType: r.vehicle_type === "bike" ? "bike" : "car",
-  color: r.color as VehicleColor,
+  color: (r.color || "v1") as VehicleColor,
   role: r.role === "passenger" ? "passenger" : "driver",
-  ready: r.ready,
-  approved: r.approved,
+  ready: Boolean(r.ready),
+  approved: Boolean(r.approved),
 });
 
 /** Create the trip in the backend and automatically enroll host as approved Member A. */

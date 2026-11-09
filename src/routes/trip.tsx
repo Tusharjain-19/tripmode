@@ -61,7 +61,13 @@ import {
   type NavLeg,
   type NavRoute,
 } from "@/lib/nav";
-import { CATEGORIES, findOptimalRefuelStop, searchNearby, type NearbyPlace, type PlaceCategory } from "@/lib/places";
+import {
+  CATEGORIES,
+  findOptimalRefuelStop,
+  searchNearby,
+  type NearbyPlace,
+  type PlaceCategory,
+} from "@/lib/places";
 import type { MapStyleId } from "@/components/trip/RouteMap";
 import {
   confirmStopRemote,
@@ -192,10 +198,19 @@ function TripGateInner({ uid }: { uid: string }) {
             Enter Convoy Code
           </button>
           <div className="flex items-center gap-2 mt-2">
-            <Link to="/lobby" className={btn({ variant: "secondary", className: "flex-1 text-[13px] h-10" })}>
+            <Link
+              to="/lobby"
+              className={btn({ variant: "secondary", className: "flex-1 text-[13px] h-10" })}
+            >
               Trip lobby
             </Link>
-            <Link to="/create" className={btn({ variant: "quiet", className: "flex-1 text-[13px] h-10 text-muted-foreground" })}>
+            <Link
+              to="/create"
+              className={btn({
+                variant: "quiet",
+                className: "flex-1 text-[13px] h-10 text-muted-foreground",
+              })}
+            >
               Create trip
             </Link>
           </div>
@@ -249,7 +264,12 @@ function TripGateInner({ uid }: { uid: string }) {
                   <input
                     value={joinCode}
                     onChange={(e) =>
-                      setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))
+                      setJoinCode(
+                        e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, "")
+                          .slice(0, 8),
+                      )
                     }
                     placeholder="e.g. 7K9M2P"
                     autoFocus
@@ -270,7 +290,11 @@ function TripGateInner({ uid }: { uid: string }) {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 text-[14px]" disabled={!joinCode.trim()}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-[14px]"
+                  disabled={!joinCode.trim()}
+                >
                   Continue to Convoy
                 </Button>
               </form>
@@ -400,7 +424,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [zoomAction, setZoomAction] = useState<{ dir: "in" | "out"; ts: number } | undefined>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPtt, setShowPtt] = useState(false);
-  const [voiceProfile, setVoiceProfileState] = useState<VoiceProfileId>(() => getSelectedVoiceProfile());
+  const [voiceProfile, setVoiceProfileState] = useState<VoiceProfileId>(() =>
+    getSelectedVoiceProfile(),
+  );
   const setVoiceProfile = useCallback((id: VoiceProfileId) => {
     setVoiceProfileState(id);
     setSelectedVoiceProfile(id);
@@ -433,7 +459,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [resetNorthKey, setResetNorthKey] = useState(0);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -586,7 +614,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
             });
             // Host automatically creates the approved stop on the route map
             if (isHost && trip.id) {
-              void createStopRemote(trip.id, curr.placeName, curr.lngLat ?? null).catch(() => undefined);
+              void createStopRemote(trip.id, curr.placeName, curr.lngLat ?? null).catch(
+                () => undefined,
+              );
             }
           }
           return { ...curr, votes: updated };
@@ -611,7 +641,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       soundFx.alertChime();
       const parsed = parseSosCoords(m.body);
       const vehicleCoords = from
-        ? (from.realP ? toLngLat(from.realP) : toLngLat(pointAt(route.line, from.progressM).p))
+        ? from.realP
+          ? toLngLat(from.realP)
+          : toLngLat(pointAt(route.line, from.progressM).p)
         : null;
       const finalLat = parsed?.lat ?? vehicleCoords?.[1] ?? 26.9124;
       const finalLng = parsed?.lng ?? vehicleCoords?.[0] ?? 75.7873;
@@ -1097,12 +1129,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       });
       setSenderSosPayload(packet);
       setSosSenderOpen(true);
-      void sendMessage(
-        trip.id!,
-        uid,
-        "sos",
-        packet.body,
-      );
+      void sendMessage(trip.id!, uid, "sos", packet.body);
       showBanner({
         kind: "sos",
         text: "Emergency SOS broadcast active with live GPS link.",
@@ -1112,7 +1139,18 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     }
     const t = setTimeout(() => setSosLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [sos, sosLeft, showBanner, geo.fix, trip.id, uid, meV.driver, meV.progressM, trip.name, route.line]);
+  }, [
+    sos,
+    sosLeft,
+    showBanner,
+    geo.fix,
+    trip.id,
+    uid,
+    meV.driver,
+    meV.progressM,
+    trip.name,
+    route.line,
+  ]);
 
   const handleResolveSos = useCallback(() => {
     setSos("idle");
@@ -1250,7 +1288,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       void triggerReroute(`Rerouting GPS navigation to ${driverName}...`, targetLngLat);
       speakGuidance(`Rerouting GPS navigation to ${driverName}. Follow directions.`, voiceProfile);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [triggerReroute, voiceProfile],
   );
 
@@ -1273,7 +1311,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       void triggerReroute(`Setting GPS navigation to ${driverName}...`, targetLngLat);
       speakGuidance(`Navigating to ${driverName}.`, voiceProfile);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [triggerReroute, voiceProfile],
   );
 
@@ -1337,7 +1375,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       })
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFix, geo.fix?.lng, geo.fix?.lat, activeDest[0], activeDest[1], waypoints.length, !!customDest]);
+  }, [hasFix, geo.fix?.lng, geo.fix?.lat, activeDest, waypoints.length, customDest]);
 
   // Real-time off-route deviation check for automatic rerouting
   useEffect(() => {
@@ -1427,7 +1465,7 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
       if (bridge?.updateCarState && trip) {
         const leadGapKm =
-          sortedMembers[0] && sortedMembers[0].id !== meV.id ? gaps[meV.id] ?? null : null;
+          sortedMembers[0] && sortedMembers[0].id !== meV.id ? (gaps[meV.id] ?? null) : null;
         bridge.updateCarState(
           true,
           trip.id ?? "",
@@ -1566,40 +1604,40 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           .filter((v) => v.isMe || Boolean(v.realP))
           .map((v): MapVehicle => {
             const pt = points[v.id]!;
-          const { p, heading, offRoute } = pt;
-          const s = statuses[v.id] ?? "following";
-          const stale = s === "stale" || s === "offline";
-          return {
-            id: v.id,
-            letter: v.letter,
-            color: v.color,
-            lngLat: toLngLat(p),
-            screenAngle: -smoothHeading(v.id, heading),
-            wedgeClass: WEDGE[v.color],
-            ring: stale
-              ? "stale"
-              : s === "behind"
-                ? "caution"
-                : s === "offroute" || s === "stopped"
-                  ? "alert"
-                  : offRoute
-                    ? "offroute"
-                    : "none",
-            isMe: v.isMe,
-            simulated: !v.realP,
-            vehicleType:
-              v.vehicleType ?? members.find((m) => m.userId === v.id)?.vehicleType ?? "car",
-            name: v.isMe ? "You" : v.driver,
-            staleLabel: stale
-              ? v.lastUpdateReal > 0 && now - v.lastUpdateReal < 300000
-                ? now - v.lastUpdateReal < 60000
-                  ? `${Math.max(1, Math.round((now - v.lastUpdateReal) / 1000))}s ago`
-                  : `${Math.round((now - v.lastUpdateReal) / 60000)}m ago`
-                : "offline"
-              : undefined,
-            label: `${v.name}, vehicle ${v.letter}, ${s}${v.realP ? "" : ", waiting for location"}`,
-          };
-        })}
+            const { p, heading, offRoute } = pt;
+            const s = statuses[v.id] ?? "following";
+            const stale = s === "stale" || s === "offline";
+            return {
+              id: v.id,
+              letter: v.letter,
+              color: v.color,
+              lngLat: toLngLat(p),
+              screenAngle: -smoothHeading(v.id, heading),
+              wedgeClass: WEDGE[v.color],
+              ring: stale
+                ? "stale"
+                : s === "behind"
+                  ? "caution"
+                  : s === "offroute" || s === "stopped"
+                    ? "alert"
+                    : offRoute
+                      ? "offroute"
+                      : "none",
+              isMe: v.isMe,
+              simulated: !v.realP,
+              vehicleType:
+                v.vehicleType ?? members.find((m) => m.userId === v.id)?.vehicleType ?? "car",
+              name: v.isMe ? "You" : v.driver,
+              staleLabel: stale
+                ? v.lastUpdateReal > 0 && now - v.lastUpdateReal < 300000
+                  ? now - v.lastUpdateReal < 60000
+                    ? `${Math.max(1, Math.round((now - v.lastUpdateReal) / 1000))}s ago`
+                    : `${Math.round((now - v.lastUpdateReal) / 60000)}m ago`
+                  : "offline"
+                : undefined,
+              label: `${v.name}, vehicle ${v.letter}, ${s}${v.realP ? "" : ", waiting for location"}`,
+            };
+          })}
       />
 
       {/* TOP: Google Maps Navigation Header with Safe-Area clearance */}
@@ -1855,8 +1893,12 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                 <Icon name="local_gas_station" className="text-[18px]" />
               </span>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Pitstop Proposal</div>
-                <div className="text-[13px] font-semibold text-foreground truncate">{activePoll.placeName}</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                  Pitstop Proposal
+                </div>
+                <div className="text-[13px] font-semibold text-foreground truncate">
+                  {activePoll.placeName}
+                </div>
                 <div className="text-[11px] text-muted-foreground">
                   {activePoll.votes.size} of {activePoll.required} drivers agreed
                 </div>
@@ -1870,7 +1912,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
                   updated.add(uid);
                   setActivePoll({ ...activePoll, votes: updated });
                   soundFx.navChime();
-                  if (trip.id) void sendMessage(trip.id, uid, "chat", `agreed_stop::${activePoll.id}`);
+                  if (trip.id)
+                    void sendMessage(trip.id, uid, "chat", `agreed_stop::${activePoll.id}`);
                 }}
                 className="flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary-pressed active:scale-95 cursor-pointer shadow-xs"
               >
@@ -2019,7 +2062,11 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       <div className="absolute right-3.5 top-20 sm:top-22 z-20">
         <button
           type="button"
-          aria-label={isHeadsUp ? "Heads-Up active: Tap to align North-Up" : "North-Up active: Tap to follow heading"}
+          aria-label={
+            isHeadsUp
+              ? "Heads-Up active: Tap to align North-Up"
+              : "North-Up active: Tap to follow heading"
+          }
           onClick={handleToggleCompass}
           className={cn(
             "flex flex-col items-center justify-center rounded-2xl bg-card/95 shadow-float border border-border/80 transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md p-1.5",
@@ -2062,7 +2109,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         <button
           type="button"
           aria-label="Toggle Follow / Fit Convoy"
-          onClick={() => setCamera((c) => (c.mode === "follow" ? { mode: "fit" } : { mode: "follow" }))}
+          onClick={() =>
+            setCamera((c) => (c.mode === "follow" ? { mode: "fit" } : { mode: "follow" }))
+          }
           className={cn(
             "flex items-center justify-center rounded-full bg-card shadow-float border border-border/80 active:scale-95 cursor-pointer text-foreground",
             ctl,
@@ -2070,7 +2119,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           )}
           title={camera.mode === "follow" ? "Fit all convoy vehicles" : "Follow my vehicle"}
         >
-          <Icon name={camera.mode === "follow" ? "my_location" : "groups"} className="text-[22px]" />
+          <Icon
+            name={camera.mode === "follow" ? "my_location" : "groups"}
+            className="text-[22px]"
+          />
         </button>
 
         {/* Driving & Navigation Settings (Map Styles, Night Drive, Voice Models, PTT Toggle) */}
@@ -2091,7 +2143,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         {/* Emergency SOS Long-press / Active Details */}
         <button
           type="button"
-          aria-label={sos === "sent" ? "Emergency SOS Active - Tap to view link" : "SOS: Press and hold"}
+          aria-label={
+            sos === "sent" ? "Emergency SOS Active - Tap to view link" : "SOS: Press and hold"
+          }
           onClick={() => {
             if (sos === "sent") {
               setSosSenderOpen(true);
@@ -2107,7 +2161,9 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               ? "bg-alert text-alert-foreground border-alert animate-pulse"
               : "bg-card text-alert border-alert/30",
           )}
-          title={sos === "sent" ? "Emergency SOS Active - Tap to view link" : "Hold 1.2s for Convoy SOS"}
+          title={
+            sos === "sent" ? "Emergency SOS Active - Tap to view link" : "Hold 1.2s for Convoy SOS"
+          }
         >
           {sos !== "sent" && (
             <svg className="absolute inset-0 -rotate-90 pointer-events-none" viewBox="0 0 48 48">
@@ -2872,15 +2928,15 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
       {oledHudOpen && (
         <OledHud
           speedKmh={
-            geo.fix?.speedMs != null && geo.fix.speedMs >= 0
-              ? geo.fix.speedMs * 3.6
-              : meV.speedKmh
+            geo.fix?.speedMs != null && geo.fix.speedMs >= 0 ? geo.fix.speedMs * 3.6 : meV.speedKmh
           }
           speedLimit={80}
           nextInstruction={nextStep ? instruction(nextStep) : undefined}
           nextManeuverIcon={nextStep ? maneuverIcon(nextStep) : undefined}
           distanceToNextM={toNextM}
-          leaderGapKm={sortedMembers[0] && sortedMembers[0].id !== meV.id ? gaps[meV.id] ?? null : null}
+          leaderGapKm={
+            sortedMembers[0] && sortedMembers[0].id !== meV.id ? (gaps[meV.id] ?? null) : null
+          }
           etaMinutes={estMinutes}
           convoyMembersCount={vehicles.length}
           onExit={() => setOledHudOpen(false)}

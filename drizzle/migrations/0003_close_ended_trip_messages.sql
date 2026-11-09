@@ -6,3 +6,4 @@ CREATE POLICY "approved send messages" ON public.trip_messages FOR INSERT TO aut
     public.is_approved_member(trip_id) AND
     public.trip_is_live(trip_id)
   );
+

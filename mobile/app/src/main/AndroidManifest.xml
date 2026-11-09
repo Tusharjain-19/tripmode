@@ -81,6 +81,7 @@
         <service
             android:name=".car.TripModeCarAppService"
             android:exported="true"
+            android:permission="androidx.car.app.BIND_CAR_APP_SERVICE"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name">
             <intent-filter>

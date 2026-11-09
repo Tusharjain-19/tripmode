@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { soundFx } from "./sound";
+import { supabase } from "@/integrations/supabase/client";
 
 export type VoiceClip = {
   id: string;
@@ -9,6 +10,63 @@ export type VoiceClip = {
   durationMs: number;
   timestamp: number;
 };
+
+/** Ephemeral Realtime Broadcast hook for zero-storage Push-to-Talk audio streaming */
+export function useVoiceBroadcast({
+  tripId,
+  userId,
+  senderName,
+  onReceiveClip,
+}: {
+  tripId: string | undefined;
+  userId: string | undefined;
+  senderName: string;
+  onReceiveClip: (clip: VoiceClip) => void;
+}) {
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const onReceiveRef = useRef(onReceiveClip);
+  onReceiveRef.current = onReceiveClip;
+
+  useEffect(() => {
+    if (!tripId) return;
+    const ch = supabase.channel(`tripmode:voice:${tripId}`);
+    channelRef.current = ch;
+
+    ch.on("broadcast", { event: "voice_clip" }, ({ payload }) => {
+      const clip = payload as VoiceClip;
+      if (!clip || clip.senderId === userId) return; // avoid echo of own transmission
+      onReceiveRef.current(clip);
+    });
+
+    ch.subscribe();
+
+    return () => {
+      void supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
+  }, [tripId, userId]);
+
+  const broadcastClip = useCallback(
+    async (base64Audio: string, durationMs: number) => {
+      if (!channelRef.current || !userId) return;
+      await channelRef.current.send({
+        type: "broadcast",
+        event: "voice_clip",
+        payload: {
+          id: `ptt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          senderId: userId,
+          senderName: senderName || "Convoy Driver",
+          audioBase64: base64Audio,
+          durationMs,
+          timestamp: Date.now(),
+        },
+      });
+    },
+    [userId, senderName],
+  );
+
+  return { broadcastClip };
+}
 
 export function usePushToTalk({
   onSendClip,

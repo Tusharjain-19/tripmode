@@ -201,14 +201,14 @@ class MainActivity : Activity() {
         val data: Uri = intent?.data ?: return null
         val scheme: String = data.scheme ?: return null
 
-        // Handle custom scheme: tripmode://join/ABC123 -> https://tripmode-orcin.vercel.app/join/ABC123
+        // Handle custom scheme: tripmode://join/ABC123 or tripmode://ABC123 -> https://tripmode-orcin.vercel.app/join/ABC123
         if (scheme == "tripmode") {
-            val path = data.path ?: ""
-            val host = data.host ?: ""
-            return if (host.isNotEmpty()) {
-                "$defaultBaseUrl/$host$path"
+            val raw = (data.host ?: "") + (data.path ?: "")
+            val cleanCode = raw.replace("/", "").trim()
+            return if (cleanCode.matches(Regex("^[A-Za-z0-9_-]{4,32}$"))) {
+                "$defaultBaseUrl/join/$cleanCode"
             } else {
-                "$defaultBaseUrl$path"
+                defaultBaseUrl
             }
         }
 
@@ -233,7 +233,8 @@ class MainActivity : Activity() {
         settings.databaseEnabled = true
         settings.setGeolocationEnabled(true)
         settings.mediaPlaybackRequiresUserGesture = false
-        settings.allowFileAccess = true
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
 
         settings.useWideViewPort = true
@@ -258,14 +259,25 @@ class MainActivity : Activity() {
                 origin: String?,
                 callback: GeolocationPermissions.Callback?
             ) {
-                // Automatically grant geolocation inside the verified app container
-                callback?.invoke(origin, true, true)
+                val originHost = if (!origin.isNullOrEmpty()) Uri.parse(origin).host?.lowercase() else null
+                if (originHost != null && allowedHosts.contains(originHost)) {
+                    callback?.invoke(origin, true, true)
+                } else {
+                    callback?.invoke(origin, false, false)
+                }
             }
 
             override fun onPermissionRequest(request: PermissionRequest?) {
+                if (request == null) return
+                val originHost = Uri.parse(request.origin.toString()).host?.lowercase()
+                if (originHost == null || !allowedHosts.contains(originHost)) {
+                    request.deny()
+                    return
+                }
+
                 // Grant microphone and camera permission for in-app Push-to-Talk and QR scanner
                 runOnUiThread {
-                    val resources = request?.resources ?: return@runOnUiThread
+                    val resources = request.resources ?: return@runOnUiThread
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         val needPerms = mutableListOf<String>()
                         if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE) &&
@@ -446,7 +458,13 @@ class MainActivity : Activity() {
         fun isNativeApp(): Boolean = true
 
         @JavascriptInterface
-        fun getAppVersion(): String = "1.0.0"
+        fun getAppVersion(): String {
+            return try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.2"
+            } catch (_: Exception) {
+                "1.0.2"
+            }
+        }
 
         @JavascriptInterface
         fun postNotification(title: String, body: String, tone: String?, targetUrl: String?) {

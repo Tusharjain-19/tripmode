@@ -491,6 +491,40 @@ export function usePublishPosition(
 ) {
   const lastTime = useRef(0);
   const prevFix = useRef<{ lng: number; lat: number; at: number } | null>(null);
+  const queuedFix = useRef<{
+    tripId: string;
+    userId: string;
+    fix: {
+      lng: number;
+      lat: number;
+      speedMs: number | null;
+      heading: number | null;
+      accuracyM: number;
+    };
+  } | null>(null);
+
+  // Single idempotent online listener flushing only the latest queued position
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const flushQueue = () => {
+      const q = queuedFix.current;
+      if (q) {
+        queuedFix.current = null;
+        void supabase.from("trip_positions").upsert({
+          trip_id: q.tripId,
+          user_id: q.userId,
+          lng: q.fix.lng,
+          lat: q.fix.lat,
+          speed_ms: q.fix.speedMs,
+          heading: q.fix.heading,
+          accuracy_m: q.fix.accuracyM,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    };
+    window.addEventListener("online", flushQueue);
+    return () => window.removeEventListener("online", flushQueue);
+  }, []);
 
   useEffect(() => {
     if (!tripId || !userId || !fix) return;
@@ -549,11 +583,7 @@ export function usePublishPosition(
     };
 
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      const onOnline = () => {
-        sendFix();
-        window.removeEventListener("online", onOnline);
-      };
-      window.addEventListener("online", onOnline);
+      queuedFix.current = { tripId, userId, fix };
       return;
     }
 

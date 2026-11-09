@@ -795,23 +795,58 @@ function Lobby({ session }: { session: Session }) {
 
           {/* Departure Action Bar - Sticky on Mobile, Inline on Desktop */}
           <div className="sticky bottom-0 z-20 -mx-3 sm:mx-0 px-4 sm:px-0 py-3 sm:py-2 bg-background/95 backdrop-blur-md border-t sm:border-t-0 border-border/80 flex flex-col items-center gap-2 pb-[max(env(safe-area-inset-bottom),14px)] sm:pb-0 shadow-float sm:shadow-none mt-4 sm:mt-2">
-            <Button
-              className="w-full text-[17px] shadow-float cursor-pointer min-h-[52px]"
-              size="lg"
-              onClick={() => {
-                tripStore.updateMe({ ready: true });
-                if (trip.id) {
-                  void updateMemberRemote(trip.id, uid, { ready: true });
-                  if (isHost) {
+            {isHost ? (
+              <Button
+                className="w-full text-[17px] shadow-float cursor-pointer min-h-[52px]"
+                size="lg"
+                onClick={() => {
+                  tripStore.updateMe({ ready: true });
+                  if (trip.id) {
+                    void updateMemberRemote(trip.id, uid, { ready: true });
                     void updateTripRemote(trip.id, { status: "live" });
                   }
-                }
-                nav({ to: "/trip" });
-              }}
-            >
-              <Icon name="navigation" />
-              Start Convoy Navigation
-            </Button>
+                  nav({ to: "/trip" });
+                }}
+              >
+                <Icon name="navigation" />
+                Start Convoy Navigation {others.length > 0 ? `(${members.filter((m) => m.approved && m.ready).length}/${others.length + 1} Ready)` : ""}
+              </Button>
+            ) : (
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  className={cn(
+                    "w-full text-[16px] shadow-float cursor-pointer min-h-[50px] transition-all",
+                    effectiveMine.ready
+                      ? "bg-secondary text-foreground hover:bg-secondary/80 border border-border"
+                      : "bg-primary text-primary-foreground",
+                  )}
+                  size="lg"
+                  onClick={() => {
+                    const nextReady = !effectiveMine.ready;
+                    tripStore.updateMe({ ready: nextReady });
+                    if (trip.id) {
+                      void updateMemberRemote(trip.id, uid, { ready: nextReady });
+                    }
+                    if (nextReady) soundFx.navChime();
+                  }}
+                >
+                  <Icon
+                    name={effectiveMine.ready ? "check_circle" : "check"}
+                    className={effectiveMine.ready ? "text-primary" : ""}
+                  />
+                  {effectiveMine.ready
+                    ? "Ready to Roll (Waiting for Leader)"
+                    : "I'm Ready - Ready to Roll"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => nav({ to: "/trip" })}
+                  className="text-[13px] text-muted-foreground hover:text-foreground text-center py-1 cursor-pointer underline underline-offset-4"
+                >
+                  Preview Navigation Map
+                </button>
+              </div>
+            )}
             <Button
               variant="quiet"
               className="w-full text-[14px] cursor-pointer"

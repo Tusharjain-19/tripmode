@@ -9,7 +9,7 @@ import { VehicleDetailModal } from "@/components/trip/VehicleDetailModal";
 import { QrScannerModal } from "@/components/trip/QrScannerModal";
 import { ShareCardModal } from "@/components/trip/ShareCardModal";
 import { soundFx } from "@/lib/sound";
-import { usePushToTalk, playVoiceClip } from "@/lib/voice-ptt";
+import { usePushToTalk, playVoiceClip, useVoiceBroadcast } from "@/lib/voice-ptt";
 import {
   speakGuidance,
   getSelectedVoiceProfile,
@@ -446,10 +446,41 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     };
   }, []);
 
+  // Keep driver's mobile screen awake during convoy navigation (UI-1)
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let released = false;
+
+    const acquire = async () => {
+      try {
+        if (document.visibilityState === "visible" && !released) {
+          lock = await navigator.wakeLock.request("screen");
+        }
+      } catch {
+        // graceful fallback if not supported
+      }
+    };
+
+    void acquire();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      released = true;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (lock) void lock.release();
+    };
+  }, []);
+
   type PitstopPoll = {
     id: string;
     placeName: string;
     category: PlaceCategory;
+    lngLat?: [number, number] | undefined;
     votes: Set<string>;
     required: number;
   };
@@ -517,12 +548,22 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
           ackable: true,
         });
       } else if (m.body.startsWith("propose_stop::")) {
-        const placeName = m.body.slice(14);
+        const payload = m.body.slice(14);
+        const parts = payload.split("::");
+        const placeName = parts[0] || "Pitstop";
+        let lngLat: [number, number] | undefined = undefined;
+        if (parts[1]) {
+          const coords = parts[1].split(",").map(Number);
+          if (coords.length === 2 && !isNaN(coords[0]!) && !isNaN(coords[1]!)) {
+            lngLat = [coords[0]!, coords[1]!];
+          }
+        }
         soundFx.navChime();
         setActivePoll({
           id: placeName,
           placeName,
           category: "fuel",
+          lngLat,
           votes: new Set([m.userId]),
           required: Math.max(2, Math.ceil(vehicles.length / 2)),
         });
@@ -543,6 +584,10 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               text: `Pitstop consensus reached: ${curr.placeName}!`,
               tone: "info",
             });
+            // Host automatically creates the approved stop on the route map
+            if (isHost && trip.id) {
+              void createStopRemote(trip.id, curr.placeName, curr.lngLat ?? null).catch(() => undefined);
+            }
           }
           return { ...curr, votes: updated };
         });
@@ -758,15 +803,27 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     }
   }, [regroupAdvice, showBanner, audioMode, voiceProfile]);
 
-  // Automated Hard-Brake Hazard Beacon via device accelerometer
+  // Automated Hard-Brake Hazard Beacon via device accelerometer (LOG-4)
   useEffect(() => {
     if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
     let lastBrakeTrigger = 0;
     const onMotion = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
-      const mag = Math.hypot(acc.x ?? 0, acc.y ?? 0, acc.z ?? 0);
-      if (mag > 16.5 && (meV?.speedKmh ?? 0) > 25) {
+      // Prefer linear acceleration (excluding gravity) to prevent pothole / bump false alarms
+      const linear = e.acceleration;
+      const accWithG = e.accelerationIncludingGravity;
+
+      let isHardBrake = false;
+      if (linear && (linear.x !== null || linear.y !== null || linear.z !== null)) {
+        // Automotive standard: horizontal deceleration > 5.5 m/s² (~0.55g) indicates severe braking
+        const horizMag = Math.hypot(linear.x ?? 0, linear.y ?? 0);
+        if (horizMag > 5.5) isHardBrake = true;
+      } else if (accWithG) {
+        // Fallback for sensors without linear acceleration: filter vertical axis to avoid bumps
+        const horizMag = Math.hypot(accWithG.x ?? 0, accWithG.y ?? 0);
+        if (horizMag > 8.5) isHardBrake = true;
+      }
+
+      if (isHardBrake && (meV?.speedKmh ?? 0) > 25) {
         if (Date.now() - lastBrakeTrigger < 30000) return;
         lastBrakeTrigger = Date.now();
         soundFx.alertChime();
@@ -785,19 +842,28 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     return () => window.removeEventListener("devicemotion", onMotion);
   }, [meV?.speedKmh, trip.id, uid, showBanner]);
 
-  // Discipline score tracking
+  // Discipline score tracking with stable non-resetting interval (LOG-5)
   const disciplineStats = useRef({ totalSamples: 0, inThresholdSamples: 0, strayCount: 0 });
+  const gapsRef = useRef(gaps);
+  gapsRef.current = gaps;
+  const statusesRef = useRef(statuses);
+  statusesRef.current = statuses;
+  const vehiclesCountRef = useRef(vehicles.length);
+  vehiclesCountRef.current = vehicles.length;
+  const thresholdMRef = useRef(thresholdM);
+  thresholdMRef.current = thresholdM;
+
   useEffect(() => {
     const id = setInterval(() => {
-      if (vehicles.length <= 1) return;
+      if (vehiclesCountRef.current <= 1) return;
       disciplineStats.current.totalSamples += 1;
-      const allWithin = Object.values(gaps).every((g) => g <= thresholdM);
+      const allWithin = Object.values(gapsRef.current).every((g) => g <= thresholdMRef.current);
       if (allWithin) disciplineStats.current.inThresholdSamples += 1;
-      const anyStray = Object.values(statuses).some((s) => s === "offroute");
+      const anyStray = Object.values(statusesRef.current).some((s) => s === "offroute");
       if (anyStray) disciplineStats.current.strayCount += 1;
     }, 5000);
     return () => clearInterval(id);
-  }, [vehicles.length, gaps, thresholdM, statuses]);
+  }, []);
 
   // Auto end when everyone arrives
   const allArrived = vehicles.every((v) => v.arrivedAtS !== null);
@@ -939,10 +1005,25 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
     return next;
   };
 
+  const { broadcastClip } = useVoiceBroadcast({
+    tripId: trip.id,
+    userId: uid,
+    senderName: me.displayName || "Convoy Driver",
+    onReceiveClip: (clip) => {
+      soundFx.pttCloseChime();
+      playVoiceClip(clip.audioBase64);
+      showBanner({
+        kind: "quick",
+        text: `Voice from ${clip.senderName} (${(clip.durationMs / 1000).toFixed(1)}s)`,
+        tone: "info",
+      });
+    },
+  });
+
   const ptt = usePushToTalk({
-    onSendClip: async (base64Audio) => {
+    onSendClip: async (base64Audio, duration) => {
       showBanner({ kind: "sent", text: "Transmitted voice clip to convoy", tone: "info" });
-      await sendMessage(trip.id!, uid, "chat", `ptt::${base64Audio}`);
+      await broadcastClip(base64Audio, duration);
     },
   });
 
@@ -1085,11 +1166,13 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
 
   const proposePitstop = (p: NearbyPlace) => {
     if (!trip.id) return;
-    void sendMessage(trip.id, uid, "chat", `propose_stop::${p.name}`);
+    const coordStr = p.lngLat ? `::${p.lngLat[0]},${p.lngLat[1]}` : "";
+    void sendMessage(trip.id, uid, "chat", `propose_stop::${p.name}${coordStr}`);
     setActivePoll({
       id: p.name,
       placeName: p.name,
       category: p.category,
+      lngLat: p.lngLat,
       votes: new Set([uid]),
       required: Math.max(2, Math.ceil(vehicles.length / 2)),
     });

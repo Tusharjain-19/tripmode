@@ -183,6 +183,17 @@ export function calculateRegroupSpeed(
     };
   }
 
+  // If tail vehicle is stationary or stopped (< 5 km/h)
+  if (tailSpeedKmh < 5) {
+    return {
+      shouldSlowDown: true,
+      paceSpeedKmh: 0,
+      excessGapM: excess,
+      catchupMinutes: 0,
+      message: `Tail vehicle is stopped (${formatKm(currentGapM)} behind). Leader pull over at next safe exit or shoulder.`,
+    };
+  }
+
   // Desired catchup window: ~3.5 minutes (210s)
   const targetMinutes = Math.min(6, Math.max(2, Math.round((excess / 1000) * 1.5 * 10) / 10));
   const effectiveTailSpeed = Math.max(30, tailSpeedKmh);

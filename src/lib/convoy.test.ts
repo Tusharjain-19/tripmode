@@ -97,6 +97,14 @@ describe("convoy anti-separation accordion advisor", () => {
     expect(pace.shouldSlowDown).toBe(false);
     expect(pace.excessGapM).toBe(0);
   });
+
+  it("advises leader to pull over when tail vehicle is stopped", () => {
+    const pace = calculateRegroupSpeed(70, 0, 3000, 1500);
+    expect(pace.shouldSlowDown).toBe(true);
+    expect(pace.paceSpeedKmh).toBe(0);
+    expect(pace.message).toContain("stopped");
+    expect(pace.message).toContain("pull over");
+  });
 });
 
 describe("convoy discipline score", () => {

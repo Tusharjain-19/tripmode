@@ -80,6 +80,8 @@ export default function RouteMapInner({
   onVehicleClick,
   onBearingChange,
   resetNorthKey,
+  headingUp,
+  userHeading,
   interactive = true,
   className,
   mapStyle = "default",
@@ -443,16 +445,18 @@ export default function RouteMapInner({
   useEffect(() => {
     const m = map.current;
     if (!m || !followTarget) return;
+    const targetBearing = headingUp && typeof userHeading === "number" ? userHeading : (m.getBearing() ?? 0);
     m.easeTo({
       center: followTarget,
       zoom: Math.max(m.getZoom(), 15),
       pitch: camera.mode === "follow" ? 38 : 0,
+      bearing: targetBearing,
       duration: 1000,
       easing: (t) => t,
       padding: { top: 120, bottom: 280, left: 20, right: 60 },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [followTarget?.[0], followTarget?.[1], camKey]);
+  }, [followTarget?.[0], followTarget?.[1], camKey, headingUp, userHeading]);
 
   return <div ref={el} className={className} />;
 }

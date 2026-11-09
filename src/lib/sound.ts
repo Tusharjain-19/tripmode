@@ -43,6 +43,34 @@ class SoundSynthesizer {
     }
   }
 
+  /** Convoy departure chime - triumphant ascending chord (C5 -> E5 -> G5) */
+  departChime() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.2, now + idx * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.36);
+      });
+    } catch {
+      // ignore
+    }
+  }
+
   /** Convoy alert chime (dual harmonic tone for gap alerts & road hazards) */
   alertChime() {
     const ctx = this.getContext();

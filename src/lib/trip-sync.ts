@@ -97,30 +97,29 @@ export async function createTripRemote(trip: TripConfig, routes: RawRoute[], use
   rememberTrip(data.id);
 
   // Host auto-enrolls as Member A (approved=true) so Lobby is immediately ready to share
-  try {
-    const me = hostMe || tripStore.get().me;
-    const displayName = (me.displayName || "Host").trim().slice(0, 40) || "Host";
-    const vehicleLabel = (me.vehicleLabel || "Lead Vehicle").trim().slice(0, 40) || "Lead Vehicle";
+  const me = hostMe || tripStore.get().me;
+  const displayName = (me.displayName || "Host").trim().slice(0, 40) || "Host";
+  const vehicleLabel = (me.vehicleLabel || "Lead Vehicle").trim().slice(0, 40) || "Lead Vehicle";
 
-    await supabase.from("trip_members").insert({
-      trip_id: data.id,
-      user_id: userId,
-      letter: "A",
-      display_name: displayName,
-      vehicle_label: vehicleLabel,
-      vehicle_type: me.vehicleType === "bike" ? "bike" : "car",
-      color: me.color || "v1",
-      role: "driver",
-      approved: true,
-      ready: false,
-    });
-  } catch {
+  const { error: memberError } = await supabase.from("trip_members").insert({
+    trip_id: data.id,
+    user_id: userId,
+    letter: "A",
+    display_name: displayName,
+    vehicle_label: vehicleLabel,
+    vehicle_type: me.vehicleType === "bike" ? "bike" : "car",
+    color: me.color || "v1",
+    role: "driver",
+    approved: true,
+    ready: false,
+  });
+
+  if (memberError) {
     try {
-      const me = hostMe || tripStore.get().me;
       await supabase.rpc("join_trip", {
         _code: trip.inviteCode,
-        _display_name: (me.displayName || "Host").trim().slice(0, 40) || "Host",
-        _vehicle_label: (me.vehicleLabel || "Lead Vehicle").trim().slice(0, 40) || "Lead Vehicle",
+        _display_name: displayName,
+        _vehicle_label: vehicleLabel,
         _vehicle_type: me.vehicleType === "bike" ? "bike" : "car",
         _color: me.color || "v1",
         _role: "driver",

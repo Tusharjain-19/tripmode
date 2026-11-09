@@ -138,13 +138,13 @@ export function Screen({
     <div className="min-h-screen bg-background transition-colors duration-200">
       <div
         className={cn(
-          "screen-in mx-auto flex min-h-screen flex-col px-4 pb-8",
+          "screen-in mx-auto flex min-h-screen flex-col px-3 sm:px-4 pt-0 sm:pt-1 pb-8",
           maxWidth,
           className,
         )}
       >
         {(title || back || headerRight) && (
-          <header className="flex h-16 items-center justify-between gap-2">
+          <header className="flex h-12 sm:h-13 items-center justify-between gap-2 py-0.5">
             <div className="flex items-center gap-2">
               {back && (
                 <Link

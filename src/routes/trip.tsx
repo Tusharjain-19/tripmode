@@ -60,6 +60,7 @@ import {
   createStopRemote,
   dismissStopRemote,
   endTripRemote,
+  joinTripRemote,
   leaveTripRemote,
   sendMessage,
   useMembers,
@@ -111,8 +112,23 @@ function TripGate() {
 function TripGateInner({ uid }: { uid: string }) {
   useRestoreTrip(true);
   const trip = useTrip((s) => s.trip);
+  const me = useTrip((s) => s.me);
   const members = useMembers(trip?.id);
   const [restoring, setRestoring] = useState(true);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const nav = useNavigate();
+
+  const isHost = trip?.hostId === uid;
+  const mine = members.find((m) => m.userId === uid);
+
+  // Host self-heal: auto-enroll host into trip_members if missing
+  useEffect(() => {
+    if (trip && isHost && !mine) {
+      void joinTripRemote(trip.inviteCode, me).catch(() => undefined);
+    }
+  }, [trip, isHost, mine, me]);
 
   useEffect(() => {
     // Allow up to 1200ms to restore trip state from storage / network before showing unjoined gate
@@ -120,9 +136,7 @@ function TripGateInner({ uid }: { uid: string }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const mine = members.find((m) => m.userId === uid);
-
-  if (restoring && (!trip?.id || (!mine && members.length === 0))) {
+  if (restoring && (!trip?.id || (!mine && !isHost && members.length === 0))) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <Icon name="sync" className="animate-spin text-[40px] text-primary" />
@@ -131,7 +145,7 @@ function TripGateInner({ uid }: { uid: string }) {
     );
   }
 
-  if (trip?.id && mine && !mine.approved)
+  if (trip?.id && mine && !mine.approved && !isHost)
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <Icon name="hourglass_top" className="text-[40px] text-tertiary" />
@@ -143,24 +157,134 @@ function TripGateInner({ uid }: { uid: string }) {
         </Link>
       </div>
     );
-  if (!trip?.id || !mine)
+
+  if (!trip?.id || (!mine && !isHost))
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <Icon name="location_off" className="text-[40px] text-tertiary" />
-        <p className="max-w-xs text-muted-foreground">
-          Join the trip and agree to share before opening the live map.
+        <h2 className="text-[20px] font-semibold text-foreground">No Active Convoy</h2>
+        <p className="max-w-xs text-muted-foreground text-[14px]">
+          Join a shared convoy or scan a host's QR code before opening live navigation.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Link to="/lobby" className={btn()}>
-            Go to trip lobby
-          </Link>
-          <Link to="/create" className={btn({ variant: "secondary" })}>
-            Create trip
-          </Link>
+        <div className="flex flex-col gap-2.5 w-full max-w-xs mt-2">
+          <button
+            type="button"
+            onClick={() => setQrScannerOpen(true)}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-semibold text-[15px] shadow-sm hover:bg-primary-pressed active:scale-95 transition-all cursor-pointer"
+          >
+            <Icon name="qr_code_scanner" className="text-[20px]" />
+            Scan Host QR Code
+          </button>
+          <button
+            type="button"
+            onClick={() => setJoinModalOpen(true)}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card text-foreground font-semibold text-[15px] shadow-2xs hover:bg-secondary active:scale-95 transition-all cursor-pointer"
+          >
+            <Icon name="pin" className="text-[19px] text-primary" />
+            Enter Convoy Code
+          </button>
+          <div className="flex items-center gap-2 mt-2">
+            <Link to="/lobby" className={btn({ variant: "secondary", className: "flex-1 text-[13px] h-10" })}>
+              Trip lobby
+            </Link>
+            <Link to="/create" className={btn({ variant: "quiet", className: "flex-1 text-[13px] h-10 text-muted-foreground" })}>
+              Create trip
+            </Link>
+          </div>
         </div>
+
+        {/* Camera QR Scanner */}
+        <QrScannerModal
+          open={qrScannerOpen}
+          onClose={() => setQrScannerOpen(false)}
+          onScan={(scannedCode) => {
+            setQrScannerOpen(false);
+            nav({ to: "/join/$code", params: { code: scannedCode } });
+          }}
+        />
+
+        {/* Enter Code Modal */}
+        {joinModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-xs"
+            onClick={() => setJoinModalOpen(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-[20px] border border-border bg-card p-5 shadow-float animate-in fade-in zoom-in-95 duration-150 text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon name="group_add" className="text-primary text-[22px]" />
+                  <h3 className="text-[18px] font-semibold text-foreground">Join Convoy</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setJoinModalOpen(false)}
+                  className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground cursor-pointer"
+                >
+                  <Icon name="close" className="text-[20px]" />
+                </button>
+              </div>
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Enter the code shared by your convoy leader:
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const c = joinCode.trim();
+                  if (c) nav({ to: "/join/$code", params: { code: c } });
+                }}
+                className="mt-4 space-y-3"
+              >
+                <div className="relative">
+                  <input
+                    value={joinCode}
+                    onChange={(e) =>
+                      setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))
+                    }
+                    placeholder="e.g. 7K9M2P"
+                    autoFocus
+                    maxLength={8}
+                    className="h-12 w-full rounded-xl border border-border bg-secondary pl-4 pr-12 font-mono text-[17px] font-bold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 uppercase tracking-widest text-center shadow-xs"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJoinModalOpen(false);
+                        setQrScannerOpen(true);
+                      }}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+                      title="Open Camera QR Scanner"
+                    >
+                      <Icon name="photo_camera" className="text-[18px]" />
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full h-11 text-[14px]" disabled={!joinCode.trim()}>
+                  Continue to Convoy
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
-  return <LiveTrip uid={uid} members={members} mine={mine} />;
+
+  const effectiveMine: Member = mine ?? {
+    userId: uid,
+    letter: "A",
+    displayName: me.displayName || "Host",
+    vehicleLabel: me.vehicleLabel || "Lead Vehicle",
+    vehicleType: me.vehicleType || "car",
+    color: me.color || "v1",
+    role: "driver",
+    ready: true,
+    approved: true,
+  };
+
+  return <LiveTrip uid={uid} members={members} mine={effectiveMine} />;
 }
 
 const QUICK = [
@@ -302,12 +426,28 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
 
+  const [isHeadsUp, setIsHeadsUp] = useState(false);
+  const myHeading = vehicles.find((v) => v.isMe)?.realHeading ?? geo.fix?.heading ?? 0;
+
   const handleResetNorth = useCallback(() => {
     navigator.vibrate?.(30);
+    setIsHeadsUp(false);
     setBearing(0);
     setResetNorthKey((k) => k + 1);
     setCamera({ mode: "north" });
   }, []);
+
+  const handleToggleCompass = useCallback(() => {
+    navigator.vibrate?.(35);
+    if (isHeadsUp || Math.abs(bearing) > 2) {
+      handleResetNorth();
+    } else {
+      setIsHeadsUp(true);
+      const target = Math.round(myHeading);
+      setBearing(target);
+      setCamera({ mode: "follow" });
+    }
+  }, [isHeadsUp, bearing, myHeading, handleResetNorth]);
 
   const lastAlert = useRef<Record<string, number>>({});
   const prevStatus = useRef<Record<string, MemberStatus>>({});
@@ -1163,6 +1303,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         }}
         onBearingChange={setBearing}
         resetNorthKey={resetNorthKey}
+        headingUp={isHeadsUp}
+        userHeading={myHeading}
         onUserPan={handleUserPan}
         zoomAction={zoomAction}
         mapStyle={mapStyle}
@@ -1213,8 +1355,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         })}
       />
 
-      {/* TOP: Google Maps Navigation Header (Image 2 style) with Safe-Area clearance */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2.5 px-3 pb-3 pt-[max(env(safe-area-inset-top),28px)] z-30">
+      {/* TOP: Google Maps Navigation Header with Safe-Area clearance */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-2 px-3 pb-2 pt-[max(env(safe-area-inset-top),10px)] z-30">
         {/* Navigation Turn-by-Turn Card (Emerald Pine Header) */}
         {nextStep && toNextM !== null ? (
           <div
@@ -1577,24 +1719,29 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
         </div>
       )}
 
-      {/* Dynamic Navigation Compass Rose (Positioned distinctly on top-left below turn guidance) */}
-      <div className="absolute left-3.5 top-[calc(max(env(safe-area-inset-top),16px)+148px)] z-20">
+      {/* Dynamic Navigation Compass Rose (Positioned on top-right above driving actions) */}
+      <div className="absolute right-3.5 top-20 sm:top-22 z-20">
         <button
           type="button"
-          aria-label="Compass: Tap to point North"
-          onClick={handleResetNorth}
+          aria-label={isHeadsUp ? "Heads-Up active: Tap to align North-Up" : "North-Up active: Tap to follow heading"}
+          onClick={handleToggleCompass}
           className={cn(
-            "flex flex-col items-center justify-center rounded-2xl bg-card/95 shadow-float border border-border/80 transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md p-2",
+            "flex flex-col items-center justify-center rounded-2xl bg-card/95 shadow-float border border-border/80 transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md p-1.5",
             ctl,
+            isHeadsUp && "ring-2 ring-primary/60",
           )}
-          title={`Heading: ${Math.round(bearing)}° • Tap to point North`}
+          title={
+            isHeadsUp
+              ? `Heads-Up (${Math.round(bearing)}°) • Tap to align North`
+              : `North-Up • Tap to align with driving direction`
+          }
         >
           <div
             style={{
               transform: `rotate(${-bearing}deg)`,
-              transition: "transform 150ms ease-out",
+              transition: "transform 180ms ease-out",
             }}
-            className="relative flex h-7 w-7 items-center justify-center"
+            className="relative flex h-6 w-6 items-center justify-center"
           >
             <svg viewBox="0 0 24 24" className="h-full w-full pointer-events-none">
               {/* North Pointer (Red) */}
@@ -1607,8 +1754,8 @@ function LiveTrip({ uid, members, mine }: { uid: string; members: Member[]; mine
               <circle cx="12" cy="12" r="1.5" className="fill-foreground" />
             </svg>
           </div>
-          <span className="text-[10px] font-mono font-bold text-foreground leading-none mt-1">
-            {getCardinalDirection(bearing)}
+          <span className="text-[9px] font-mono font-bold text-foreground leading-none mt-0.5">
+            {isHeadsUp ? getCardinalDirection(bearing) : "N"}
           </span>
         </button>
       </div>

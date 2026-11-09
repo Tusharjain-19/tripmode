@@ -130,10 +130,10 @@ function Home() {
 
   return (
     <Screen maxWidth="max-w-7xl" className="px-3 sm:px-6 lg:px-8">
-      {/* Top Application Header */}
-      <header className="flex h-12 sm:h-14 items-center justify-between border-b border-border/60 py-1">
+      {/* Top Application Header - Compact driving clearance */}
+      <header className="flex h-11 sm:h-12 items-center justify-between border-b border-border/60 py-0 sm:py-0.5">
         <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
-          <Logo variant="full" size={42} />
+          <Logo variant="full" size={36} />
         </Link>
 
         {/* Header Right Controls */}

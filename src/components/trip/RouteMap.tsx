@@ -48,6 +48,8 @@ export type RouteMapProps = {
   onVehicleClick?: (id: string) => void;
   onBearingChange?: (bearing: number) => void;
   resetNorthKey?: number;
+  headingUp?: boolean;
+  userHeading?: number;
   onUserPan?: () => void;
   zoomAction?: { dir: "in" | "out"; ts: number } | undefined;
   interactive?: boolean;

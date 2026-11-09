@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { JoinSteps } from "@/components/trip/JoinSteps";
 import { ShareCardModal } from "@/components/trip/ShareCardModal";
+import { QrScannerModal } from "@/components/trip/QrScannerModal";
 import { RouteMap } from "@/components/trip/RouteMap";
 import {
   btn,
@@ -26,6 +27,7 @@ import {
   updateTripRemote,
   useMembers,
   useRestoreTrip,
+  useTripStatus,
   type Member,
 } from "@/lib/trip-sync";
 import { soundFx } from "@/lib/sound";
@@ -66,7 +68,9 @@ function Lobby({ session }: { session: Session }) {
   const [qrOpen, setQrOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>("");
+  const [scannerOpen, setScannerOpen] = useState(false);
   const members = useMembers(trip?.id);
+  const tripStatus = useTripStatus(trip?.id);
   const mine = members.find((m) => m.userId === uid);
   const others = members.filter((m) => m.userId !== uid && m.approved);
   const pending = members.filter((m) => m.userId !== uid && !m.approved);
@@ -100,6 +104,14 @@ function Lobby({ session }: { session: Session }) {
     ready: me.ready,
     approved: true,
   };
+
+  // Synchronized departure: when host starts convoy, tripStatus updates to "live" and auto-departs all members
+  useEffect(() => {
+    if (tripStatus === "live" && (effectiveMine.approved || isHost)) {
+      soundFx.departChime();
+      nav({ to: "/trip" });
+    }
+  }, [tripStatus, effectiveMine.approved, isHost, nav]);
 
   const [customizing, setCustomizing] = useState(false);
   const [customType, setCustomType] = useState<"car" | "bike">(
@@ -142,12 +154,34 @@ function Lobby({ session }: { session: Session }) {
           <Icon name="explore_off" className="text-[48px] text-tertiary" />
           <h2 className="mt-4 text-[20px] font-semibold">No active convoy found</h2>
           <p className="mt-1 text-muted-foreground text-[14px]">
-            Start a trip first, then invite your group.
+            Start a new convoy or scan a host's QR code to join an existing trip.
           </p>
-          <Link to="/create" className={btn({ className: "mt-6" })}>
-            Start a trip
-          </Link>
+          <div className="mt-6 flex flex-col gap-2.5 w-full">
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-semibold text-[15px] shadow-sm hover:bg-primary-pressed active:scale-95 transition-all cursor-pointer"
+            >
+              <Icon name="qr_code_scanner" className="text-[20px]" />
+              Scan QR Code to Join
+            </button>
+            <Link to="/create" className={btn({ variant: "secondary", className: "w-full h-12" })}>
+              <Icon name="add_road" className="text-[20px]" />
+              Start a new trip
+            </Link>
+            <Link to="/" className={btn({ variant: "quiet", className: "w-full h-11 text-muted-foreground" })}>
+              Back to home
+            </Link>
+          </div>
         </div>
+        <QrScannerModal
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={(scannedCode) => {
+            setScannerOpen(false);
+            nav({ to: "/join/$code", params: { code: scannedCode } });
+          }}
+        />
       </Screen>
     );
 
@@ -766,7 +800,12 @@ function Lobby({ session }: { session: Session }) {
               size="lg"
               onClick={() => {
                 tripStore.updateMe({ ready: true });
-                if (trip.id) void updateMemberRemote(trip.id, uid, { ready: true });
+                if (trip.id) {
+                  void updateMemberRemote(trip.id, uid, { ready: true });
+                  if (isHost) {
+                    void updateTripRemote(trip.id, { status: "live" });
+                  }
+                }
                 nav({ to: "/trip" });
               }}
             >

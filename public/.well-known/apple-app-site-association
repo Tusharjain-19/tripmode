@@ -1,0 +1,44 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMIDPREFIX.app.tripmode.convoy",
+        "paths": [
+          "/join/*",
+          "/lobby*",
+          "/trip*",
+          "/summary*",
+          "/create*"
+        ],
+        "components": [
+          {
+            "/": "/join/*",
+            "comment": "Join convoy by invite code"
+          },
+          {
+            "/": "/lobby*",
+            "comment": "Convoy pre-trip staging lobby"
+          },
+          {
+            "/": "/trip*",
+            "comment": "Live convoy active driving mode"
+          },
+          {
+            "/": "/summary*",
+            "comment": "Post-trip statistics and achievements"
+          },
+          {
+            "/": "/create*",
+            "comment": "Create a new road trip convoy"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAMIDPREFIX.app.tripmode.convoy"
+    ]
+  }
+}

@@ -1,0 +1,291 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		TM001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = TM000001 /* AppDelegate.swift */; };
+		TM001002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = TM000002 /* SceneDelegate.swift */; };
+		TM001003 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TM000003 /* ViewController.swift */; };
+		TM001004 /* ConvoyCarPlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TM000004 /* ConvoyCarPlayManager.swift */; };
+		TM001005 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = TM000005 /* CarPlaySceneDelegate.swift */; };
+		TM001006 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = TM000006 /* Assets.xcassets */; };
+		TM001007 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = TM000007 /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		TM000000 /* TripMode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TripMode.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		TM000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		TM000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		TM000003 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		TM000004 /* ConvoyCarPlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvoyCarPlayManager.swift; sourceTree = "<group>"; };
+		TM000005 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		TM000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		TM000007 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		TM000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		TM000009 /* TripMode.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TripMode.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		TM002000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		TM003000 = {
+			isa = PBXGroup;
+			children = (
+				TM003001 /* TripMode */,
+				TM003002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		TM003001 /* TripMode */ = {
+			isa = PBXGroup;
+			children = (
+				TM000001 /* AppDelegate.swift */,
+				TM000002 /* SceneDelegate.swift */,
+				TM000003 /* ViewController.swift */,
+				TM003003 /* CarPlay */,
+				TM000006 /* Assets.xcassets */,
+				TM000007 /* LaunchScreen.storyboard */,
+				TM000008 /* Info.plist */,
+				TM000009 /* TripMode.entitlements */,
+			);
+			path = TripMode;
+			sourceTree = "<group>";
+		};
+		TM003002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				TM000000 /* TripMode.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		TM003003 /* CarPlay */ = {
+			isa = PBXGroup;
+			children = (
+				TM000004 /* ConvoyCarPlayManager.swift */,
+				TM000005 /* CarPlaySceneDelegate.swift */,
+			);
+			path = CarPlay;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		TM004000 /* TripMode */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TM005000 /* Build configuration list for PBXNativeTarget "TripMode" */;
+			buildPhases = (
+				TM006000 /* Sources */,
+				TM002000 /* Frameworks */,
+				TM007000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TripMode;
+			productName = TripMode;
+			productReference = TM000000 /* TripMode.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		TM008000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					TM004000 = {
+						CreatedOnToolsVersion = 15.0;
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = TM009000 /* Build configuration list for PBXProject "TripMode" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = TM003000;
+			productRefGroup = TM003002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				TM004000 /* TripMode */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		TM007000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TM001006 /* Assets.xcassets in Resources */,
+				TM001007 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		TM006000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TM001001 /* AppDelegate.swift in Sources */,
+				TM001002 /* SceneDelegate.swift in Sources */,
+				TM001003 /* ViewController.swift in Sources */,
+				TM001004 /* ConvoyCarPlayManager.swift in Sources */,
+				TM001005 /* CarPlaySceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		TM00A001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		TM00A002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = "wholemodule";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		TM00B001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = TripMode/TripMode.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TripMode/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.4;
+				PRODUCT_BUNDLE_IDENTIFIER = app.tripmode.convoy;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		TM00B002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = TripMode/TripMode.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TripMode/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.4;
+				PRODUCT_BUNDLE_IDENTIFIER = app.tripmode.convoy;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		TM005000 /* Build configuration list for PBXNativeTarget "TripMode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TM00B001 /* Debug */,
+				TM00B002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TM009000 /* Build configuration list for PBXProject "TripMode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TM00A001 /* Debug */,
+				TM00A002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = TM008000 /* Project object */;
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Apple Universal Links Associated Domains -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:tripmode-orcin.vercel.app</string>
+		<string>applinks:tripmode.app</string>
+		<string>applinks:www.tripmode.app</string>
+	</array>
+
+	<!-- Apple CarPlay Navigation Entitlement -->
+	<key>com.apple.developer.carplay-navigation</key>
+	<true/>
+</dict>
+</plist>

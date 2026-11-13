@@ -1,0 +1,52 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build & Verify iOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Show Xcode & SDK Info
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Build iOS App (Archive)
+        run: |
+          xcodebuild archive \
+            -project ios/TripMode.xcodeproj \
+            -scheme TripMode \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/TripMode.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Export Payload to Unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/TripMode.xcarchive/Products/Applications/TripMode.app build/Payload/
+          cd build && zip -r TripMode-unsigned.ipa Payload
+
+      - name: Upload iOS Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TripMode-iOS-Build
+          path: |
+            build/TripMode-unsigned.ipa
+            build/TripMode.xcarchive

@@ -48,7 +48,11 @@ export const Route = createFileRoute("/lobby")({
         content: "Invite your group, pick your vehicle and get ready to depart.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
     ],
   }),
   component: LobbyGate,
@@ -117,12 +121,8 @@ function Lobby({ session }: { session: Session }) {
   const [customType, setCustomType] = useState<"car" | "bike">(
     () => effectiveMine.vehicleType ?? "car",
   );
-  const [customLabel, setCustomLabel] = useState(
-    () => effectiveMine.vehicleLabel ?? "My car",
-  );
-  const [customColor, setCustomColor] = useState<VehicleColor>(
-    () => effectiveMine.color ?? "v1",
-  );
+  const [customLabel, setCustomLabel] = useState(() => effectiveMine.vehicleLabel ?? "My car");
+  const [customColor, setCustomColor] = useState<VehicleColor>(() => effectiveMine.color ?? "v1");
   const takenColors = others.map((o) => o.color);
 
   const link =
@@ -169,7 +169,10 @@ function Lobby({ session }: { session: Session }) {
               <Icon name="add_road" className="text-[20px]" />
               Start a new trip
             </Link>
-            <Link to="/" className={btn({ variant: "quiet", className: "w-full h-11 text-muted-foreground" })}>
+            <Link
+              to="/"
+              className={btn({ variant: "quiet", className: "w-full h-11 text-muted-foreground" })}
+            >
               Back to home
             </Link>
           </div>
@@ -282,7 +285,8 @@ function Lobby({ session }: { session: Session }) {
   };
 
   const activeRoute = ROUTES[trip.routeIndex] ?? ROUTES[0];
-  const allReady = (effectiveMine.ready ?? me.ready) && others.length > 0 && others.every((o) => o.ready);
+  const allReady =
+    (effectiveMine.ready ?? me.ready) && others.length > 0 && others.every((o) => o.ready);
 
   return (
     <Screen
@@ -312,12 +316,16 @@ function Lobby({ session }: { session: Session }) {
                 className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-card text-[12px] font-semibold text-foreground hover:bg-secondary cursor-pointer shadow-xs active:scale-95 transition-all"
                 title="Copy invite link"
               >
-                <Icon name={copied ? "check" : "content_copy"} className="text-[15px] text-primary" />
+                <Icon
+                  name={copied ? "check" : "content_copy"}
+                  className="text-[15px] text-primary"
+                />
                 <span>{copied ? "Copied!" : "Copy Link"}</span>
               </button>
             </div>
             <p className="mt-2 text-[13px] text-muted-foreground">
-              Share this code or tap WhatsApp below. Friends can enter this code in the app or open the link directly.
+              Share this code or tap WhatsApp below. Friends can enter this code in the app or open
+              the link directly.
             </p>
           </div>
 
@@ -394,13 +402,13 @@ function Lobby({ session }: { session: Session }) {
             </div>
           </div>
 
-          {/* Invite Sheet */}
+          {/* Convoy Link & Host Security Controls */}
           <section className="rounded-[20px] border border-border bg-card p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Icon name="share" className="text-primary text-[20px]" />
-                <h2 className="text-[16px] sm:text-[17px] font-semibold text-foreground">
-                  Invite Convoy Members
+                <Icon name="link" className="text-primary text-[20px]" />
+                <h2 className="text-[15px] sm:text-[16px] font-semibold text-foreground">
+                  Direct Convoy Link
                 </h2>
               </div>
               <span className="text-[12px] text-tertiary">Expires in 24 h</span>
@@ -411,39 +419,23 @@ function Lobby({ session }: { session: Session }) {
                 This invite link has been revoked. Existing members remain connected.
               </p>
             ) : (
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5">
-                <Icon name="link" className="text-muted-foreground text-[18px] shrink-0" />
-                <span className="flex-1 truncate font-mono text-[13px]">{link}</span>
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary/80 border border-border px-3 py-2.5">
+                <span className="flex-1 truncate font-mono text-[13px] text-foreground">
+                  {link}
+                </span>
+                <button
+                  type="button"
+                  onClick={share}
+                  className="shrink-0 text-[12px] font-semibold text-primary hover:underline cursor-pointer px-1"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
               </div>
             )}
 
-            <div className="mt-3.5 flex flex-wrap gap-2.5">
-              <Button
-                onClick={share}
-                disabled={trip.inviteRevoked}
-                className="flex-1 cursor-pointer"
-              >
-                <Icon name={copied ? "check" : "share"} />
-                {copied ? "Link Copied!" : "Share Link"}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setShareCardOpen(true)}
-                className="cursor-pointer bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 hover:bg-[#25D366]/20"
-                title="WhatsApp & Social Card Poster"
-              >
-                <Icon name="chat" />
-                WhatsApp Card
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setQrOpen(true)}
-                className="cursor-pointer"
-              >
-                <Icon name="qr_code_2" />
-                QR Code
-              </Button>
-              {isHost && (
+            {isHost && (
+              <div className="mt-3.5 pt-3 border-t border-border/60 flex items-center justify-between gap-2">
+                <span className="text-[12px] text-muted-foreground">Host Link Controls</span>
                 <Button
                   variant="quiet"
                   onClick={() => {
@@ -455,13 +447,14 @@ function Lobby({ session }: { session: Session }) {
                         invite_revoked: false,
                       });
                   }}
-                  title="Generate new invite link"
-                  className="cursor-pointer"
+                  title="Generate new invite code"
+                  className="cursor-pointer text-[12px] h-8"
                 >
-                  <Icon name="refresh" />
+                  <Icon name="refresh" className="text-[16px]" />
+                  <span>New Code</span>
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         </div>
 
@@ -472,7 +465,12 @@ function Lobby({ session }: { session: Session }) {
             <section className="rounded-[20px] border border-caution/50 bg-caution/5 p-4 sm:p-5 shadow-xs">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className={cn("flex h-2.5 w-2.5 rounded-full bg-caution", pending.length > 0 && "animate-ping")} />
+                  <span
+                    className={cn(
+                      "flex h-2.5 w-2.5 rounded-full bg-caution",
+                      pending.length > 0 && "animate-ping",
+                    )}
+                  />
                   <h2 className="text-[15px] sm:text-[16px] font-semibold text-foreground">
                     Waiting for your approval ({pending.length})
                   </h2>
@@ -487,7 +485,11 @@ function Lobby({ session }: { session: Session }) {
               {pending.length === 0 ? (
                 <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border/70 text-[13px] text-muted-foreground shadow-2xs">
                   <Icon name="group_add" className="text-[22px] text-primary shrink-0" />
-                  <span>Friends joining with convoy code <strong className="font-mono text-foreground">{trip.inviteCode}</strong> will appear here for one-tap approval.</span>
+                  <span>
+                    Friends joining with convoy code{" "}
+                    <strong className="font-mono text-foreground">{trip.inviteCode}</strong> will
+                    appear here for one-tap approval.
+                  </span>
                 </div>
               ) : (
                 <ul className="divide-y divide-border/60 rounded-[16px] border border-border bg-card overflow-hidden shadow-xs">
@@ -505,7 +507,9 @@ function Lobby({ session }: { session: Session }) {
                           <div className="text-[13px] text-muted-foreground flex items-center gap-1.5">
                             <span className="font-medium text-foreground">{o.vehicleLabel}</span>
                             <span>•</span>
-                            <span className="capitalize">{o.vehicleType === "bike" ? "Two-wheeler" : "Car"}</span>
+                            <span className="capitalize">
+                              {o.vehicleType === "bike" ? "Two-wheeler" : "Car"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -742,7 +746,9 @@ function Lobby({ session }: { session: Session }) {
                                   : `Color ${i + 1}`
                               }
                             >
-                              {customColor === c && <Icon name="check" className="text-[22px] font-bold" />}
+                              {customColor === c && (
+                                <Icon name="check" className="text-[22px] font-bold" />
+                              )}
                               {isTaken && (
                                 <Icon name="lock" className="text-[14px] text-white absolute" />
                               )}
@@ -809,7 +815,10 @@ function Lobby({ session }: { session: Session }) {
                 }}
               >
                 <Icon name="navigation" />
-                Start Convoy Navigation {others.length > 0 ? `(${members.filter((m) => m.approved && m.ready).length}/${others.length + 1} Ready)` : ""}
+                Start Convoy Navigation{" "}
+                {others.length > 0
+                  ? `(${members.filter((m) => m.approved && m.ready).length}/${others.length + 1} Ready)`
+                  : ""}
               </Button>
             ) : (
               <div className="flex flex-col gap-2 w-full">

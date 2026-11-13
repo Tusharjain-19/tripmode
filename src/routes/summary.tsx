@@ -17,7 +17,11 @@ export const Route = createFileRoute("/summary")({
         content: "Distance, duration, arrivals and the longest gap for your trip.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
     ],
   }),
   component: Summary,
@@ -145,7 +149,10 @@ function Summary() {
                 Convoy Discipline: {discipline.score}%
               </div>
               <div className="text-[13px] text-muted-foreground">
-                {discipline.inFormationPercent}% time in formation • {discipline.strayCount === 0 ? "Zero off-route strays" : `${discipline.strayCount} strays recovered`}
+                {discipline.inFormationPercent}% time in formation •{" "}
+                {discipline.strayCount === 0
+                  ? "Zero off-route strays"
+                  : `${discipline.strayCount} strays recovered`}
               </div>
             </div>
           </div>
@@ -173,7 +180,11 @@ function Summary() {
                 <span className="font-mono text-[13px] font-bold text-muted-foreground w-4 text-center">
                   {i + 1}
                 </span>
-                <VehicleChip letter={String.fromCharCode(65 + i)} color={a.color ?? "v1"} size={32} />
+                <VehicleChip
+                  letter={String.fromCharCode(65 + i)}
+                  color={a.color ?? "v1"}
+                  size={32}
+                />
                 <div className="flex-1 min-w-0">
                   <span className="font-medium text-[15px] truncate block text-foreground">
                     {a.name || `Vehicle ${i + 1}`}
@@ -257,7 +268,9 @@ function ConvoyReelPlayer({
             <Icon name="movie" className="text-[20px]" />
           </span>
           <div>
-            <h3 className="text-[15px] sm:text-[16px] font-bold text-foreground">Post-Trip Convoy Reel</h3>
+            <h3 className="text-[15px] sm:text-[16px] font-bold text-foreground">
+              Post-Trip Convoy Reel
+            </h3>
             <p className="text-[12px] text-muted-foreground">Animated route formation playback</p>
           </div>
         </div>
@@ -297,7 +310,11 @@ function ConvoyReelPlayer({
                   transitionDuration: playing ? "50ms" : "300ms",
                 }}
               >
-                <VehicleChip letter={String.fromCharCode(65 + i)} color={(a.color as never) || "v1"} size={28} />
+                <VehicleChip
+                  letter={String.fromCharCode(65 + i)}
+                  color={(a.color as never) || "v1"}
+                  size={28}
+                />
               </div>
             );
           })}

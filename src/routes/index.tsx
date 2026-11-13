@@ -24,7 +24,11 @@ export const Route = createFileRoute("/")({
           "See all vehicles on one shared map, monitor convoy gaps in real time, coordinate pitstops, and talk hands-free.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
     ],
   }),
   component: Home,
@@ -516,7 +520,12 @@ function Home() {
                 <input
                   value={code}
                   onChange={(e) =>
-                    setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))
+                    setCode(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, "")
+                        .slice(0, 8),
+                    )
                   }
                   placeholder="e.g. 7K9M2P"
                   autoFocus

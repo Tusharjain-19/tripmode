@@ -138,26 +138,38 @@ export function Screen({
     <div className="min-h-screen bg-background transition-colors duration-200">
       <div
         className={cn(
-          "screen-in mx-auto flex min-h-screen flex-col px-3 sm:px-4 pt-0 sm:pt-1 pb-8",
+          "screen-in mx-auto flex min-h-screen flex-col px-4 sm:px-6 lg:px-8 pt-[max(env(safe-area-inset-top),10px)] sm:pt-4 pb-8",
           maxWidth,
           className,
         )}
       >
         {(title || back || headerRight) && (
-          <header className="flex h-12 sm:h-13 items-center justify-between gap-2 py-0.5">
-            <div className="flex items-center gap-2">
+          <header className="flex min-h-[56px] sm:min-h-[64px] items-center justify-between gap-3 py-2 sm:py-2.5 mb-2 sm:mb-3 border-b border-border/40">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               {back && (
                 <Link
                   to={back}
-                  className={btn({ variant: "quiet", size: "icon" })}
+                  className={btn({
+                    variant: "quiet",
+                    size: "icon",
+                    className:
+                      "h-10 w-10 shrink-0 rounded-xl hover:bg-secondary/80 active:scale-95 transition-all",
+                  })}
                   aria-label="Back"
                 >
-                  <Icon name="arrow_back" />
+                  <Icon name="arrow_back" className="text-[22px]" />
                 </Link>
               )}
-              {title && <h1 className="text-[18px] font-semibold">{title}</h1>}
+              {title && (
+                <h1
+                  className="text-[17px] sm:text-[20px] font-bold tracking-tight text-foreground truncate min-w-0 flex-1 leading-normal"
+                  title={title}
+                >
+                  {title}
+                </h1>
+              )}
             </div>
-            {headerRight && <div className="flex items-center gap-2">{headerRight}</div>}
+            {headerRight && <div className="flex items-center gap-2 shrink-0">{headerRight}</div>}
           </header>
         )}
         {children}

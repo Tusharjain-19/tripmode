@@ -2,7 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { RouteMap } from "@/components/trip/RouteMap";
-import { Button, Field, Icon, Screen, Segmented, VehicleChip, vehicleBg } from "@/components/trip/ui";
+import {
+  Button,
+  Field,
+  Icon,
+  Screen,
+  Segmented,
+  VehicleChip,
+  vehicleBg,
+} from "@/components/trip/ui";
 import {
   fetchRoutes,
   PLACES,
@@ -43,7 +51,11 @@ export const Route = createFileRoute("/create")({
         content: "Pick a destination, agree on one route and set the convoy rules.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://tripmode-orcin.vercel.app/og-image.png" },
     ],
   }),
   component: Create,
@@ -146,9 +158,7 @@ function CreateInner({ session }: { session: Session }) {
   const [hostVehicleLabel, setHostVehicleLabel] = useState(
     () => tripStore.get().me.vehicleLabel || "Lead Vehicle",
   );
-  const [hostColor, setHostColor] = useState<VehicleColor>(
-    () => tripStore.get().me.color || "v1",
-  );
+  const [hostColor, setHostColor] = useState<VehicleColor>(() => tripStore.get().me.color || "v1");
 
   const lastCreatedTime = useRef(0);
 
@@ -395,7 +405,8 @@ function CreateInner({ session }: { session: Session }) {
                   </h3>
                 </div>
                 <p className="text-[13px] text-muted-foreground leading-relaxed">
-                  Search any college, landmark, city, or address across India. Your starting point defaults to your current GPS position.
+                  Search any college, landmark, city, or address across India. Your starting point
+                  defaults to your current GPS position.
                 </p>
                 <div className="mt-3.5 space-y-2 text-[12px] text-muted-foreground">
                   <div className="flex items-center gap-2">
@@ -404,7 +415,9 @@ function CreateInner({ session }: { session: Session }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Icon name="alt_route" className="text-primary text-[16px]" />
-                    <span>Calculates turn-by-turn highway corridors across Indian road network</span>
+                    <span>
+                      Calculates turn-by-turn highway corridors across Indian road network
+                    </span>
                   </div>
                 </div>
               </div>
@@ -631,10 +644,19 @@ function CreateInner({ session }: { session: Session }) {
               <div className="rounded-[18px] border border-primary/30 bg-primary/5 p-4 sm:p-5 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <VehicleChip letter="A" color={hostColor} vehicleType={hostVehicleType} size={34} />
+                    <VehicleChip
+                      letter="A"
+                      color={hostColor}
+                      vehicleType={hostVehicleType}
+                      size={34}
+                    />
                     <div>
-                      <span className="font-semibold text-[15px] text-foreground block leading-tight">Your Vehicle</span>
-                      <span className="text-[11px] text-primary font-bold uppercase tracking-wider">Convoy Lead</span>
+                      <span className="font-semibold text-[15px] text-foreground block leading-tight">
+                        Your Vehicle
+                      </span>
+                      <span className="text-[11px] text-primary font-bold uppercase tracking-wider">
+                        Convoy Lead
+                      </span>
                     </div>
                   </div>
                   <Segmented
@@ -662,8 +684,14 @@ function CreateInner({ session }: { session: Session }) {
                 />
 
                 <div>
-                  <div className="mb-2 text-[12px] font-medium text-foreground">Vehicle Color Chip</div>
-                  <div role="radiogroup" aria-label="Lead vehicle color" className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  <div className="mb-2 text-[12px] font-medium text-foreground">
+                    Vehicle Color Chip
+                  </div>
+                  <div
+                    role="radiogroup"
+                    aria-label="Lead vehicle color"
+                    className="grid grid-cols-4 sm:grid-cols-8 gap-2"
+                  >
                     {VEHICLE_COLORS.map((c, i) => (
                       <button
                         key={c}
@@ -674,7 +702,8 @@ function CreateInner({ session }: { session: Session }) {
                         className={cn(
                           "relative flex aspect-square items-center justify-center rounded-[10px] transition-all cursor-pointer shadow-xs active:scale-95",
                           vehicleBg(c),
-                          hostColor === c && "outline-3 outline-offset-2 outline-primary scale-105 shadow-sm",
+                          hostColor === c &&
+                            "outline-3 outline-offset-2 outline-primary scale-105 shadow-sm",
                         )}
                         title={`Color ${i + 1}`}
                       >
